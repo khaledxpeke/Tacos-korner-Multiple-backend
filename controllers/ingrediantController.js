@@ -17,6 +17,7 @@ const upload = multer({ storage: multerStorage });
 
 exports.createIngredient = async (req, res, next) => {
   req.uploadTarget = "ingrediants";
+  const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
@@ -36,7 +37,10 @@ exports.createIngredient = async (req, res, next) => {
     const userId = req.user.user._id;
     const image = `uploads/ingrediants/${req.file?.filename}` || "";
     try {
-      const nameAlreadyExist = await Ingrediant.findOne({ name });
+      const nameAlreadyExist = await Ingrediant.findOne({
+        name: name,
+        restaurantId,
+      });
       if (nameAlreadyExist) {
         return res.status(400).json({ message: "Ingrediant déja existant" });
       }
@@ -62,6 +66,7 @@ exports.createIngredient = async (req, res, next) => {
         visible,
         suppPrice,
         createdBy: userId,
+        restaurantId,
       });
       if (price) {
         ingredient.price = price;
@@ -71,7 +76,7 @@ exports.createIngredient = async (req, res, next) => {
         .status(201)
         .json({ ingredient, message: "ingrediant créer avec succées" });
     } catch (error) {
-      res.status(400).json({
+      return res.status(400).json({
         message: "Une erreur s'est produite",
         error: error.message,
       });
@@ -113,9 +118,9 @@ exports.createIngredient = async (req, res, next) => {
 //     await product.save();
 //     ingrediant.product.push(productId);
 //     await ingrediant.save();
-//     res.status(200).json(product);
+//     return res.status(200).json(product);
 //   } catch (error) {
-//     res.status(500).json({
+//     return res.status(500).json({
 //       message:
 //         "Une erreur s'est produite lors de l'ajout de l'ingrédient au produit",
 //       error: error.message,
@@ -128,9 +133,9 @@ exports.createIngredient = async (req, res, next) => {
 //     const ingrediants = await Ingrediant.find({ product: productId }).populate(
 //       "types"
 //     );
-//     res.status(200).json(ingrediants);
+//     return res.status(200).json(ingrediants);
 //   } catch (error) {
-//     res.status(400).json({
+//     return res.status(400).json({
 //       message: "Aucun ingrediant trouvé",
 //       error: error.message,
 //     });
@@ -145,9 +150,9 @@ exports.createIngredient = async (req, res, next) => {
 //       product: productId,
 //       types: typeId,
 //     }).populate("types");
-//     res.status(200).json(ingrediants);
+//     return res.status(200).json(ingrediants);
 //   } catch (error) {
-//     res.status(500).json({
+//     return res.status(500).json({
 //       message: "Une erreur s'est produite",
 //       error: error.message,
 //     });
@@ -156,10 +161,13 @@ exports.createIngredient = async (req, res, next) => {
 
 exports.getAllIngrediants = async (req, res, next) => {
   try {
-    const ingrediants = await Ingrediant.find().populate("types");
-    res.status(200).json(ingrediants);
+    const { restaurantId } = req;
+    const ingrediants = await Ingrediant.find({ restaurantId }).populate(
+      "types"
+    );
+    return res.status(200).json(ingrediants);
   } catch (error) {
-    res.status(400).json({
+    return res.status(400).json({
       message: "Aucun ingrediant trouvé",
       error: error.message,
     });
@@ -189,9 +197,9 @@ exports.getAllIngrediants = async (req, res, next) => {
 //       }
 //     });
 
-//     res.status(200).json(ingrediantsByType);
+//     return res.status(200).json(ingrediantsByType);
 //   } catch (error) {
-//     res.status(400).json({
+//     return res.status(400).json({
 //       message: "Aucun ingrediant trouvé",
 //       error: error.message,
 //     });
@@ -201,6 +209,7 @@ exports.getAllIngrediants = async (req, res, next) => {
 exports.updateIngrediant = async (req, res) => {
   const ingrediantId = req.params.ingrediantId;
   req.uploadTarget = "ingrediants";
+  const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
     const { name, types, price, outOfStock, visible, suppPrice, variations } =
       req.body;
@@ -214,9 +223,12 @@ exports.updateIngrediant = async (req, res) => {
       console.log(err);
       return res.status(500).json({ message: "Server error" });
     }
-    const ingrediant = await Ingrediant.findById(ingrediantId);
+    const ingrediant = await Ingrediant.findOne({
+      _id: ingrediantId,
+      restaurantId,
+    });
     if (!ingrediant) {
-      res.status(500).json({ message: "aucun Ingrediant trouvée" });
+      return res.status(404).json({ message: "aucun Ingrediant trouvée" });
     }
     if (
       ingrediant.image &&
@@ -261,12 +273,15 @@ exports.updateIngrediant = async (req, res) => {
       }
       const updatedIngrediant = await ingrediant.save();
 
-      const products = await Product.find({ ingrediants: ingrediantId });
+      const products = await Product.find({
+        ingrediants: ingrediantId,
+        restaurantId,
+      });
 
       for (const product of products) {
         const ingrediants = await Promise.all(
           product.ingrediants.map(async (ingrediant) => {
-            return await Ingrediant.findById(ingrediant);
+            return await Ingrediant.findOne({ _id: ingrediant, restaurantId });
           })
         );
         const types = ingrediants.map((ingrediant) => ingrediant.types).flat();
@@ -279,22 +294,29 @@ exports.updateIngrediant = async (req, res) => {
           }
           return unique;
         }, []);
-        product.type = uniqueTypes;
-        await product.save();
+        // product.type = uniqueTypes;
+        // await product.save();
+        await Product.findOneAndUpdate(
+          { _id: product._id, restaurantId },
+          { type: uniqueTypes }
+        );
       }
 
-      res.status(200).json({ message: "Ingrediant modifié avec succées" });
+      return res.status(200).json({ message: "Ingrediant modifié avec succées" });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      return res.status(500).json({ message: error.message });
     }
   });
 };
 
 exports.deleteIngredient = async (req, res, next) => {
   const { ingrediantId } = req.params;
-
+  const { restaurantId } = req;
   try {
-    const ingrediant = await Ingrediant.findById(ingrediantId);
+    const ingrediant = await Ingrediant.findOne({
+      _id: ingrediantId,
+      restaurantId,
+    });
 
     if (!ingrediant) {
       return res.status(404).json({
@@ -307,18 +329,21 @@ exports.deleteIngredient = async (req, res, next) => {
         fs.unlinkSync(imagePath);
       }
     }
-    await Ingrediant.deleteOne({ _id: ingrediant._id });
+    await Ingrediant.deleteOne({ _id: ingrediant._id, restaurantId });
 
     // Remove the ingredient from the product's ingredients array
-    await Product.findByIdAndUpdate(ingrediant.product, {
-      $pull: { ingrediants: ingrediantId },
-    });
+    await Product.findOneAndUpdate(
+      { _id: ingrediant.product, restaurantId },
+      {
+        $pull: { ingrediants: ingrediantId },
+      }
+    );
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Ingredient supprimer avec succées",
     });
   } catch (error) {
-    res.status(500).json({
+    return res.status(500).json({
       message: "Une erreur s'est produite",
       error: error.message,
     });
