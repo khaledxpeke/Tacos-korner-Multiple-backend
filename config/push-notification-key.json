@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "layafood---app-pilotage",
+  "private_key_id": "4ca04ae6665e6312df0060be8fc7e8b5909bcbdc",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC0QP1WH/fF8I0j\n4iR6OHHKdmP4zp6T1r8YKyyUqX+dFoD+jONw1F+43lW+XHj5kxp/DeRv10S7rFNw\nrz85OEVbFWVlxOKLf/nAx0qQWnSP5Wq1FEYvwi8jjueH3nex1Q0TJSNY2EL/7fdH\nehfUw8MezfKVffGLhfMD9PcvSe3T9qY+VbJUuc0i94BkEUaKYGrFV3GrsE3s3qRl\nm872awU+dthPo/Lg4vWn02VQj9LzH1FgOQrZfGqxpWZKtSB287JaVWhVoSiaOfPe\nIS4cAnMDU6t7IvIg08AmNEL14O1LKgwHHhSaVlp8kDDAUXZUuxoHiHX+rX740WoH\nBGA49dxpAgMBAAECggEAOYImkUy/s1Is5Y7nzmqlu0+MU7wwEcDI1QApSADP6yFb\n5Fq00bGgHI4q0wITwqRxJqobAKewkSPIt0HiLPJMBmRMJmzrTlB1MVEj8+w4FhS+\nt6kRP3l3qqOUMOAEViM/+aS2o0jUD20voIlOgx416WURiSpWXwpMXy3PkzHGBAK6\n6z0Ne5pZSqVlGDkHfPhdFlbPoOYYfz+sWwBVtBIu0S8A046UiJyM4a6JfN91OIQ9\njMuOD0jhRPaW2H3nEJWohVlHTCBV/NmwZpVgu8bTYAjFdit5tX99B3QcBezyYAtp\nl0PgCv+V11UhD6bISWCprawSEHCtzO7SEMMZ460MRQKBgQDlA784g08VybjjvXhh\npm+qNDJfA+y6thbB1ldspB4Bz4WQmSdFqvwnFJzU+oKze05HCVbmG/LQEjbt1t7N\neSUjl6l1gZdGLCFtS4wkPKCniNlTy4oA5gbefin1KaDNJhAR6RFFbvft1eCXS+B4\nk7LWQEz8wwW8Fb8O+Pz+6eM/9wKBgQDJfl5LL8eiN2H/t8X9leoKxDObOSWkEbFs\nR2Oe9W9ewN29RLPxWw9HK8ZQI2aDBT+JlgJ+IeLgheSsAk5XOMNK1U8MiORuHT5U\no99tJ0st3oF5dE2C6nGQEPQQVbvE8WZOwsfypxgi4oU7Y/anlQR00l1hDtwAYPbe\ndR4I8BNunwKBgEEa0pa3RZlVEnmz2HAyR5ZkZll6nSbrMwcB7zKUaW9sVnUoBPEa\nTbqycm9dlCCAEl3BevHJyjp6oyD0L7zMDtHSgLtGDwJE82/FxV5b2fQmxFm9CEt/\nGT7RMQ5gOjV396OP1Xgett7nKYT5biP5ISMlfn1w18WDjSAtiobRaOg7AoGBAMYx\nDXDpM3VFApj0W8ReRFKIwLYq1PJ4EMuPwNanVf+et70mqdR6nCGGVk+XMosni2K6\n8gK9NBtiuBXVQteaVsXx4QpUUFRbYWcBtY/5OYKJvVMI6gEet8tcUaULn2FNjTNl\ndiUg5KXTp/dOEVyvQC3kicMhSZb5yXnxOzTRaFvDAoGBAJwxlWv6cTVseI6NMndA\nESsmv0Ob6M/yvx8BnmYzg79Av0Y84pKTe5tePx0bluLjtLzZQf4xO89RGlBFn6XE\njllOGDQ66slrZNJ7fO/nJX9s0okDd40SlnBN0AcGUkMehMg0Gm8AnKZ7wGuFL8XG\nPvx8BfijmuJWZ334e1qdCwLy\n-----END PRIVATE KEY-----\n",
+  "client_email": "firebase-adminsdk-fbsvc@layafood---app-pilotage.iam.gserviceaccount.com",
+  "client_id": "101133230162735391433",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40layafood---app-pilotage.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
