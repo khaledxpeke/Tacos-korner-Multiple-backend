@@ -65,7 +65,7 @@ exports.deleteVariation = async (req, res) => {
       { $pull: { "typeVariations.variations": { _id: variationId } } }
     );
     await TypeVariation.updateMany(
-      { variations: variationId , restaurantId },
+      { variations: variationId, restaurantId },
       { $pull: { variations: variationId } }
     );
     res.status(200).json({ message: "Variation deleted successfully" });

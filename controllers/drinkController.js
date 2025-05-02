@@ -13,6 +13,7 @@ const path = require("path");
 const upload = multer({ storage: multerStorage });
 exports.addDrink = async (req, res, next) => {
   req.uploadTarget = "boisson";
+  const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
@@ -36,6 +37,7 @@ exports.addDrink = async (req, res, next) => {
         image,
         outOfStock,
         visible,
+        restaurantId,
       });
       res.status(201).json({
         drinks,
@@ -52,7 +54,8 @@ exports.addDrink = async (req, res, next) => {
 
 exports.getAllDrinks = async (req, res, next) => {
   try {
-    const drinks = await Drink.find({visible: true});
+    const { restaurantId } = req;
+    const drinks = await Drink.find({ visible: true, restaurantId });
     res.status(200).json(drinks);
   } catch (error) {
     res.status(400).json({
@@ -64,7 +67,8 @@ exports.getAllDrinks = async (req, res, next) => {
 
 exports.getDashboardDrinks = async (req, res, next) => {
   try {
-    const drinks = await Drink.find();
+    const { restaurantId } = req;
+    const drinks = await Drink.find({ restaurantId });
     res.status(200).json(drinks);
   } catch (error) {
     res.status(400).json({
@@ -92,14 +96,15 @@ exports.getDashboardDrinks = async (req, res, next) => {
 exports.deleteDrink = async (req, res, next) => {
   try {
     const { drinkId } = req.params;
-    const drinks = await Drink.findById(drinkId);
+    const { restaurantId } = req;
+    const drinks = await Drink.findOne({ _id: drinkId, restaurantId });
     if (drinks.image) {
       const imagePath = path.join(__dirname, "..", drinks.image);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
       }
     }
-    await Drink.findByIdAndDelete(drinks);
+    await Drink.findOneAndDelete({ _id: drinkId, restaurantId });
     res.status(200).json({
       message: "Boisson supprimé avec succées",
     });
@@ -113,13 +118,14 @@ exports.deleteDrink = async (req, res, next) => {
 exports.updateDrink = async (req, res) => {
   req.uploadTarget = "boisson";
   const drinkId = req.params.drinkId;
+  const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
     const { name, price, outOfStock, visible } = req.body;
     if (err) {
       console.log(err);
       return res.status(500).json({ message: "Probleme image" });
     }
-    const drink = await Drink.findById(drinkId);
+    const drink = await Drink.findOne({ _id: drinkId, restaurantId });
     if (!drink) {
       res.status(500).json({ message: "aucun Boisson trouvée" });
     }
@@ -150,13 +156,19 @@ exports.updateDrink = async (req, res) => {
       drink.image = image;
     }
     try {
-      const updatedDrink = await Drink.findByIdAndUpdate(drinkId, {
-        name: name || drink.name,
-        price: price || drink.price,
-        image: drink.image,
-        outOfStock: outOfStock || drink.outOfStock,
-        visible: visible || drink.visible,
-      });
+      const updatedDrink = await Drink.findOneAndUpdate(
+        { _id: drinkId, restaurantId },
+        {
+          name: name || drink.name,
+          price: price || drink.price,
+          image: drink.image,
+          outOfStock: outOfStock || drink.outOfStock,
+          visible: visible || drink.visible,
+        },
+        {
+          new: true,
+        }
+      );
 
       res.status(200).json({ message: "Boisson modifiéer avec succées" });
     } catch (error) {

@@ -13,6 +13,7 @@ const upload = multer({ storage: multerStorage });
 
 exports.addExtra = async (req, res, next) => {
   req.uploadTarget = "extras";
+  const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
@@ -32,6 +33,7 @@ exports.addExtra = async (req, res, next) => {
         outOfStock,
         visible,
         createdBy: userId,
+        restaurantId,
       });
       await extra.save();
       res.status(201).json({ extra, message: "extra créer avec succées" });
@@ -46,7 +48,8 @@ exports.addExtra = async (req, res, next) => {
 
 exports.getExtras = async (req, res, next) => {
   try {
-    const extras = await Extra.find({ visible: true });
+    const { restaurantId } = req;
+    const extras = await Extra.find({ visible: true, restaurantId });
     res.status(200).json(extras);
   } catch (error) {
     res.status(400).json({
@@ -58,7 +61,8 @@ exports.getExtras = async (req, res, next) => {
 
 exports.getDashboardExtras = async (req, res, next) => {
   try {
-    const extras = await Extra.find();
+    const { restaurantId } = req;
+    const extras = await Extra.find({ restaurantId });
     res.status(200).json(extras);
   } catch (error) {
     res.status(400).json({
@@ -84,13 +88,14 @@ exports.getDashboardExtras = async (req, res, next) => {
 exports.updateExtra = async (req, res) => {
   req.uploadTarget = "dessert";
   const extraId = req.params.extraId;
+  const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
     const { name, price, outOfStock, visible } = req.body;
     if (err) {
       console.log(err);
       return res.status(500).json({ message: "Probleme image" });
     }
-    const extra = await Extra.findById(extraId);
+    const extra = await Extra.findOne({ _id: extraId, restaurantId });
     if (!extra) {
       res.status(500).json({ message: "aucun Extra trouvée" });
     }
@@ -121,13 +126,19 @@ exports.updateExtra = async (req, res) => {
       extra.image = image;
     }
     try {
-      const updatedextra = await Extra.findByIdAndUpdate(extraId, {
-        name: name || extra.name,
-        price: price || extra.price,
-        image: extra.image,
-        outOfStock: outOfStock || extra.outOfStock,
-        visible: visible || extra.visible,
-      });
+      const updatedextra = await Extra.findOneAndUpdate(
+        { _id: extraId, restaurantId },
+        {
+          name: name || extra.name,
+          price: price || extra.price,
+          image: extra.image,
+          outOfStock: outOfStock || extra.outOfStock,
+          visible: visible || extra.visible,
+        },
+        {
+          new: true,
+        }
+      );
 
       res.status(200).json({ message: "Extra modifiéer avec succées" });
     } catch (error) {
@@ -138,8 +149,9 @@ exports.updateExtra = async (req, res) => {
 
 exports.deleteExtra = async (req, res, next) => {
   const { extraId } = req.params;
+  const { restaurantId } = req;
   try {
-    const extra = await Extra.findById(extraId);
+    const extra = await Extra.findOne({ _id: extraId, restaurantId });
     if (!extra) {
       return res.status(404).json({
         message: "il n'y a pas de extra avec cet id",
@@ -151,7 +163,7 @@ exports.deleteExtra = async (req, res, next) => {
         fs.unlinkSync(imagePath);
       }
     }
-    await Extra.findByIdAndDelete(extra);
+    await Extra.findOneAndDelete({ _id: extraId, restaurantId });
     res.status(200).json({
       message: "Extra supprimer avec succées",
     });

@@ -14,6 +14,7 @@ const upload = multer({ storage: multerStorage });
 
 exports.addDesert = async (req, res, next) => {
   req.uploadTarget = "dessert";
+  const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
@@ -37,6 +38,7 @@ exports.addDesert = async (req, res, next) => {
         image,
         outOfStock,
         visible,
+        restaurantId,
       });
       res.status(201).json({
         deserts,
@@ -53,7 +55,8 @@ exports.addDesert = async (req, res, next) => {
 
 exports.getAllDeserts = async (req, res, next) => {
   try {
-    const deserts = await Desert.find({ visible: true });
+    const { restaurantId } = req;
+    const deserts = await Desert.find({ visible: true, restaurantId });
     res.status(200).json(deserts);
   } catch (error) {
     res.status(400).json({
@@ -65,7 +68,8 @@ exports.getAllDeserts = async (req, res, next) => {
 
 exports.getDashboardDeserts = async (req, res, next) => {
   try {
-    const deserts = await Desert.find();
+    const { restaurantId } = req;
+    const deserts = await Desert.find({ restaurantId });
     res.status(200).json(deserts);
   } catch (error) {
     res.status(400).json({
@@ -93,14 +97,15 @@ exports.getDashboardDeserts = async (req, res, next) => {
 exports.deleteDesert = async (req, res, next) => {
   try {
     const { desertId } = req.params;
-    const deserts = await Desert.findById(desertId);
+    const { restaurantId } = req;
+    const deserts = await Desert.findOne({ _id: desertId, restaurantId });
     if (deserts.image) {
       const imagePath = path.join(__dirname, "..", deserts.image);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
       }
     }
-    await Desert.findByIdAndDelete(deserts);
+    await Desert.findOneAndDelete({ _id: desertId, restaurantId });
     res.status(200).json({
       message: "Dessert supprimé avec succées",
     });
@@ -113,6 +118,7 @@ exports.deleteDesert = async (req, res, next) => {
 };
 exports.updateDesert = async (req, res) => {
   req.uploadTarget = "dessert";
+  const { restaurantId } = req;
   const desertId = req.params.desertId;
   upload.single("image")(req, res, async (err) => {
     const { name, price, outOfStock, visible } = req.body;
@@ -120,7 +126,7 @@ exports.updateDesert = async (req, res) => {
       console.log(err);
       return res.status(500).json({ message: "Probleme image" });
     }
-    const desert = await Desert.findById(desertId);
+    const desert = await Desert.findOne({ _id: desertId, restaurantId });
     if (!desert) {
       res.status(500).json({ message: "aucun Dessert trouvée" });
     }
@@ -151,13 +157,19 @@ exports.updateDesert = async (req, res) => {
       desert.image = image;
     }
     try {
-      const updatedDesert = await Desert.findByIdAndUpdate(desertId, {
-        name: name || desert.name,
-        price: price || desert.price,
-        image: desert.image,
-        outOfStock: outOfStock || desert.outOfStock,
-        visible: visible || desert.visible,
-      });
+      const updatedDesert = await Desert.findOneAndUpdate(
+        { _id: desertId, restaurantId },
+        {
+          name: name || desert.name,
+          price: price || desert.price,
+          image: desert.image,
+          outOfStock: outOfStock || desert.outOfStock,
+          visible: visible || desert.visible,
+        },
+        {
+          new: true,
+        }
+      );
 
       res.status(200).json({ message: "Dessert modifiéer avec succées" });
     } catch (error) {

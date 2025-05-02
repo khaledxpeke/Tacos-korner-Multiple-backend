@@ -75,7 +75,7 @@ exports.login = async (req, res, next) => {
             user.fcmToken = fcmToken;
             await user.save();
           }
-          const maxAge = 8 * 60 * 60;
+          const maxAge = 8 * 60 * 60*60;
           if (user.role == "waiter") {
             maxAge = 30 * 24 * 60 * 60;
           }

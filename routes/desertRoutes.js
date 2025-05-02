@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { roleAuth } = require("../middleware/auth");
+const { roleAuth, restaurantAuth } = require("../middleware/auth");
 const {
   addDesert,
   getAllDeserts,
@@ -9,11 +9,31 @@ const {
   getDashboardDeserts,
 } = require("../controllers/desertController");
 
-router.post("/", roleAuth(["admin","manager"]), addDesert);
-router.get("/", getAllDeserts);
-router.get("/all", roleAuth(["admin","manager"]), getDashboardDeserts);
+router.post("/", restaurantAuth(), roleAuth(["admin", "manager"]), addDesert);
+router.get(
+  "/",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  getAllDeserts
+);
+router.get(
+  "/all",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  getDashboardDeserts
+);
 // router.get("/:desertId", getDesertById);
-router.put("/update/:desertId", roleAuth(["admin","manager"]), updateDesert);
-router.delete("/:desertId", roleAuth(["admin","manager"]), deleteDesert);
+router.put(
+  "/update/:desertId",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  updateDesert
+);
+router.delete(
+  "/:desertId",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  deleteDesert
+);
 
 module.exports = router;
