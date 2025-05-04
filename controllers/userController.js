@@ -10,24 +10,27 @@ app.use(express.json());
 exports.register = async (req, res, next) => {
   const { email, password, fullName } = req.body;
   const { restaurantId } = req;
-  const user = await User.findOne({ email: email, restaurantId });
+  const user = await User.findOne({ email });
   if (user) {
     return res.status(400).json({ message: "L'utilisateur existe déjà" });
   }
   try {
     bcrypt.hash(password, 10).then(async (hash) => {
-      await User.create({
+      const newUser = {
         email,
         password: hash,
         fullName,
-        role: "waiter",
-        restaurants: [
+        role: restaurantId ? "waiter" : "client", 
+      };
+      if (restaurantId) {
+        newUser.restaurants = [
           {
             restaurantId: restaurantId,
             role: "waiter", 
           },
-        ],
-      })
+        ];
+      }
+      await User.create(newUser)
         .then((user) => {
           const maxAge = 8 * 60 * 60;
           const token = jwt.sign({ id: user._id, email }, jwtSecret, {

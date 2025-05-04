@@ -25,17 +25,18 @@ exports.restaurantAuth = () => {
     try {
       // Get restaurant ID from params or headers
       const restaurantId = req.params.restaurantId || req.headers["restaurant-id"];
-      
+      console.log("Restaurant ID:", restaurantId); // Debugging log
+
+      // If the route is "register", skip token validation
+      if (req.path === "/register" && !req.headers["authorization"]) {
+        console.log("Skipping token validation for register route");
+        req.restaurantId = restaurantId || null; // Set restaurantId if provided 
+        return next();
+      }
+     
       if (!restaurantId) {
         return res.status(400).json({ message: "Restaurant ID required" });
       }
-
-      // If the route is "register", skip token validation
-      if (req.path === "/register") {
-        req.restaurantId = restaurantId;
-        return next();
-      }
-
       // Authenticate the user for other routes
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
@@ -47,6 +48,7 @@ exports.restaurantAuth = () => {
       // Verify token and get user
       jwt.verify(token, jwtSecret, async (err, decoded) => {
         if (err) {
+          console.error("Token verification error:", err); // Debugging log
           return res.status(403).json({ message: "Invalid token" });
         }
 
