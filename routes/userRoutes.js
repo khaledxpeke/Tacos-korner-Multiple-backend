@@ -5,6 +5,9 @@ const {
   getUsers,
   logout,
   getUserbyId,
+  blockUser,
+  updateUser,
+  deleteUser
 } = require("../controllers/userController");
 const { roleAuth,restaurantAuth } = require("../middleware/auth");
 
