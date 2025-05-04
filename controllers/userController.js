@@ -20,13 +20,14 @@ exports.register = async (req, res, next) => {
         email,
         password: hash,
         fullName,
-        role: restaurantId ? "waiter" : "client", 
+        isBlocked: false,
+        role: restaurantId ? "waiter" : "client",
       };
       if (restaurantId) {
         newUser.restaurants = [
           {
             restaurantId: restaurantId,
-            role: "waiter", 
+            role: "waiter",
           },
         ];
       }
@@ -76,6 +77,13 @@ exports.login = async (req, res, next) => {
         error: "Utilisateur non trouvé",
       });
     } else {
+      if (user.isBlocked) {
+        return res.status(403).json({
+          message:
+            "Votre compte a été bloqué. Veuillez contacter l'administrateur.",
+          error: "Compte bloqué",
+        });
+      }
       bcrypt.compare(password, user.password).then(async function (result) {
         if (result) {
           if (fcmToken) {
@@ -136,17 +144,110 @@ exports.getUserbyId = async (req, res, next) => {
   if (!userId) {
     res.status(400).json({ message: " Id non trouvée" });
   } else {
-    const user = await User.findOne({ _id: userId,
+    const user = await User.findOne({
+      _id: userId,
       restaurants: { $elemMatch: { restaurantId } },
     }).select("-password");
     res.status(200).json(user);
   }
 };
 
-// exports.logout = async (req, res, next) => {
-//   res.cookie("jwt", "", { maxAge: 1 });
-//   res.redirect("/");
-// };
+exports.updateUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { restaurantId } = req;
+    const user = await User.findOne({
+      _id: userId,
+      restaurants: { $elemMatch: { restaurantId } },
+    });
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+    const { fullName, email, role } = req.body;
+    user.fullName = fullName || user.fullName;
+    user.email = email || user.email;
+    if (role) {
+      // Validate that role is either "manager" or "waiter"
+      if (role === "manager" || role === "waiter") {
+        user.role = role;
+      } else {
+        return res.status(400).json({
+          message: "Le rôle doit être 'Gérant' ou 'cassier'",
+        });
+      }
+    }
+    const savedUser = await user.save();
+    return res
+      .status(200)
+      .json({ message: "Utilisateur modifié avec succès", savedUser });
+  } catch (error) {
+    console.error("Error in updateUser:", error);
+    return res
+      .status(500)
+      .json({ message: "Erreur du serveur", error: error.message });
+  }
+};
+
+exports.blockUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const userRole = req.user.user.role;
+    const { restaurantId } = req;
+    const user = await User.findOne({
+      _id: userId,
+      restaurants: { $elemMatch: { restaurantId } },
+    }).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+    if (userRole == "manager") {
+      const user = await User.findOne({
+        _id: userId,
+        restaurants: { $elemMatch: { restaurantId } },
+      }).select("-password");
+      if (user.role === "manager") {
+        return res.status(403).json({
+          message:
+            "Vous ne pouvez pas bloquer un administrateur ou une autre gérant",
+        });
+      }
+    }
+    user.isBlocked = !user.isBlocked;
+    await user.save();
+    return res.status(200).json({
+      message: `Utilisateur ${
+        user.isBlocked ? "bloqué" : "débloqué"
+      } avec succès`,
+    });
+  } catch (error) {
+    console.error("Error in blockUser:", error);
+    return res
+      .status(500)
+      .json({ message: "Erreur du serveur", error: error.message });
+  }
+};
+
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const { userId } = req.params;
+    const { restaurantId } = req;
+    const deletedUser = await User.findOneAndDelete({
+      _id: userId,
+      restaurants: { $elemMatch: { restaurantId } },
+    });
+
+    if (!deletedUser) {
+      return res.status(404).json({ message: "Utilisateur non trouvée" });
+    }
+
+    return res.status(200).json({ message: "Utilisateur supprimée" });
+  } catch (error) {
+    console.error("Error in deleteUser:", error);
+    return res
+      .status(500)
+      .json({ message: "Erreur du serveur", error: error.message });
+  }
+};
 
 exports.logout = async (req, res) => {
   const userId = req.user.user._id;

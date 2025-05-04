@@ -18,6 +18,10 @@ const UserSchema = new mongoose.Schema({
         type: String,
         required: true,
       },
+      isBlocked: {
+        type: Boolean,
+        default: false,
+      },
       fcmToken: { type: String },
       restaurants: [{
         restaurantId: {
