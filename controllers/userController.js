@@ -117,7 +117,9 @@ exports.login = async (req, res, next) => {
 exports.getUsers = async (req, res, next) => {
   try {
     const { restaurantId } = req;
-    const users = await User.find({ restaurantId }).select("-password");
+    const users = await User.find({
+      restaurants: { $elemMatch: { restaurantId } },
+    }).select("-password");
 
     res.status(200).json(users);
   } catch (error) {
@@ -134,9 +136,9 @@ exports.getUserbyId = async (req, res, next) => {
   if (!userId) {
     res.status(400).json({ message: " Id non trouvée" });
   } else {
-    const user = await User.findOne({ _id: userId, restaurantId }).select(
-      "-password"
-    );
+    const user = await User.findOne({ _id: userId,
+      restaurants: { $elemMatch: { restaurantId } },
+    }).select("-password");
     res.status(200).json(user);
   }
 };
