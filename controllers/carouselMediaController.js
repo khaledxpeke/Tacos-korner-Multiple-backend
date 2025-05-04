@@ -5,7 +5,7 @@ const fs = require("fs");
 const Settings = require("../models/settings");
 // Storage configuration
 const uploadDir = path.join(__dirname, "..", "uploads", "carousel");
-const url= process.env.CAROUSEL_URL;
+const url = process.env.CAROUSEL_URL;
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -44,8 +44,11 @@ exports.addMedia = async (req, res) => {
     if (err) return res.status(400).json({ error: err.message });
 
     try {
+      const { restaurantId } = req;
       const { duration, mediaType } = req.body;
-      const lastMedia = await CarouselMedia.findOne().sort("-order");
+      const lastMedia = await CarouselMedia.findOne({ restaurantId }).sort(
+        "-order"
+      );
       const startOrder = lastMedia ? parseInt(lastMedia.order) : 0;
 
       const savedMedia = await Promise.all(
@@ -55,6 +58,7 @@ exports.addMedia = async (req, res) => {
             fileUrl: `uploads/carousel/${file.filename}`,
             duration: mediaType === "image" ? duration : null,
             order: startOrder + index + 1,
+            restaurantId,
           });
           return media.save();
         })
@@ -76,10 +80,13 @@ exports.addMedia = async (req, res) => {
 exports.updateOrder = async (req, res) => {
   try {
     const { items } = req.body;
-
+    const { restaurantId } = req;
     await Promise.all(
       items.map((item) =>
-        CarouselMedia.findByIdAndUpdate(item.id, { order: item.order })
+        CarouselMedia.findOneAndUpdate(
+          { _id: item.id, restaurantId },
+          { order: item.order }
+        )
       )
     );
 
@@ -91,7 +98,11 @@ exports.updateOrder = async (req, res) => {
 
 exports.getAllMedia = async (req, res) => {
   try {
-    const media = await CarouselMedia.find({ isActive: true }).sort("order");
+    const { restaurantId } = req;
+    const media = await CarouselMedia.find({
+      isActive: true,
+      restaurantId,
+    }).sort("order");
     res.status(200).json(media);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -100,10 +111,14 @@ exports.getAllMedia = async (req, res) => {
 
 exports.getCarouselStream = async (req, res) => {
   try {
-    const activeMedia = await CarouselMedia.find({ isActive: true })
+    const { restaurantId } = req;
+    const activeMedia = await CarouselMedia.find({
+      isActive: true,
+      restaurantId,
+    })
       .sort("order")
       .select("mediaType fileUrl duration");
-    const settings = await Settings.findOne();
+    const settings = await Settings.findOne({ restaurantId });
     const STATIC_DURATION = settings.carouselDuration || 5;
     res.render("carousel-viewer", {
       media: activeMedia,
@@ -118,13 +133,17 @@ exports.getCarouselStream = async (req, res) => {
 
 exports.deleteMedia = async (req, res) => {
   try {
-    const media = await CarouselMedia.findById(req.params.id);
+    const { restaurantId } = req;
+    const media = await CarouselMedia.findOne({
+      _id: req.params.id,
+      restaurantId,
+    });
     if (!media) {
       return res.status(404).json({ message: "Média non trouvé" });
     }
 
     fs.unlinkSync(path.join(__dirname, "..", media.fileUrl));
-    await CarouselMedia.findByIdAndDelete(req.params.id);
+    await CarouselMedia.findOneAndDelete({ _id: req.params.id, restaurantId });
 
     res.status(200).json({ message: "Le média a été supprimé avec succès" });
   } catch (error) {

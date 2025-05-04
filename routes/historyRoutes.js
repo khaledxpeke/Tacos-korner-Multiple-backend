@@ -1,5 +1,5 @@
 const router = require("express").Router();
-const { roleAuth } = require("../middleware/auth");
+const { roleAuth, restaurantAuth } = require("../middleware/auth");
 const {
   addHistory,
   getHistory,
@@ -11,13 +11,53 @@ const {
   getStatistics,
 } = require("../controllers/historyController");
 
-router.post("/", addHistory);
-router.post("/email", addEmail);
-router.post("/CommandNumber", getCommandNumber);
-router.put("/:id", roleAuth(["admin", "manager", "waiter"]), updateStatus);
-router.get("/", roleAuth(["admin", "manager", "waiter"]), getHistory);
-router.get("/stats", roleAuth(["admin", "manager", "waiter"]), getStatistics);
-router.get("/10", roleAuth(["admin", "manager"]), getLast10Orders);
-router.get("/print-job/latest", roleAuth(["admin", "manager"]), getLatestPrintJob);
+router.post(
+  "/",
+  restaurantAuth(),
+  roleAuth(["admin", "manager", "waiter"]),
+  addHistory
+);
+router.post(
+  "/email",
+  restaurantAuth(),
+  roleAuth(["admin", "manager", "waiter"]),
+  addEmail
+);
+router.post(
+  "/CommandNumber",
+  restaurantAuth(),
+  roleAuth(["admin", "manager", "waiter"]),
+  getCommandNumber
+);
+router.put(
+  "/:id",
+  restaurantAuth(),
+  roleAuth(["admin", "manager", "waiter"]),
+  updateStatus
+);
+router.get(
+  "/",
+  restaurantAuth(),
+  roleAuth(["admin", "manager", "waiter"]),
+  getHistory
+);
+router.get(
+  "/stats",
+  restaurantAuth(),
+  roleAuth(["admin", "manager", "waiter"]),
+  getStatistics
+);
+router.get(
+  "/10",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  getLast10Orders
+);
+router.get(
+  "/print-job/latest",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  getLatestPrintJob
+);
 
 module.exports = router;

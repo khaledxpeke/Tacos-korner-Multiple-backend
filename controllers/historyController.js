@@ -25,8 +25,9 @@ exports.setIO = (socketIO) => {
 exports.addHistory = async (req, res) => {
   const { products, pack, name, method, total, currency, commandNumber } =
     req.body;
+  const { restaurantId } = req;
   try {
-    const settings = await Settings.findOne();
+    const settings = await Settings.findOne({ restaurantId });
     const methodExists = settings.method.find(
       (m) => m._id.toString() === method
     );
@@ -76,6 +77,7 @@ exports.addHistory = async (req, res) => {
       },
       total: total,
       commandNumber: parseInt(commandNumber, 10),
+      restaurantId,
     });
     history
       .save()
@@ -92,10 +94,13 @@ exports.addHistory = async (req, res) => {
           console.log("Socket not initialized, no emit performed");
         }
         setTimeout(async () => {
-          const order = await History.findById(result._id);
+          const order = await History.findOne({
+            _id: result._id,
+            restaurantId,
+          });
           if (order && order.status === "enCours") {
-            const updatedOrder = await History.findByIdAndUpdate(
-              order._id,
+            const updatedOrder = await History.findOneAndUpdate(
+              { _id: order._id, restaurantId },
               { status: "enRetard" },
               { new: true }
             );
@@ -130,8 +135,10 @@ exports.addHistory = async (req, res) => {
 
 const notifyWaiters = async (history) => {
   try {
+    const { restaurantId } = history;
     const users = await User.find({
       fcmToken: { $ne: "" },
+      restaurants: { $elemMatch: { restaurantId } },
     });
 
     const tokens = users.map((user) => user.fcmToken);
@@ -160,7 +167,8 @@ const notifyWaiters = async (history) => {
   }
 };
 exports.getHistory = async (req, res) => {
-  const history = await History.find()
+  const { restaurantId } = req;
+  const history = await History.find({ restaurantId })
     .sort({ boughtAt: -1 })
     .populate({
       path: "product",
@@ -176,7 +184,8 @@ exports.getHistory = async (req, res) => {
 
 exports.getLast10Orders = async (req, res) => {
   try {
-    const orders = await History.find()
+    const { restaurantId } = req;
+    const orders = await History.find({ restaurantId })
       .sort({ boughtAt: -1 })
       .limit(10)
       .populate("product.plat._id");
@@ -189,11 +198,16 @@ exports.getLast10Orders = async (req, res) => {
 };
 
 const generatePDF = async (orderData) => {
+  const { restaurantId } = orderData;
+
+  if (!restaurantId) {
+    throw new Error("ID Restaurant n'est pas trouvée dans l'historique.");
+  }
   const html = fs.readFileSync(
     path.join(__dirname, "../template/pdf.handlebars"),
     "utf8"
   );
-  const settings = await Settings.findOne();
+  const settings = await Settings.findOne({ restaurantId });
   const tva = settings?.tva || 0;
   const address = settings?.address;
   const totalHt = (100 * orderData.total) / (100 + tva);
@@ -271,6 +285,7 @@ const generatePDF = async (orderData) => {
       pack: orderData.pack.label,
       method: orderData.method.label,
       currency: orderData.currency,
+      restaurantId: restaurantId,
     },
     path: `./uploads/order-${orderData.commandNumber}.pdf`,
   };
@@ -286,14 +301,18 @@ const generatePDF = async (orderData) => {
 
 exports.addEmail = async (req, res) => {
   const { email, commandNumber } = req.body;
+  const { restaurantId } = req;
   try {
-    const history = await History.findOne({ commandNumber }).sort({
+    const history = await History.findOne({
+      commandNumber: commandNumber,
+      restaurantId,
+    }).sort({
       boughtAt: -1,
     });
     if (!history) {
       return res.status(404).json({ message: "Ordre non trouvée" });
     }
-    const settings = await Settings.findOne();
+    const settings = await Settings.findOne({ restaurantId });
     const tva = settings?.tva || 0;
     const totalHt = (100 * history.total) / (100 + tva);
     const tvaAmount = history.total - totalHt;
@@ -373,6 +392,7 @@ exports.addEmail = async (req, res) => {
         pack: history.pack.label,
         method: history.method.label,
         currency: history.currency,
+        restaurantId: restaurantId,
       },
     };
     await transporter.sendMail(mailOptions);
@@ -387,9 +407,12 @@ exports.addEmail = async (req, res) => {
 exports.getCommandNumber = async (req, res) => {
   const currentDate = new Date();
   currentDate.setHours(0, 0, 0, 0);
+  const { restaurantId } = req;
 
   try {
-    const lastCommand = await History.findOne().sort({ boughtAt: -1 });
+    const lastCommand = await History.findOne({ restaurantId }).sort({
+      boughtAt: -1,
+    });
 
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0); // Start of today
@@ -419,9 +442,10 @@ exports.getCommandNumber = async (req, res) => {
 exports.updateStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
+  const { restaurantId } = req;
   try {
-    const history = await History.findByIdAndUpdate(
-      id,
+    const history = await History.findOneAndUpdate(
+      { _id: id, restaurantId },
       { status },
       { new: true }
     );
@@ -447,8 +471,9 @@ exports.getHistoriesRT = async (socket) => {
         const { page = 1, search = "", dateDebut, dateFin, filter = "" } = data;
         const limit = 5;
         const skip = (page - 1) * limit;
+        const { restaurantId } = data;
 
-        let matchQuery = {};
+        let matchQuery = { restaurantId };
 
         const currentDate = new Date();
         if (filter === "today") {
@@ -667,17 +692,19 @@ exports.getHistoriesRT = async (socket) => {
 };
 
 const checkAndUpdateDelayedOrders = async () => {
+  const { restaurantId } = req;
   try {
     const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
 
     const delayedOrders = await History.find({
       status: "enCours",
+      restaurantId,
       boughtAt: { $lt: twentyMinutesAgo },
     });
 
     for (const order of delayedOrders) {
-      await History.findByIdAndUpdate(
-        order._id,
+      await History.findOneAndUpdate(
+        { _id: order._id, restaurantId },
         { status: "enRetard" },
         { new: true }
       );
@@ -697,11 +724,12 @@ const checkAndUpdateDelayedOrders = async () => {
 
 exports.getStatistics = async (req, res) => {
   try {
+    const { restaurantId } = req;
     const { filter = "today" } = req.query;
     const currentDate = new Date();
-    let matchQuery = {};
+    let matchQuery = { restaurantId };
     let previousPeriodMatchQuery = {};
-    const settings = await Settings.findOne();
+    const settings = await Settings.findOne({ restaurantId });
     const especeMethodId = settings.method[0]._id.toString();
     const surPlacePackId = settings.pack[0]._id.toString();
 
@@ -885,29 +913,29 @@ exports.getStatistics = async (req, res) => {
           let: { productId: { $toObjectId: "$product.plat._id" } },
           pipeline: [
             { $match: { $expr: { $eq: ["$_id", "$$productId"] } } },
-            { $project: { image: 1, name: 1 } }
+            { $project: { image: 1, name: 1 } },
           ],
-          as: "productDetails"
-        }
+          as: "productDetails",
+        },
       },
       {
         $unwind: {
           path: "$productDetails",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
       {
         $group: {
           _id: {
             id: "$product.plat._id",
             name: "$product.plat.name",
-            image: "$productDetails.image"
+            image: "$productDetails.image",
           },
           totalCount: { $sum: "$product.plat.count" },
           totalRevenue: {
-            $sum: { $multiply: ["$product.plat.price", "$product.plat.count"] }
-          }
-        }
+            $sum: { $multiply: ["$product.plat.price", "$product.plat.count"] },
+          },
+        },
       },
       { $sort: { totalCount: -1 } },
       { $limit: 5 },
@@ -915,11 +943,11 @@ exports.getStatistics = async (req, res) => {
         $project: {
           _id: "$_id.id",
           name: "$_id.name",
-          image : "$_id.image",
+          image: "$_id.image",
           totalCount: 1,
-          totalRevenue: { $round: ["$totalRevenue", 2] }
-        }
-      }
+          totalRevenue: { $round: ["$totalRevenue", 2] },
+        },
+      },
     ]);
 
     const previousPeriodStats = await History.aggregate([
@@ -970,7 +998,7 @@ exports.getStatistics = async (req, res) => {
             ? "decrease"
             : "stable",
       },
-      topProducts: topProductsStats
+      topProducts: topProductsStats,
     });
   } catch (error) {
     console.error("Error fetching statistics:", error);
@@ -983,18 +1011,24 @@ exports.getStatistics = async (req, res) => {
 };
 exports.getLatestPrintJob = async (req, res) => {
   try {
+    const { restaurantId } = req;
     // Ici, on considère qu'une commande prête à être imprimée est en status "enCours"
     // Vous pouvez ajuster la condition selon votre logique (ex: "pending")
-    const printJob = await History.findOne({ status: "enCours" }).sort({ boughtAt: 1 });
-    
+    const printJob = await History.findOne({
+      status: "enCours",
+      restaurantId,
+    }).sort({
+      boughtAt: 1,
+    });
+
     if (!printJob) {
       return res.status(204).send("No pending print job");
     }
-    
+
     // Marquer la commande comme "enAttente" (inProgress) pour éviter de l'imprimer à nouveau
     printJob.status = "enAttente";
     await printJob.save();
-    
+
     res.status(200).json(printJob);
   } catch (error) {
     console.error("Error fetching print job:", error);

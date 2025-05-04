@@ -5,8 +5,9 @@ const path = require("path");
 
 exports.getLargestMedia = async (req, res) => {
   try {
-    const products = await Product.find({}, "image");
-    const categories = await Category.find({}, "image");
+    const { restaurantId } = req;
+    const products = await Product.find({ restaurantId }, "image");
+    const categories = await Category.find({ restaurantId }, "image");
 
     const images = [
       ...products.map((p) => ({ path: p.image })),
