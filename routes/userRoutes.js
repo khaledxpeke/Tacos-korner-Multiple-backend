@@ -6,13 +6,13 @@ const {
   logout,
   getUserbyId,
 } = require("../controllers/userController");
-const { roleAuth } = require("../middleware/auth");
+const { roleAuth,restaurantAuth } = require("../middleware/auth");
 
 
-router.post("/register", register);
+router.post("/register", restaurantAuth(),register);
 router.post("/login", login);
-router.get("/users", roleAuth(["admin","manager"]), getUsers);
-router.get("/user", roleAuth(["admin","manager"]), getUserbyId);
+router.get("/users", restaurantAuth(),roleAuth(["admin","manager"]), getUsers);
+router.get("/user",restaurantAuth(), roleAuth(["admin","manager"]), getUserbyId);
 router.post("/logout",roleAuth(["waiter","admin","manager"]), logout);
 
 module.exports = router;

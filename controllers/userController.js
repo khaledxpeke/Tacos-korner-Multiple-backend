@@ -9,14 +9,11 @@ app.use(express.json());
 
 exports.register = async (req, res, next) => {
   const { email, password, fullName } = req.body;
-  const user = await User.findOne({ email });
+  const { restaurantId } = req;
+  const user = await User.findOne({ email: email, restaurantId });
   if (user) {
     return res.status(400).json({ message: "L'utilisateur existe déjà" });
   }
-  // const { country: phoneCountryCode, phoneNumber: formattedPhone } = phone(rawPhone);
-  // if (!formattedPhone) {
-  //   return res.status(400).json({ message: "Invalid phone number" });
-  // }
   try {
     bcrypt.hash(password, 10).then(async (hash) => {
       await User.create({
@@ -24,11 +21,17 @@ exports.register = async (req, res, next) => {
         password: hash,
         fullName,
         role: "waiter",
+        restaurants: [
+          {
+            restaurantId: restaurantId,
+            role: "waiter", 
+          },
+        ],
       })
         .then((user) => {
           const maxAge = 8 * 60 * 60;
           const token = jwt.sign({ id: user._id, email }, jwtSecret, {
-            expiresIn: maxAge, // 3hrs in sec
+            expiresIn: maxAge,
           });
           res.cookie("jwt", token, {
             httpOnly: true,
@@ -56,6 +59,7 @@ exports.register = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
   const { email, password, fcmToken } = req.body;
+
   if (!email || !password) {
     return res.status(400).json({
       message: "L'email ou le mot de passe est incorrect !",
@@ -75,7 +79,7 @@ exports.login = async (req, res, next) => {
             user.fcmToken = fcmToken;
             await user.save();
           }
-          const maxAge = 8 * 60 * 60*60;
+          const maxAge = 8 * 60 * 60 * 60;
           if (user.role == "waiter") {
             maxAge = 30 * 24 * 60 * 60;
           }
@@ -109,9 +113,10 @@ exports.login = async (req, res, next) => {
 
 exports.getUsers = async (req, res, next) => {
   try {
-    const users = await User.find();
+    const { restaurantId } = req;
+    const users = await User.find({ restaurantId }).select("-password");
 
-    res.status(200).json({ users });
+    res.status(200).json(users);
   } catch (error) {
     res.status(400).json({
       message: "Une erreur s'est produite",
@@ -122,10 +127,13 @@ exports.getUsers = async (req, res, next) => {
 
 exports.getUserbyId = async (req, res, next) => {
   const userId = req.user.user._id;
+  const { restaurantId } = req;
   if (!userId) {
     res.status(400).json({ message: " Id non trouvée" });
   } else {
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findOne({ _id: userId, restaurantId }).select(
+      "-password"
+    );
     res.status(200).json(user);
   }
 };

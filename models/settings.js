@@ -73,6 +73,10 @@ const settingsSchema = new mongoose.Schema({
     type: Number,
     default: 120,
   },
+  qrCode: {
+    type: String,
+    default: "https://www.google.com",
+  },
   method: [methodSchema],
   pack: [packSchema],
   restaurantId: {

@@ -76,7 +76,8 @@ exports.addSettings = async (req, res) => {
           }
         ],
         carouselDuration: 5,
-        carouselTiming: 120
+        carouselTiming: 120,
+        qrCode:"https://www.google.com"
       });
       await newSettings.save();
       restaurant.settings = newSettings._id;
@@ -139,6 +140,7 @@ exports.getSettings = async (req, res) => {
         ],
         carouselDuration: 5,
         carouselTiming: 120,
+        qrCode:"https://www.google.com"
       });
    
     await settings.save();
@@ -295,6 +297,7 @@ exports.updateSettings = async (req, res) => {
         address,
         carouselDuration,
         carouselTiming,
+        qrCode,
       } = req.body;
       
       if (oldCurrency && newCurrency) {
@@ -415,6 +418,12 @@ exports.updateSettings = async (req, res) => {
           .split("\n")
           .filter((line) => line.trim())
           .join("\n");
+      }
+      if (qrCode) {
+        const qrCodeUrl = qrCode.trim();
+        if (qrCodeUrl) {
+          settings.qrCode = qrCodeUrl;
+        }
       }
       if (carouselDuration) {
         settings.carouselDuration =

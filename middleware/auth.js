@@ -23,54 +23,58 @@ exports.roleAuth = (expectedRoles) => {
 exports.restaurantAuth = () => {
   return async (req, res, next) => {
     try {
-      // Authenticate the user first
+      // Get restaurant ID from params or headers
+      const restaurantId = req.params.restaurantId || req.headers["restaurant-id"];
+      
+      if (!restaurantId) {
+        return res.status(400).json({ message: "Restaurant ID required" });
+      }
+
+      // If the route is "register", skip token validation
+      if (req.path === "/register") {
+        req.restaurantId = restaurantId;
+        return next();
+      }
+
+      // Authenticate the user for other routes
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       
       if (token == null) {
-        return res.status(401).json({ message: "No restaurant id provided" });
+        return res.status(401).json({ message: "No token provided" });
       }
-      
+
       // Verify token and get user
       jwt.verify(token, jwtSecret, async (err, decoded) => {
         if (err) {
-          return res.status(403).json({ message: "error in token in restaurant id" });
+          return res.status(403).json({ message: "Invalid token" });
         }
-        
+
         // Set the user in the request object
         req.user = decoded;
-        
-        // Get restaurant ID from params or headers
-        const restaurantId = req.params.restaurantId || req.headers["restaurant-id"];
-        
-        if (!restaurantId) {
-          return res.status(400).json({ message: "Restaurant ID required" });
-        }
-        
+
         // Check if the user has access to this restaurant
         const userDoc = await User.findById(decoded.user._id);
-        
+
         if (!userDoc) {
           return res.status(404).json({ message: "User not found" });
         }
-        
+
         // Check if global admin or client - they have access to all restaurants
         if (decoded.user.role === "admin" || decoded.user.role === "client") {
-          // Set restaurantId for use in controllers
           req.restaurantId = restaurantId;
           return next();
         }
-        
+
         // For other roles, check if they have this restaurant
         const hasAccess = userDoc.restaurants && userDoc.restaurants.some(
           r => r.restaurantId && r.restaurantId.toString() === restaurantId
         );
-        
+
         if (!hasAccess) {
           return res.status(403).json({ message: "Not authorized for this restaurant" });
         }
-        
-        // Set restaurantId for use in controllers
+
         req.restaurantId = restaurantId;
         next();
       });
