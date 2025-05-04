@@ -129,7 +129,7 @@ exports.updateDrink = async (req, res) => {
     if (!drink) {
       res.status(500).json({ message: "aucun Boisson trouvée" });
     }
-    if (drink.image && !drink.image.startsWith("uploads/boisson/")) {
+    if (drink.image) {
       const oldImagePath = path.join(__dirname, "..", drink.image);
       const newImagePath = path.join(
         __dirname,
