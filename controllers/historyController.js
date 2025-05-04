@@ -13,6 +13,8 @@ let io;
 var admin = require("firebase-admin");
 var serviceAccount = require("../config/push-notification-key.json");
 const User = require("../models/user");
+const StatusHistory = require("../models/statusHistory");
+const moment = require("moment-timezone");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -28,6 +30,8 @@ exports.addHistory = async (req, res) => {
   const { restaurantId } = req;
   try {
     const settings = await Settings.findOne({ restaurantId });
+    const parisTime = moment.tz("Europe/Paris");
+    const franceDatetime = parisTime.toDate();
     const methodExists = settings.method.find(
       (m) => m._id.toString() === method
     );
@@ -76,18 +80,34 @@ exports.addHistory = async (req, res) => {
         label: packExists.label,
       },
       total: total,
+      boughtAt: franceDatetime,
       commandNumber: parseInt(commandNumber, 10),
       restaurantId,
     });
     history
       .save()
       .then(async (result) => {
+        const statusHistory = new StatusHistory({
+          historyId: result._id,
+          status: "enCours",
+          updatedBy: "Système",
+          updatedAt: franceDatetime,
+          restaurantId,
+        });
+
+        await statusHistory.save();
+
         const response = {
           ...result.toObject(),
           pack: result.pack.label,
           method: result.method.label,
         };
         if (io) {
+          io.emit("status-update", {
+            id: result._id,
+            status: "enCours",
+            updatedAt: franceDatetime,
+          });
           io.emit("new-history", response);
           await notifyWaiters(history);
         } else {
@@ -167,19 +187,45 @@ const notifyWaiters = async (history) => {
   }
 };
 exports.getHistory = async (req, res) => {
-  const { restaurantId } = req;
-  const history = await History.find({ restaurantId })
-    .sort({ boughtAt: -1 })
-    .populate({
-      path: "product",
-      populate: [
-        {
-          path: "plat.category",
-          select: "name",
-        },
-      ],
+  try {
+    const { restaurantId } = req;
+    const histories = await History.find({ restaurantId })
+      .sort({ boughtAt: -1 })
+      .populate({
+        path: "product",
+        populate: [
+          {
+            path: "plat.category",
+            select: "name",
+          },
+        ],
+      })
+      .lean();
+    const historiesWithTva = histories.map((history) => {
+      const tva = history.tva || 0;
+      const totalHT = (100 * history.total) / (100 + tva);
+      const tvaAmount = history.total - totalHT;
+      const formattedBoughtAt = history.boughtAt
+        ? moment(history.boughtAt).format("YYYY-MM-DD HH:mm:ss")
+        : null;
+
+      return {
+        ...history,
+        tvaAmount: parseFloat(tvaAmount.toFixed(2)),
+        totalHT: parseFloat(totalHT.toFixed(2)),
+        boughtAt: formattedBoughtAt,
+      };
     });
-  res.status(200).json(history);
+
+    res.status(200).json(historiesWithTva);
+  } catch (error) {
+    console.error("Error fetching history:", error);
+    res.status(500).json({
+      message:
+        "Une erreur s'est produite lors de la récupération de l'historique",
+      error: error.message,
+    });
+  }
 };
 
 exports.getLast10Orders = async (req, res) => {
@@ -216,6 +262,9 @@ const generatePDF = async (orderData) => {
     /\\/g,
     "/"
   )}`;
+  let formattedDate = moment(orderData.boughtAt)
+    .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
+    .format("D MMMM YYYY HH:mm");
   const options = {
     format: "A4",
     orientation: "portrait",
@@ -243,13 +292,7 @@ const generatePDF = async (orderData) => {
       name: orderData.name,
       apiUrl: process.env.BASE_URL,
       commandNumber: orderData.commandNumber,
-      boughtAt: orderData.boughtAt.toLocaleDateString("fr-FR", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      }),
+      boughtAt: formattedDate,
       products: orderData.product.map((product) => {
         return {
           platName: product.plat.name,
@@ -312,6 +355,9 @@ exports.addEmail = async (req, res) => {
     if (!history) {
       return res.status(404).json({ message: "Ordre non trouvée" });
     }
+    let formattedDate = moment(history.boughtAt)
+      .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
+      .format("D MMMM YYYY HH:mm");
     const settings = await Settings.findOne({ restaurantId });
     const tva = settings?.tva || 0;
     const totalHt = (100 * history.total) / (100 + tva);
@@ -348,13 +394,7 @@ exports.addEmail = async (req, res) => {
         logo: logoUrl,
         isEmail: true,
         name: history.name,
-        boughtAt: history.boughtAt.toLocaleDateString("fr-FR", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        boughtAt: formattedDate,
         products: history.product.map((product) => {
           return {
             platName: product.plat.name,
@@ -452,9 +492,18 @@ exports.updateStatus = async (req, res) => {
     if (!history) {
       return res.status(404).json({ message: "Historique non trouvé" });
     }
-    io.emit("status-update", {
-      id,
+    const statusHistory = new StatusHistory({
+      historyId: id,
       status,
+      updatedBy: req.user.user.fullName,
+      updatedAt: new Date(),
+    });
+
+    await statusHistory.save();
+    io.emit("status-update", {
+      historyId:id,
+      status,
+      updatedBy: req.user.user.fullName,
       updatedAt: new Date(),
     });
     res.status(200).json(history);
@@ -469,228 +518,280 @@ exports.getHistoriesRT = async (socket) => {
     socket.on("fetch-histories", async (data) => {
       try {
         const { page = 1, search = "", dateDebut, dateFin, filter = "" } = data;
-        const limit = 5;
+        const limit = 30;
         const skip = (page - 1) * limit;
         const { restaurantId } = data;
 
         let matchQuery = { restaurantId };
 
         const currentDate = new Date();
-        if (filter === "today") {
-          const startOfDay = new Date(currentDate);
-          startOfDay.setHours(0, 0, 0, 0);
-          const endOfDay = new Date(currentDate);
-          endOfDay.setHours(23, 59, 59, 999);
-
-          matchQuery.boughtAt = { $gte: startOfDay, $lte: endOfDay };
-        } else if (filter === "week") {
-          const startOfWeek = new Date(currentDate);
-          startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-          startOfWeek.setHours(0, 0, 0, 0);
-
-          const endOfWeek = new Date(startOfWeek);
-          endOfWeek.setDate(startOfWeek.getDate() + 6);
-          endOfWeek.setHours(23, 59, 59, 999);
-
-          matchQuery.boughtAt = { $gte: startOfWeek, $lte: endOfWeek };
-        } else if (filter === "month") {
-          const startOfMonth = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth(),
-            1
-          );
-          const endOfMonth = new Date(
-            currentDate.getFullYear(),
-            currentDate.getMonth() + 1,
-            0
-          );
-          endOfMonth.setHours(23, 59, 59, 999);
-
-          matchQuery.boughtAt = { $gte: startOfMonth, $lte: endOfMonth };
-        } else {
-          if (
-            (dateDebut && dateDebut.trim() !== "") ||
-            (dateFin && dateFin.trim() !== "")
-          ) {
-            matchQuery.$expr = { $and: [] };
-
-            if (dateDebut && dateDebut.trim() !== "") {
-              const startDate = new Date(dateDebut);
-              startDate.setHours(0, 0, 0, 0);
-              matchQuery.boughtAt = {
-                ...matchQuery.boughtAt,
-                $gte: startDate,
-              };
-            }
-
-            if (dateFin && dateFin.trim() !== "") {
-              const endDate = new Date(dateFin);
-              endDate.setHours(23, 59, 59, 999);
-              matchQuery.boughtAt = {
-                ...matchQuery.boughtAt,
-                $lte: endDate,
-              };
-            }
-          }
-        }
-        if (search && search.trim() !== "") {
-          const searchRegex = new RegExp(search, "i");
-          matchQuery.$or = [
-            { name: { $regex: searchRegex } },
-            { "product.plat._id.name": { $regex: searchRegex } },
-          ];
-        }
-
-        const aggregationPipeline = [
-          { $match: matchQuery },
-          {
-            $lookup: {
-              from: "settings",
-              pipeline: [{ $limit: 1 }],
-              as: "settingsData",
-            },
-          },
-          {
-            $unwind: {
-              path: "$settingsData",
-              preserveNullAndEmptyArrays: true,
-            },
-          },
-          {
-            $facet: {
-              histories: [
-                {
-                  $unwind: "$product",
-                },
-                {
-                  $addFields: {
-                    "product.plat._id": {
-                      $toObjectId: "$product.plat._id",
-                    },
-                  },
-                },
-                {
-                  $lookup: {
-                    from: "products",
-                    localField: "product.plat._id",
-                    foreignField: "_id",
-                    as: "productDetails",
-                  },
-                },
-                {
-                  $unwind: {
-                    path: "$productDetails",
-                    preserveNullAndEmptyArrays: true,
-                  },
-                },
-
-                {
-                  $lookup: {
-                    from: "categories",
-                    let: { categoryId: "$productDetails.category" },
-                    pipeline: [
-                      {
-                        $match: {
-                          $expr: { $eq: ["$_id", "$$categoryId"] },
-                        },
-                      },
-                    ],
-                    as: "categoryDetails",
-                  },
-                },
-                {
-                  $unwind: {
-                    path: "$categoryDetails",
-                    preserveNullAndEmptyArrays: true,
-                  },
-                },
-                {
-                  $group: {
-                    _id: "$_id",
-                    product: { $push: "$product" },
-                    name: { $first: "$name" },
-                    method: { $first: "$method.label" },
-                    pack: { $first: "$pack.label" },
-                    total: { $first: "$total" },
-                    boughtAt: { $first: "$boughtAt" },
-                    currency: { $first: "$settingsData.defaultCurrency" },
-                    commandNumber: { $first: "$commandNumber" },
-                    status: { $first: "$status" },
-                  },
-                },
-                { $sort: { boughtAt: -1 } },
-                { $skip: skip },
-                { $limit: limit },
-              ],
-              counts: [
-                {
-                  $group: {
-                    _id: null,
-                    total: { $sum: 1 },
-                    enCours: {
-                      $sum: { $cond: [{ $eq: ["$status", "enCours"] }, 1, 0] },
-                    },
-                    terminee: {
-                      $sum: { $cond: [{ $eq: ["$status", "terminee"] }, 1, 0] },
-                    },
-                    annulee: {
-                      $sum: { $cond: [{ $eq: ["$status", "annulee"] }, 1, 0] },
-                    },
-                    echouee: {
-                      $sum: { $cond: [{ $eq: ["$status", "echouee"] }, 1, 0] },
-                    },
-                    enAttente: {
-                      $sum: {
-                        $cond: [{ $eq: ["$status", "enAttente"] }, 1, 0],
-                      },
-                    },
-                    enRetard: {
-                      $sum: { $cond: [{ $eq: ["$status", "enRetard"] }, 1, 0] },
-                    },
-                    remboursee: {
-                      $sum: {
-                        $cond: [{ $eq: ["$status", "remboursee"] }, 1, 0],
-                      },
-                    },
-                  },
-                },
-              ],
-            },
-          },
-        ];
-
-        const result = await History.aggregate(aggregationPipeline);
-        const [{ histories, counts }] = result;
-        const total = await History.countDocuments(matchQuery);
-        const response = {
-          histories,
-          pagination: {
-            currentPage: page,
-            totalPages: Math.ceil(total / limit),
-          },
-          stats: {
-            total: counts[0]?.total || 0,
-            enCours: counts[0]?.enCours || 0,
-            terminee: counts[0]?.terminee || 0,
-            annulee: counts[0]?.annulee || 0,
-            echouee: counts[0]?.echouee || 0,
-            enAttente: counts[0]?.enAttente || 0,
-            remboursee: counts[0]?.remboursee || 0,
-            enRetard: counts[0]?.enRetard || 0,
-          },
-        };
-
-        socket.emit("histories-update", response);
-      } catch (error) {
-        console.error("Error in fetch-histories:", error);
-        socket.emit("error", error.message);
-      }
-    });
-  } catch (error) {
-    socket.emit("error", error.message);
-  }
-};
-
+               if (filter === "today") {
+                 const startOfDay = new Date(currentDate);
+                 startOfDay.setHours(0, 0, 0, 0);
+                 const endOfDay = new Date(currentDate);
+                 endOfDay.setHours(23, 59, 59, 999);
+       
+                 matchQuery.boughtAt = { $gte: startOfDay, $lte: endOfDay };
+               } else if (filter === "week") {
+                 const startOfWeek = new Date(currentDate);
+                 startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
+                 startOfWeek.setHours(0, 0, 0, 0);
+       
+                 const endOfWeek = new Date(startOfWeek);
+                 endOfWeek.setDate(startOfWeek.getDate() + 6);
+                 endOfWeek.setHours(23, 59, 59, 999);
+       
+                 matchQuery.boughtAt = { $gte: startOfWeek, $lte: endOfWeek };
+               } else if (filter === "month") {
+                 const startOfMonth = new Date(
+                   currentDate.getFullYear(),
+                   currentDate.getMonth(),
+                   1
+                 );
+                 const endOfMonth = new Date(
+                   currentDate.getFullYear(),
+                   currentDate.getMonth() + 1,
+                   0
+                 );
+                 endOfMonth.setHours(23, 59, 59, 999);
+       
+                 matchQuery.boughtAt = { $gte: startOfMonth, $lte: endOfMonth };
+               } else {
+                 if (
+                   (dateDebut && dateDebut.trim() !== "") ||
+                   (dateFin && dateFin.trim() !== "")
+                 ) {
+                   matchQuery.$expr = { $and: [] };
+       
+                   if (dateDebut && dateDebut.trim() !== "") {
+                     const startDate = new Date(dateDebut);
+                     startDate.setHours(0, 0, 0, 0);
+                     matchQuery.boughtAt = {
+                       ...matchQuery.boughtAt,
+                       $gte: startDate,
+                     };
+                   }
+       
+                   if (dateFin && dateFin.trim() !== "") {
+                     const endDate = new Date(dateFin);
+                     endDate.setHours(23, 59, 59, 999);
+                     matchQuery.boughtAt = {
+                       ...matchQuery.boughtAt,
+                       $lte: endDate,
+                     };
+                   }
+                 }
+               }
+               if (search && search.trim() !== "") {
+                 const searchRegex = new RegExp(search, "i");
+                 matchQuery.$or = [
+                   { name: { $regex: searchRegex } },
+                   { commandNumber: isNaN(parseInt(search)) ? -1 : parseInt(search) },
+                   { "method.label": { $regex: searchRegex } },
+                   { "pack.label": { $regex: searchRegex } },
+                 ];
+               }
+       
+               const aggregationPipeline = [
+                 { $match: matchQuery },
+                 {
+                   $lookup: {
+                     from: "settings",
+                     pipeline: [{ $limit: 1 }],
+                     as: "settingsData",
+                   },
+                 },
+                 {
+                   $unwind: {
+                     path: "$settingsData",
+                     preserveNullAndEmptyArrays: true,
+                   },
+                 },
+                 {
+                   $facet: {
+                     histories: [
+                       {
+                         $addFields: {
+                           tvaRate: { $ifNull: ["$tva", 0] },
+                           totalHT: {
+                             $round: [
+                               {
+                                 $divide: [
+                                   { $multiply: ["$total", 100] },
+                                   { $add: [{ $ifNull: ["$tva", 0] }, 100] },
+                                 ],
+                               },
+                               2,
+                             ],
+                           },
+                           tvaAmount: {
+                             $round: [
+                               {
+                                 $subtract: [
+                                   "$total",
+                                   {
+                                     $divide: [
+                                       { $multiply: ["$total", 100] },
+                                       { $add: [{ $ifNull: ["$tva", 0] }, 100] },
+                                     ],
+                                   },
+                                 ],
+                               },
+                               2,
+                             ],
+                           },
+                         },
+                       },
+                       {
+                         $unwind: "$product",
+                       },
+                       {
+                         $addFields: {
+                           "product.plat._id": {
+                             $toObjectId: "$product.plat._id",
+                           },
+                         },
+                       },
+                       {
+                         $lookup: {
+                           from: "products",
+                           localField: "product.plat._id",
+                           foreignField: "_id",
+                           as: "productDetails",
+                         },
+                       },
+                       {
+                         $unwind: {
+                           path: "$productDetails",
+                           preserveNullAndEmptyArrays: true,
+                         },
+                       },
+       
+                       {
+                         $lookup: {
+                           from: "categories",
+                           let: { categoryId: "$productDetails.category" },
+                           pipeline: [
+                             {
+                               $match: {
+                                 $expr: { $eq: ["$_id", "$$categoryId"] },
+                               },
+                             },
+                           ],
+                           as: "categoryDetails",
+                         },
+                       },
+                       {
+                         $unwind: {
+                           path: "$categoryDetails",
+                           preserveNullAndEmptyArrays: true,
+                         },
+                       },
+                       {
+                         $group: {
+                           _id: "$_id",
+                           product: { $push: "$product" },
+                           name: { $first: "$name" },
+                           method: { $first: "$method.label" },
+                           pack: { $first: "$pack.label" },
+                           total: { $first: "$total" },
+                           totalHT: { $first: "$totalHT" },
+                           tvaAmount: { $first: "$tvaAmount" },
+                           tva: { $first: "$tva" },
+                           // tvaRate: { $first: "$tvaRate" },
+                           boughtAt: { $first: "$boughtAt" },
+                           currency: { $first: "$settingsData.defaultCurrency" },
+                           commandNumber: { $first: "$commandNumber" },
+                           status: { $first: "$status" },
+                         },
+                       },
+                       { $sort: { boughtAt: -1 } },
+                       { $skip: skip },
+                       { $limit: limit },
+                     ],
+                     counts: [
+                       {
+                         $group: {
+                           _id: null,
+                           total: { $sum: 1 },
+                           enCours: {
+                             $sum: { $cond: [{ $eq: ["$status", "enCours"] }, 1, 0] },
+                           },
+                           terminee: {
+                             $sum: { $cond: [{ $eq: ["$status", "terminee"] }, 1, 0] },
+                           },
+                           annulee: {
+                             $sum: { $cond: [{ $eq: ["$status", "annulee"] }, 1, 0] },
+                           },
+                           echouee: {
+                             $sum: { $cond: [{ $eq: ["$status", "echouee"] }, 1, 0] },
+                           },
+                           enAttente: {
+                             $sum: {
+                               $cond: [{ $eq: ["$status", "enAttente"] }, 1, 0],
+                             },
+                           },
+                           enRetard: {
+                             $sum: { $cond: [{ $eq: ["$status", "enRetard"] }, 1, 0] },
+                           },
+                           remboursee: {
+                             $sum: {
+                               $cond: [{ $eq: ["$status", "remboursee"] }, 1, 0],
+                             },
+                           },
+                         },
+                       },
+                     ],
+                   },
+                 },
+               ];
+       
+               const result = await History.aggregate(aggregationPipeline);
+               const [{ histories, counts }] = result;
+               const total = await History.countDocuments(matchQuery);
+               const restaurantTimezone =
+                 process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
+               const formattedHistories = histories.map((history) => {
+                 // Format boughtAt date using moment-timezone
+                 const formattedBoughtAt = history.boughtAt
+                   ? moment(history.boughtAt)
+                       .tz(restaurantTimezone)
+                       .format("YYYY-MM-DD HH:mm:ss")
+                   : null;
+       
+                 return {
+                   ...history,
+                   boughtAt: formattedBoughtAt,
+                 };
+               });
+               const response = {
+                 histories: formattedHistories,
+                 pagination: {
+                   currentPage: page,
+                   totalPages: Math.ceil(total / limit),
+                 },
+                 stats: {
+                   total: counts[0]?.total || 0,
+                   enCours: counts[0]?.enCours || 0,
+                   terminee: counts[0]?.terminee || 0,
+                   annulee: counts[0]?.annulee || 0,
+                   echouee: counts[0]?.echouee || 0,
+                   enAttente: counts[0]?.enAttente || 0,
+                   remboursee: counts[0]?.remboursee || 0,
+                   enRetard: counts[0]?.enRetard || 0,
+                 },
+               };
+       
+               socket.emit("histories-update", response);
+             } catch (error) {
+               console.error("Error in fetch-histories:", error);
+               socket.emit("error", error.message);
+             }
+           });
+         } catch (error) {
+           socket.emit("error", error.message);
+         }
+       };
 const checkAndUpdateDelayedOrders = async () => {
   const { restaurantId } = req;
   try {
@@ -708,6 +809,14 @@ const checkAndUpdateDelayedOrders = async () => {
         { status: "enRetard" },
         { new: true }
       );
+      const statusHistory = new StatusHistory({
+        historyId: order._id,
+        status: "enRetard",
+        updatedBy: "Système",
+        updatedAt: new Date(),
+      });
+
+      await statusHistory.save();
 
       if (io) {
         io.emit("status-update", {
@@ -725,15 +834,42 @@ const checkAndUpdateDelayedOrders = async () => {
 exports.getStatistics = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const { filter = "today" } = req.query;
+    const { filter = "today", dateDebut, dateFin } = req.query;
     const currentDate = new Date();
     let matchQuery = { restaurantId };
-    let previousPeriodMatchQuery = {};
+    let revenueMatchQuery = {}; // For revenue calculations (date + status)
+    let previousPeriodMatchQuery = {}; // For date filtering only
+    let previousPeriodRevenueMatchQuery = {}; // For revenue calculations (date + status)
     const settings = await Settings.findOne({ restaurantId });
+    const cbMethodId = settings.method[0]._id.toString();
     const especeMethodId = settings.method[0]._id.toString();
     const surPlacePackId = settings.pack[0]._id.toString();
+    const emporterPackId = settings.pack[1]._id.toString();
 
-    if (filter === "today") {
+    if (
+      (dateDebut && dateDebut.trim() !== "") ||
+      (dateFin && dateFin.trim() !== "")
+    ) {
+      matchQuery.boughtAt = {};
+
+      if (dateDebut && dateDebut.trim() !== "") {
+        const startDate = new Date(dateDebut);
+        startDate.setHours(0, 0, 0, 0);
+        matchQuery.boughtAt = {
+          ...matchQuery.boughtAt,
+          $gte: startDate,
+        };
+      }
+
+      if (dateFin && dateFin.trim() !== "") {
+        const endDate = new Date(dateFin);
+        endDate.setHours(23, 59, 59, 999);
+        matchQuery.boughtAt = {
+          ...matchQuery.boughtAt,
+          $lte: endDate,
+        };
+      }
+    } else if (filter === "today") {
       const startOfDay = new Date(currentDate);
       startOfDay.setHours(0, 0, 0, 0);
       const endOfDay = new Date(currentDate);
@@ -796,36 +932,22 @@ exports.getStatistics = async (req, res) => {
       };
     }
 
-    const currentPeriodStats = await History.aggregate([
+    revenueMatchQuery = {
+      ...matchQuery,
+      status: { $in: ["terminee", "enCours", "enRetard", "enAttente"] },
+    };
+    previousPeriodRevenueMatchQuery = {
+      ...previousPeriodMatchQuery,
+      status: { $in: ["terminee", "enCours", "enRetard", "enAttente"] },
+    };
+
+    const statusCounts = await History.aggregate([
       { $match: matchQuery },
       {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
-          totalRevenue: { $sum: "$total" },
-          especeTotal: {
-            $sum: {
-              $cond: [{ $eq: ["$method._id", especeMethodId] }, "$total", 0],
-            },
-          },
-          cbTotal: {
-            $sum: {
-              $cond: [{ $ne: ["$method._id", especeMethodId] }, "$total", 0],
-            },
-          },
-          surPlaceTotal: {
-            $sum: {
-              $cond: [{ $eq: ["$pack._id", surPlacePackId] }, "$total", 0],
-            },
-          },
-          emporterTotal: {
-            $sum: {
-              $cond: [{ $ne: ["$pack._id", surPlacePackId] }, "$total", 0],
-            },
-          },
-          orderStatuses: {
-            $push: "$status",
-          },
+          orderStatuses: { $push: "$status" },
         },
       },
       {
@@ -838,6 +960,7 @@ exports.getStatistics = async (req, res) => {
                 terminee: 0,
                 annulee: 0,
                 enRetard: 0,
+                enAttente: 0,
                 echouee: 0,
                 remboursee: 0,
               },
@@ -868,6 +991,12 @@ exports.getStatistics = async (req, res) => {
                           then: { echouee: { $add: ["$$value.echouee", 1] } },
                         },
                         {
+                          case: { $eq: ["$$this", "enAttente"] },
+                          then: {
+                            enAttente: { $add: ["$$value.enAttente", 1] },
+                          },
+                        },
+                        {
                           case: { $eq: ["$$this", "remboursee"] },
                           then: {
                             remboursee: { $add: ["$$value.remboursee", 1] },
@@ -887,9 +1016,63 @@ exports.getStatistics = async (req, res) => {
         $project: {
           _id: 0,
           totalOrders: 1,
+          orderStatuses: "$statusCounts",
+        },
+      },
+    ]);
+
+    const currentPeriodStats = await History.aggregate([
+      { $match: revenueMatchQuery }, // Only completed orders for revenue
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$total" },
+          completedOrders: { $sum: 1 }, // Count of completed orders
+          especeTotal: {
+            $sum: {
+              $cond: [
+                { $eq: [{ $toString: "$method._id" }, especeMethodId] },
+                "$total",
+                0,
+              ],
+            },
+          },
+          cbTotal: {
+            $sum: {
+              $cond: [
+                { $eq: [{ $toString: "$method._id" }, cbMethodId] },
+                "$total",
+                0,
+              ],
+            },
+          },
+          surPlaceTotal: {
+            $sum: {
+              $cond: [
+                { $eq: [{ $toString: "$pack._id" }, surPlacePackId] },
+                "$total",
+                0,
+              ],
+            },
+          },
+          emporterTotal: {
+            $sum: {
+              $cond: [
+                { $eq: [{ $toString: "$pack._id" }, emporterPackId] },
+                "$total",
+                0,
+              ],
+            },
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
           totalRevenue: { $round: ["$totalRevenue", 2] },
+          completedOrders: 1,
           moyenRevenue: {
-            $round: [{ $divide: ["$totalRevenue", "$totalOrders"] }, 2],
+            $round: [{ $divide: ["$totalRevenue", "$completedOrders"] }, 2],
           },
           paymentMethodsTotalRevenue: {
             espece: { $round: ["$especeTotal", 2] },
@@ -899,13 +1082,12 @@ exports.getStatistics = async (req, res) => {
             surPlace: { $round: ["$surPlaceTotal", 2] },
             emporter: { $round: ["$emporterTotal", 2] },
           },
-          orderStatuses: "$statusCounts",
         },
       },
     ]);
 
     const topProductsStats = await History.aggregate([
-      { $match: matchQuery },
+      { $match: revenueMatchQuery },
       { $unwind: "$product" },
       {
         $lookup: {
@@ -938,7 +1120,7 @@ exports.getStatistics = async (req, res) => {
         },
       },
       { $sort: { totalCount: -1 } },
-      { $limit: 5 },
+      { $limit: 7 },
       {
         $project: {
           _id: "$_id.id",
@@ -951,7 +1133,7 @@ exports.getStatistics = async (req, res) => {
     ]);
 
     const previousPeriodStats = await History.aggregate([
-      { $match: previousPeriodMatchQuery },
+      { $match: previousPeriodRevenueMatchQuery },
       {
         $group: {
           _id: null,
@@ -962,6 +1144,20 @@ exports.getStatistics = async (req, res) => {
 
     const currentRevenue = currentPeriodStats[0]?.totalRevenue || 0;
     const previousRevenue = previousPeriodStats[0]?.totalRevenue || 0;
+    const totalRevenueSum = currentRevenue + previousRevenue;
+    let currentRevenuePercentage = 0;
+
+    if (totalRevenueSum > 0) {
+      currentRevenuePercentage = (currentRevenue / totalRevenueSum) * 100;
+    }
+    const roundedCurrentRevenuePercentage = Math.floor(
+      currentRevenuePercentage
+    );
+
+    let revenueDifference = currentRevenue - previousRevenue;
+    if (currentRevenue < previousRevenue) {
+      revenueDifference = revenueDifference * -1;
+    }
 
     let revenueChange = 0;
     if (previousRevenue > 0) {
@@ -971,30 +1167,49 @@ exports.getStatistics = async (req, res) => {
       revenueChange = 100;
     }
 
+    if (revenueChange < 0) {
+      revenueChange = revenueChange * -1;
+    }
+
+    let timeRangeLabel = filter;
+    if (dateDebut || dateFin) {
+      timeRangeLabel = "custom";
+      if (dateDebut && dateFin) {
+        timeRangeLabel = `${dateDebut} to ${dateFin}`;
+      } else if (dateDebut) {
+        timeRangeLabel = `From ${dateDebut}`;
+      } else if (dateFin) {
+        timeRangeLabel = `Until ${dateFin}`;
+      }
+    }
+
     res.status(200).json({
       ...(currentPeriodStats[0] || {
         moyenRevenue: 0,
-        totalOrders: 0,
         totalRevenue: 0,
         paymentMethodsTotalRevenue: { espece: 0, cb: 0 },
         deliveryTypes: { surPlace: 0, emporter: 0 },
-        orderStatuses: {
-          enCours: 0,
-          terminee: 0,
-          annulee: 0,
-          enRetard: 0,
-          echouee: 0,
-          remboursee: 0,
-        },
       }),
+      totalOrders: statusCounts[0]?.totalOrders || 0,
+      orderStatuses: statusCounts[0]?.orderStatuses || {
+        enCours: 0,
+        terminee: 0,
+        annulee: 0,
+        enRetard: 0,
+        enAttente: 0,
+        echouee: 0,
+        remboursee: 0,
+      },
       revenueComparison: {
         currentRevenue: currentRevenue,
         previousRevenue: previousRevenue,
+        difference: Math.round(revenueDifference * 100) / 100,
         percentageChange: Math.round(revenueChange * 100) / 100,
+        currentRevenuePercentage: roundedCurrentRevenuePercentage,
         trend:
-          revenueChange > 0
+          currentRevenue > previousRevenue
             ? "increase"
-            : revenueChange < 0
+            : currentRevenue < previousRevenue
             ? "decrease"
             : "stable",
       },
