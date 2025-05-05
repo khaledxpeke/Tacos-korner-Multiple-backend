@@ -7,7 +7,6 @@ const multer = require("multer");
 const multerStorage = require("../middleware/multerStorage");
 const fs = require("fs");
 const Ingrediant = require("../models/ingrediant");
-const Settings = require("../models/settings");
 const path = require("path");
 const Product = require("../models/product");
 

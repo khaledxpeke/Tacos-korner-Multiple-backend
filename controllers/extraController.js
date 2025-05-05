@@ -1,9 +1,7 @@
 const Extra = require("../models/extra");
 const express = require("express");
 const app = express();
-const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const jwtSecret = process.env.JWT_SECRET;
 app.use(express.json());
 const multer = require("multer");
 const multerStorage = require("../middleware/multerStorage");

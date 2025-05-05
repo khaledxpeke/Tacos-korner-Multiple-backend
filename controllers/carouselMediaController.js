@@ -3,7 +3,6 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const Settings = require("../models/settings");
-// Storage configuration
 const uploadDir = path.join(__dirname, "..", "uploads", "carousel");
 const url = process.env.CAROUSEL_URL;
 if (!fs.existsSync(uploadDir)) {

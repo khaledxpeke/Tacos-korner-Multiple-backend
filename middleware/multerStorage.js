@@ -10,6 +10,9 @@ const storage = multer.diskStorage({
       case "category":
         uploadDir = path.join(baseUploadDir, "category");
         break;
+      case "restaurant":
+        uploadDir = path.join(baseUploadDir, "restaurant");
+        break;
       case "product":
         uploadDir = path.join(baseUploadDir, "product");
         break;

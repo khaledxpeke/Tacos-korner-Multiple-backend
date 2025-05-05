@@ -16,6 +16,15 @@ const restaurantSchema = mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  logo: {
+    type: String,
+    default: "uploads/default-logo.png",
+    required: true,
+  },
+  address: {
+    type: String,
+    required: true,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

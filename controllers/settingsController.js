@@ -4,18 +4,21 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const multer = require("multer");
-const multipleUpload = require("../middleware/multipleUpload");
 const fs = require("fs");
 const path = require("path");
+const multer = require("multer");
+const multerStorage = require("../middleware/multerStorage");
+const upload = multer({ storage: multerStorage });
 const { default: mongoose } = require("mongoose");
 
 exports.addSettings = async (req, res) => {
   try {
     const { restaurantId } = req;
 
-    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate('settings');
-    
+    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
+      "settings"
+    );
+
     if (!restaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
@@ -26,7 +29,10 @@ exports.addSettings = async (req, res) => {
     }
     let existing = null;
     if (restaurant.settings) {
-      existing = await Settings.findOne({ _id: restaurant.settings, restaurantId: restaurantId });
+      existing = await Settings.findOne({
+        _id: restaurant.settings,
+        restaurantId: restaurantId,
+      });
     }
     if (existing) {
       if (existing.currencies.includes(currency.toUpperCase())) {
@@ -58,7 +64,7 @@ exports.addSettings = async (req, res) => {
             _id: new mongoose.Types.ObjectId(),
             label: "Carte bancaire",
             isActive: true,
-          }
+          },
         ],
         maxExtras: 5,
         maxDessert: 5,
@@ -73,11 +79,11 @@ exports.addSettings = async (req, res) => {
             _id: new mongoose.Types.ObjectId(),
             label: "À emporter",
             isActive: true,
-          }
+          },
         ],
         carouselDuration: 5,
         carouselTiming: 120,
-        qrCode:"https://www.google.com"
+        qrCode: "https://www.google.com",
       });
       await newSettings.save();
       restaurant.settings = newSettings._id;
@@ -96,14 +102,19 @@ exports.getSettings = async (req, res) => {
     const { restaurantId } = req;
 
     // Find the restaurant first
-    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate('settings');
-    
+    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
+      "settings"
+    );
+
     if (!restaurant) {
       return res.status(404).json({ message: "Restaurant not found" });
     }
     let settings = null;
     if (restaurant.settings) {
-      settings = await Settings.findOne({ _id: restaurant.settings, restaurantId: restaurantId });
+      settings = await Settings.findOne({
+        _id: restaurant.settings,
+        restaurantId: restaurantId,
+      });
     }
     if (!settings) {
       settings = new Settings({
@@ -140,12 +151,12 @@ exports.getSettings = async (req, res) => {
         ],
         carouselDuration: 5,
         carouselTiming: 120,
-        qrCode:"https://www.google.com"
+        qrCode: "https://www.google.com",
       });
-   
-    await settings.save();
-    restaurant.settings = settings._id;
-    await restaurant.save();
+
+      await settings.save();
+      restaurant.settings = settings._id;
+      await restaurant.save();
     }
     return res.status(200).json(settings);
   } catch (error) {
@@ -157,12 +168,19 @@ exports.getAllCurrencies = async (req, res) => {
   try {
     const { restaurantId } = req;
 
-    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate('settings');
-    
+    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
+      "settings"
+    );
+
     if (!restaurant || !restaurant.settings) {
-      return res.status(404).json({ message: "Settings not found for this restaurant" });
+      return res
+        .status(404)
+        .json({ message: "Settings not found for this restaurant" });
     }
-    const currencies = await Settings.findOne({ _id: restaurant.settings, restaurantId: restaurantId });
+    const currencies = await Settings.findOne({
+      _id: restaurant.settings,
+      restaurantId: restaurantId,
+    });
     if (!currencies) {
       return res.status(404).json({ message: "Aucune devise trouvée" });
     }
@@ -179,20 +197,27 @@ exports.getAllCurrencies = async (req, res) => {
 exports.updateDefaultCurrency = async (req, res) => {
   try {
     const { restaurantId } = req;
-    
-    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate('settings');
-    
+
+    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
+      "settings"
+    );
+
     if (!restaurant || !restaurant.settings) {
-      return res.status(404).json({ message: "Settings not found for this restaurant" });
+      return res
+        .status(404)
+        .json({ message: "Settings not found for this restaurant" });
     }
-    
+
     const { defaultCurrency } = req.body;
     if (!defaultCurrency) {
       return res
         .status(400)
         .json({ message: "La devise par défaut est requise" });
     }
-    const currencyDoc = await Settings.findOne({ _id: restaurant.settings, restaurantId: restaurantId });
+    const currencyDoc = await Settings.findOne({
+      _id: restaurant.settings,
+      restaurantId: restaurantId,
+    });
     if (
       !currencyDoc ||
       !currencyDoc.currencies.includes(defaultCurrency.toUpperCase())
@@ -216,18 +241,25 @@ exports.deleteCurrency = async (req, res) => {
   try {
     const { restaurantId } = req;
 
-    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate('settings');
-    
+    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
+      "settings"
+    );
+
     if (!restaurant || !restaurant.settings) {
-      return res.status(404).json({ message: "Settings not found for this restaurant" });
+      return res
+        .status(404)
+        .json({ message: "Settings not found for this restaurant" });
     }
-    
+
     const { currency } = req.body;
     if (!currency) {
       return res.status(400).json({ message: "La devise est requise" });
     }
 
-    const currencyDoc = await Settings.findOne({ _id: restaurant.settings, restaurantId: restaurantId });
+    const currencyDoc = await Settings.findOne({
+      _id: restaurant.settings,
+      restaurantId: restaurantId,
+    });
     if (
       !currencyDoc ||
       !currencyDoc.currencies.includes(currency.toUpperCase())
@@ -236,8 +268,9 @@ exports.deleteCurrency = async (req, res) => {
     }
 
     if (currencyDoc.currencies.length <= 1) {
-      return res.status(400).json({ 
-        message: "Impossible de supprimer la dernière devise. Ajoutez-en une autre d'abord." 
+      return res.status(400).json({
+        message:
+          "Impossible de supprimer la dernière devise. Ajoutez-en une autre d'abord.",
       });
     }
     currencyDoc.currencies = currencyDoc.currencies.filter(
@@ -259,7 +292,7 @@ exports.deleteCurrency = async (req, res) => {
 };
 
 exports.updateSettings = async (req, res) => {
-  multipleUpload(req, res, async (err) => {
+  upload.single("banner")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         message: "Le téléchargement de l'image a échoué",
@@ -271,19 +304,24 @@ exports.updateSettings = async (req, res) => {
       const { restaurantId } = req;
       // Find the restaurant first
       const restaurant = await Restaurant.findOne({ _id: restaurantId });
-      
+
       if (!restaurant) {
         return res.status(404).json({ message: "Restaurant not found" });
       }
-      
+
       // Find or create settings
       let settings = null;
       if (restaurant.settings) {
-        settings = await Settings.findOne({ _id: restaurant.settings, restaurantId });
+        settings = await Settings.findOne({
+          _id: restaurant.settings,
+          restaurantId,
+        });
       }
-      
+
       if (!settings) {
-        return res.status(404).json({ message: "Settings not found for this restaurant" });
+        return res
+          .status(404)
+          .json({ message: "Settings not found for this restaurant" });
       }
       const {
         oldCurrency,
@@ -299,7 +337,7 @@ exports.updateSettings = async (req, res) => {
         carouselTiming,
         qrCode,
       } = req.body;
-      
+
       if (oldCurrency && newCurrency) {
         const oldCurrencyUpper = oldCurrency.toUpperCase();
         const newCurrencyUpper = newCurrency.toUpperCase();
@@ -390,29 +428,17 @@ exports.updateSettings = async (req, res) => {
           };
         });
       }
-      // Handle logo upload
-      if (req.files?.logo) {
-        const logo = `uploads\\${req.files.logo[0].filename}`;
-        if (settings.logo) {
-          const oldPath = path.join(__dirname, "..", settings.logo);
+      if (req.file) {
+        const banner = `uploads\\${req.file.filename}`;
+        const oldImagePath = path.join(__dirname, "..", settings.banner);
 
-          if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-          }
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
         }
-        settings.logo = logo;
-      }
 
-      if (req.files?.banner) {
-        const banner = `uploads\\${req.files.banner[0].filename}`;
-        if (settings.banner) {
-          const oldPath = path.join(__dirname, "..", settings.banner);
-          if (fs.existsSync(oldPath)) {
-            fs.unlinkSync(oldPath);
-          }
-        }
         settings.banner = banner;
       }
+
       if (address) {
         settings.address = address
           .split("\n")

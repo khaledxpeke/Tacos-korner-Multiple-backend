@@ -1,5 +1,4 @@
 const History = require("../models/History");
-const Product = require("../models/product");
 const express = require("express");
 const app = express();
 require("dotenv").config();

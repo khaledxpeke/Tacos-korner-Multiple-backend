@@ -234,11 +234,6 @@ exports.getProductData = async (req, res) => {
       })
     );
 
-    // const selectedVariation = product.typeVariations.variations.find(
-    //   v => v._id._id.toString() === variationId
-    // );
-    // product.price = selectedVariation ? selectedVariation.price+product.price : product.price;
-
     const finalPrice = Number(product.price);
 
     res.status(200).json({

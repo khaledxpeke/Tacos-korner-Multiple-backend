@@ -1,11 +1,8 @@
 const Ingrediant = require("../models/ingrediant");
 const Product = require("../models/product");
-const Type = require("../models/type");
 const express = require("express");
 const app = express();
-const jwt = require("jsonwebtoken");
 require("dotenv").config();
-const jwtSecret = process.env.JWT_SECRET;
 app.use(express.json());
 const multer = require("multer");
 const multerStorage = require("../middleware/multerStorage");
@@ -84,81 +81,6 @@ exports.createIngredient = async (req, res, next) => {
   });
 };
 
-// exports.addIngrediantToProduct = async (req, res, next) => {
-//   try {
-//     const { productId } = req.params;
-//     const { ingrediantId } = req.body;
-//     const product = await Product.findById(productId);
-//     if (!product) {
-//       return res.status(404).json({
-//         message: `Aucun produit trouvé avec cet ID: ${productId}`,
-//       });
-//     }
-
-//     const ingrediant = await Ingrediant.findById(ingrediantId);
-//     if (!ingrediant) {
-//       return res.status(404).json({
-//         message: `Aucun ingrediant trouvé avec cet ID: ${ingrediantId}`,
-//       });
-//     }
-
-//     const ingrediantIndex = product.ingrediants.findIndex(
-//       (ingrediant) => ingrediant.toString() === ingrediantId
-//     );
-//     if (ingrediantIndex !== -1) {
-//       return res.status(409).json({
-//         message: `Ingrediant avec ID ${ingrediantId} déja existant dans le produit`,
-//       });
-//     }
-
-//     product.ingrediants.push(ingrediant);
-//     if (!product.type.some((type) => ingrediant.types.includes(type))) {
-//       product.type.push(...ingrediant.types);
-//     }
-//     await product.save();
-//     ingrediant.product.push(productId);
-//     await ingrediant.save();
-//     return res.status(200).json(product);
-//   } catch (error) {
-//     return res.status(500).json({
-//       message:
-//         "Une erreur s'est produite lors de l'ajout de l'ingrédient au produit",
-//       error: error.message,
-//     });
-//   }
-// };
-// exports.getIngrediantByProduct = async (req, res, next) => {
-//   const { productId } = req.params;
-//   try {
-//     const ingrediants = await Ingrediant.find({ product: productId }).populate(
-//       "types"
-//     );
-//     return res.status(200).json(ingrediants);
-//   } catch (error) {
-//     return res.status(400).json({
-//       message: "Aucun ingrediant trouvé",
-//       error: error.message,
-//     });
-//   }
-// };
-
-// exports.getIngredientsByType = async (req, res, next) => {
-//   const { productId, typeId } = req.params;
-
-//   try {
-//     const ingrediants = await Ingrediant.find({
-//       product: productId,
-//       types: typeId,
-//     }).populate("types");
-//     return res.status(200).json(ingrediants);
-//   } catch (error) {
-//     return res.status(500).json({
-//       message: "Une erreur s'est produite",
-//       error: error.message,
-//     });
-//   }
-// };
-
 exports.getAllIngrediants = async (req, res, next) => {
   try {
     const { restaurantId } = req;
@@ -173,38 +95,7 @@ exports.getAllIngrediants = async (req, res, next) => {
     });
   }
 };
-// exports.getAllIngrediantsByType = async (req, res, next) => {
-//   try {
-//     const ingrediants = await Ingrediant.find({}, { _id: 1, name: 1 }).populate(
-//       "types",
-//       { name: 1 }
-//     );
 
-//     // Group ingredients by type name
-//     const ingrediantsByType = {};
-//     ingrediants.forEach((ingrediant) => {
-//       const { type } = ingrediant;
-//       if (type) {
-//         const { name } = type;
-//         if (!ingrediantsByType[name]) {
-//           ingrediantsByType[name] = [];
-//         }
-//         ingrediantsByType[name].push({
-//           _id: ingrediant._id,
-//           name: ingrediant.name,
-//           type: ingrediant.type,
-//         });
-//       }
-//     });
-
-//     return res.status(200).json(ingrediantsByType);
-//   } catch (error) {
-//     return res.status(400).json({
-//       message: "Aucun ingrediant trouvé",
-//       error: error.message,
-//     });
-//   }
-// };
 
 exports.updateIngrediant = async (req, res) => {
   const ingrediantId = req.params.ingrediantId;
