@@ -137,6 +137,100 @@ exports.getUsers = async (req, res, next) => {
     });
   }
 };
+exports.getAssignableUsers = async (req, res, next) => {
+  try {
+    const { restaurantId } = req;
+    const { search, role } = req.query;
+
+    let query = {
+      "restaurants.restaurantId": { $ne: restaurantId },
+      role: { $ne: "admin" },
+    };
+
+    // Filter by role
+    if (role) {
+      query["role"] = role;
+    }
+
+    // Search by name or email
+    if (search) {
+      query["$or"] = [
+        { fullName: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const users = await User.find(query).select("-password");
+
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(400).json({
+      message: "Une erreur s'est produite",
+      error: error.message,
+    });
+  }
+};
+
+exports.assignUserToRestaurant = async (req, res, next) => {
+  try {
+    const { userId } = req.params; 
+    const { restaurantId } = req; 
+    const { role } = req.body;
+
+    if (!["manager", "waiter"].includes(role)) {
+      return res.status(400).json({
+        message: "Le rôle doit être 'manager' ou 'waiter'",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    user.restaurants.push({ restaurantId, role });
+    await user.save();
+
+    res.status(200).json({
+      message: "Utilisateur assigné au restaurant avec succès",
+      user,
+    });
+  } catch (error) {
+    console.error("Error in assignUserToRestaurant:", error);
+    res.status(500).json({
+      message: "Erreur du serveur",
+      error: error.message,
+    });
+  }
+};
+exports.unassignUserFromRestaurant = async (req, res, next) => {
+  try {
+    const { userId } = req.params; 
+    const { restaurantId } = req; 
+
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    user.restaurants = user.restaurants.filter(
+      (r) => r.restaurantId.toString() !== restaurantId
+    );
+    await user.save();
+
+    res.status(200).json({
+      message: "Utilisateur désassigné du restaurant avec succès",
+      user,
+    });
+  } catch (error) {
+    console.error("Error in unassignUserFromRestaurant:", error);
+    res.status(500).json({
+      message: "Erreur du serveur",
+      error: error.message,
+    });
+  }
+};
 
 exports.getUserbyId = async (req, res, next) => {
   const userId = req.user.user._id;

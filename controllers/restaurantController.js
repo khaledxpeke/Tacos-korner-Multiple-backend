@@ -159,7 +159,7 @@ exports.getRestaurantById = async (req, res) => {
 };
 
 exports.updateRestaurant = async (req, res) => {
-  req.uploadTarget = "boisson";
+  req.uploadTarget = "restaurant";
   upload.single("logo")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
@@ -174,58 +174,57 @@ exports.updateRestaurant = async (req, res) => {
       });
     }
 
-    const existedRestaurant = await Restaurant.findById(
-      req.params.restaurantId
-    );
-    if (!existedRestaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
-    }
-    if (existedRestaurant.logo) {
-      const oldImagePath = path.join(__dirname, "..", existedRestaurant.logo);
-      const newImagePath = path.join(
-        __dirname,
-        "..",
-        "uploads",
-        "restaurant",
-        path.basename(existedRestaurant.logo)
-      );
-
-      if (fs.existsSync(oldImagePath)) {
-        fs.renameSync(oldImagePath, newImagePath);
-      }
-      existedRestaurant.logo = `uploads/restaurant/${path.basename(
-        existedRestaurant.logo
-      )}`;
-    }
-    if (req.file) {
-      const logo = `uploads/restaurant/${req.file.filename}`;
-      const oldImagePath = path.join(__dirname, "..", existedRestaurant.image);
-
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-
-      existedRestaurant.logo = logo;
-    }
     try {
-      const { name, description, active } = req.body;
-
-      const restaurant = await Restaurant.findById(req.params.restaurantId);
-
-      if (!restaurant) {
+      const { name, description, active, address } = req.body;
+      const existedRestaurant = await Restaurant.findById(
+        req.params.restaurantId
+      );
+      if (!existedRestaurant) {
         return res.status(404).json({ message: "Restaurant not found" });
       }
+      let logo = existedRestaurant.logo;
+      if (
+        existedRestaurant.logo &&
+        !existedRestaurant.logo.startsWith("uploads/restaurant/")
+      ) {
+        const oldImagePath = path.join(__dirname, "..", existedRestaurant.logo);
+        const newImagePath = path.join(
+          __dirname,
+          "..",
+          "uploads",
+          "restaurant",
+          path.basename(existedRestaurant.logo)
+        );
 
-      if (name) restaurant.name = name;
-      if (address) restaurant.address = address;
-      if (logo) restaurant.logo = logo;
-      if (description !== undefined) restaurant.description = description;
-      if (active !== undefined) restaurant.active = active;
+        if (fs.existsSync(oldImagePath)) {
+          fs.renameSync(oldImagePath, newImagePath);
+        }
+        logo = `uploads/restaurant/${path.basename(existedRestaurant.logo)}`;
+      }
 
-      await restaurant.save();
+      // Handle new logo upload
+      if (req.file) {
+        logo = `uploads/restaurant/${req.file.filename}`;
+        const oldImagePath = path.join(__dirname, "..", existedRestaurant.logo);
+
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+        }
+
+        existedRestaurant.logo = logo;
+      }
+
+      if (name) existedRestaurant.name = name;
+      if (address) existedRestaurant.address = address;
+      if (logo) existedRestaurant.logo = logo;
+      if (description !== undefined)
+        existedRestaurant.description = description;
+      if (active !== undefined) existedRestaurant.active = active;
+
+      await existedRestaurant.save();
 
       res.status(200).json({
-        restaurant,
+        existedRestaurant,
         message: "Restaurant updated successfully",
       });
     } catch (error) {
@@ -267,23 +266,40 @@ exports.deleteRestaurant = async (req, res) => {
     // Delete all orders associated with the restaurant
     await History.deleteMany({ restaurantId: restaurant._id }).session(session);
 
-    await Category.deleteMany({ restaurantId: restaurant._id }).session(session);
+    await Category.deleteMany({ restaurantId: restaurant._id }).session(
+      session
+    );
 
-    await Ingrediant.deleteMany({ restaurantId: restaurant._id }).session(session);
-    await Variation.deleteMany({ restaurantId: restaurant._id }).session(session);
-    await TypeVariation.deleteMany({ restaurantId: restaurant._id }).session(session);
+    await Ingrediant.deleteMany({ restaurantId: restaurant._id }).session(
+      session
+    );
+    await Variation.deleteMany({ restaurantId: restaurant._id }).session(
+      session
+    );
+    await TypeVariation.deleteMany({ restaurantId: restaurant._id }).session(
+      session
+    );
     await Type.deleteMany({ restaurantId: restaurant._id }).session(session);
     await Desert.deleteMany({ restaurantId: restaurant._id }).session(session);
     await Drink.deleteMany({ restaurantId: restaurant._id }).session(session);
     await Extra.deleteMany({ restaurantId: restaurant._id }).session(session);
-    await carouselMedia.deleteMany({ restaurantId: restaurant._id }).session(session);
-
+    await carouselMedia
+      .deleteMany({ restaurantId: restaurant._id })
+      .session(session);
 
     // Delete restaurant
-    await Restaurant.findByIdAndDelete(req.params.restaurantId).session(session);
+    await Restaurant.findByIdAndDelete(req.params.restaurantId).session(
+      session
+    );
+
+    await session.commitTransaction();
+    session.endSession();
 
     res.status(200).json({ message: "Restaurant deleted successfully" });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("Error deleting restaurant:", error);
     res.status(500).json({ message: error.message });
   }
 };

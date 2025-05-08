@@ -25,7 +25,6 @@ exports.restaurantAuth = () => {
     try {
       // Get restaurant ID from params or headers
       const restaurantId = req.params.restaurantId || req.headers["restaurant-id"];
-      console.log("Restaurant ID:", restaurantId); // Debugging log
 
       // If the route is "register", skip token validation
       if (req.path === "/register" && !req.headers["authorization"]) {
