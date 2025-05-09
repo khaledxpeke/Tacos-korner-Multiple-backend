@@ -188,8 +188,12 @@ const notifyWaiters = async (history) => {
 exports.getHistory = async (req, res) => {
   try {
     const { restaurantId } = req;
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * parseInt(limit);
     const histories = await History.find({ restaurantId })
       .sort({ boughtAt: -1 })
+      .skip(skip)
+            .limit(parseInt(limit))
       .populate({
         path: "product",
         populate: [
@@ -216,7 +220,16 @@ exports.getHistory = async (req, res) => {
       };
     });
 
-    res.status(200).json(historiesWithTva);
+     const totalHistories = await History.countDocuments({ restaurantId });
+
+    res.status(200).json({
+      histories: historiesWithTva,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalHistories / limit),
+        totalRecords: totalHistories,
+      },
+    });
   } catch (error) {
     console.error("Error fetching history:", error);
     res.status(500).json({
