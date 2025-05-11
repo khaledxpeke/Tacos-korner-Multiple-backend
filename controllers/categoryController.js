@@ -320,11 +320,13 @@ exports.deleteCategory = async (req, res) => {
     if (!category) {
       return res.status(404).json({ message: "Aucun Categorie trouvée" });
     }
+
+    await Product.deleteMany({ category: categoryId, restaurantId });
     // Update products to set category to null
-    await Product.updateMany(
-      { category: categoryId, restaurantId },
-      { $set: { category: null } }
-    );
+    // await Product.updateMany(
+    //   { category: categoryId, restaurantId },
+    //   { $set: { category: null } }
+    // );
     if (category.image) {
       const imagePath = path.join(__dirname, "..", category.image);
       if (fs.existsSync(imagePath)) {

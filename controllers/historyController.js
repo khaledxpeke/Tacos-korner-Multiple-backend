@@ -177,7 +177,10 @@ const notifyWaiters = async (history) => {
           token,
         });
       } catch (error) {
-        console.error(`Erreur d'envoyer les notifications au jetons: ${token}`, error);
+        console.error(
+          `Erreur d'envoyer les notifications au jetons: ${token}`,
+          error
+        );
       }
     }
   } catch (error) {
@@ -187,9 +190,21 @@ const notifyWaiters = async (history) => {
 exports.getHistory = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const { page = 1, limit = 10 } = req.query;
+    const { page = 1, limit = 10, search = "" } = req.query;
     const skip = (page - 1) * parseInt(limit);
-    const histories = await History.find({ restaurantId })
+    let query = { restaurantId };
+
+    // Add search filter if provided
+    if (search && search.trim() !== "") {
+      const searchRegex = new RegExp(search, "i");
+      query.$or = [
+        { name: { $regex: searchRegex } },
+        { commandNumber: isNaN(parseInt(search)) ? -1 : parseInt(search) },
+        { "method.label": { $regex: searchRegex } },
+        { "pack.label": { $regex: searchRegex } },
+      ];
+    }
+    const histories = await History.find(query)
       .sort({ boughtAt: -1 })
       .skip(skip)
       .limit(parseInt(limit))
