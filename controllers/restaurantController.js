@@ -121,7 +121,7 @@ exports.getRestaurants = async (req, res) => {
     if (req.user.user.role === "admin" || req.user.user.role === "client") {
       restaurants = await Restaurant.find().select(
         "name description active createdAt address logo"
-      );
+      ).populate("settings");
     } else {
       // For managers and waiters, find their specific restaurants
       const user = await User.findById(req.user.user._id);
@@ -133,7 +133,7 @@ exports.getRestaurants = async (req, res) => {
       const restaurantIds = user.restaurants.map((r) => r.restaurantId);
       restaurants = await Restaurant.find({
         _id: { $in: restaurantIds },
-      }).select("name description active createdAt address logo");
+      }).select("name description active createdAt address logo").populate("settings");
     }
 
     res.status(200).json(restaurants);
