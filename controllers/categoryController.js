@@ -281,7 +281,7 @@ exports.updatePositions = async (req, res) => {
       })
     );
 
-    res.status(200).json({ message: "Positions updated successfully" });
+res.status(200).json({ message: "Positions mises à jour avec succès" });
   } catch (error) {
     res.status(400).json({
       message: "Une erreur s'est produite",

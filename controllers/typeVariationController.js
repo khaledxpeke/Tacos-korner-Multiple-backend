@@ -14,7 +14,7 @@ exports.addTypeVariation = async (req, res) => {
       restaurantId,
     });
     if (typeVariationExist) {
-      return res.status(400).json({ message: "Type de Variation déja existe" });
+return res.status(400).json({ message: "Type de variation déjà existante" });
     }
     const typeVariation = new TypeVariation({
       name,
@@ -56,7 +56,7 @@ exports.updateTypeVariation = async (req, res) => {
       restaurantId,
     });
     if (!typeVariation) {
-      return res.status(404).json({ message: "TypeVariation non trouvée" });
+return res.status(404).json({ message: "Type de variation non trouvée" });
     }
 
     typeVariation.name = name;
@@ -64,7 +64,7 @@ exports.updateTypeVariation = async (req, res) => {
     typeVariation.description = description;
     typeVariation.variations = variations;
     await typeVariation.save();
-    res.status(200).json({ message: "TypeVariation modifiée avec succées" });
+res.status(200).json({ message: "Type de variation modifiée avec succès" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -88,7 +88,7 @@ exports.deleteTypeVariation = async (req, res) => {
     );
     res
       .status(200)
-      .json({ message: "TypeVariation a été supprimée avec succées" });
+.json({ message: "Type de variation supprimée avec succès" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

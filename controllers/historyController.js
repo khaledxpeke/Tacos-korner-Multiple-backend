@@ -21,7 +21,7 @@ admin.initializeApp({
 });
 
 exports.setIO = (socketIO) => {
-  console.log("Socket IO initialized with id:", socketIO.id);
+  console.log("Socket IO initializée avec id:", socketIO.id);
   io = socketIO;
 };
 exports.addHistory = async (req, res) => {
@@ -111,7 +111,7 @@ exports.addHistory = async (req, res) => {
           io.emit("new-history", response);
           await notifyWaiters(history);
         } else {
-          console.log("Socket not initialized, no emit performed");
+          console.log("Socket n'est pas initializer, aucun emit performé");
         }
         setTimeout(async () => {
           const order = await History.findOne({
@@ -162,7 +162,6 @@ const notifyWaiters = async (history) => {
     });
 
     const tokens = users.map((user) => user.fcmToken);
-    console.log("Sending notifications to tokens:", tokens);
 
     const payload = {
       notification: {
@@ -177,13 +176,12 @@ const notifyWaiters = async (history) => {
           ...payload,
           token,
         });
-        console.log(`Notification sent to token: ${token}`);
       } catch (error) {
-        console.error(`Failed to send notification to token: ${token}`, error);
+        console.error(`Erreur d'envoyer les notifications au jetons: ${token}`, error);
       }
     }
   } catch (error) {
-    console.error("Error sending notifications:", error);
+    console.error("Erreur d'envoyer les notifications:", error);
   }
 };
 exports.getHistory = async (req, res) => {

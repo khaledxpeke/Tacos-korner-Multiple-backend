@@ -15,11 +15,11 @@ exports.createType = async (req, res, next) => {
   try {
     const existingType = await Type.findOne({ name, restaurantId });
     if (existingType) {
-      return res.status(400).json({ message: "Option existe déja" });
+return res.status(400).json({ message: "Option déjà existante" });
     }
     if (min > max) {
       return res.status(400).json({
-        message: "Le minimum doit être inférieur à la maximumu",
+message: "Le minimum doit être inférieur au maximum",
       });
     }
     const newType = new Type({
@@ -34,11 +34,11 @@ exports.createType = async (req, res, next) => {
     });
     await newType.save();
 
-    res.status(201).json({ message: "Option créer avec succées" });
+res.status(201).json({ message: "Option créée avec succès" });
   } catch (error) {
     res
       .status(500)
-      .json({ message: "Une erreur s'est produite", error: error.message });
+.json({ message: "Une erreur s'est produite", error: error.message });
   }
 };
 
@@ -49,7 +49,7 @@ exports.getAllTypes = async (req, res, next) => {
     res.status(200).json(types);
   } catch (error) {
     res.status(400).json({
-      message: "Aucun option trouvé",
+message: "Aucune option trouvée",
       error: error.message,
     });
   }
@@ -64,7 +64,7 @@ exports.getTypeById = async (req, res, next) => {
       restaurantId: restaurantId,
     });
     if (!type) {
-      return res.status(404).json({ message: "Option non trouvée" });
+return res.status(404).json({ message: "Option non trouvée" });
     }
     res.status(200).json(type);
   } catch (error) {
@@ -82,7 +82,7 @@ exports.updateType = async (req, res, next) => {
     const { name, label, message, min, max, payment, selection } = req.body;
     const type = await Type.findOne({ _id: typeId, restaurantId });
     if (!type) {
-      res.status(500).json({ message: "aucun option trouvée" });
+res.status(500).json({ message: "Aucune option trouvée" });
     }
     if (min > max) {
       return res.status(400).json({
@@ -106,7 +106,7 @@ exports.updateType = async (req, res, next) => {
 
     res
       .status(200)
-      .json({ updatedType, message: "Option modifié avec succées" });
+.json({ updatedType, message: "Option modifiée avec succès" });
   } catch (error) {
     res.status(400).json({
       message: "Une erreur s'est produite",
@@ -148,7 +148,7 @@ exports.deleteType = async (req, res, next) => {
     await Ingrediant.deleteMany({ type: typeId, restaurantId });
 
     await Product.updateMany({ type: typeId, restaurantId }, { $pull: { type: typeId } });
-    res.status(200).json({ message: "Option supprimer avec succées" });
+res.status(200).json({ message: "Option supprimée avec succès" });
   } catch (error) {
     res.status(400).json({
       message: "Aucun option trouvé",

@@ -39,13 +39,13 @@ exports.updateVariation = async (req, res) => {
       restaurantId,
     });
     if (!variation) {
-      return res.status(404).json({ message: "Variation not found" });
+return res.status(404).json({ message: "Variation non trouvée" });
     }
 
     variation.name = name;
     await variation.save();
 
-    res.status(200).json({ message: "Variation updated successfully" });
+res.status(200).json({ message: "Variation mise à jour avec succès" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -68,7 +68,7 @@ exports.deleteVariation = async (req, res) => {
       { variations: variationId, restaurantId },
       { $pull: { variations: variationId } }
     );
-    res.status(200).json({ message: "Variation deleted successfully" });
+res.status(200).json({ message: "Variation supprimée avec succès" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

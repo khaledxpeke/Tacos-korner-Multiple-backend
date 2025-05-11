@@ -7,12 +7,12 @@ exports.roleAuth = (expectedRoles) => {
   return (req, res, next) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
-    if (token == null) return res.status(401).json({ message: "Not authorized" });
+if (token == null) return res.status(401).json({ message: "Non autorisé" });
     jwt.verify(token, jwtSecret, (err, user) => {
-      if (err) return res.status(403).json({ message: "Not authorized" });
+if (err) return res.status(403).json({ message: "Non autorisé" });
       
       if (!expectedRoles.includes(user.user.role)) {
-        return res.status(403).json({ message: "Not authorized" });
+return res.status(403).json({ message: "Non autorisé" });
       }
       req.user = user;
       next();
@@ -34,21 +34,21 @@ exports.restaurantAuth = () => {
       }
      
       if (!restaurantId) {
-        return res.status(400).json({ message: "Restaurant ID required" });
+return res.status(400).json({ message: "Identifiant du restaurant requis" });
       }
       // Authenticate the user for other routes
       const authHeader = req.headers["authorization"];
       const token = authHeader && authHeader.split(" ")[1];
       
       if (token == null) {
-        return res.status(401).json({ message: "No token provided" });
+return res.status(401).json({ message: "Aucun jeton fourni" });
       }
 
       // Verify token and get user
       jwt.verify(token, jwtSecret, async (err, decoded) => {
         if (err) {
           console.error("Token verification error:", err); // Debugging log
-          return res.status(403).json({ message: "Invalid token" });
+return res.status(403).json({ message: "Jeton invalide" });
         }
 
         // Set the user in the request object
@@ -58,7 +58,7 @@ exports.restaurantAuth = () => {
         const userDoc = await User.findById(decoded.user._id);
 
         if (!userDoc) {
-          return res.status(404).json({ message: "User not found" });
+return res.status(404).json({ message: "Utilisateur non trouvé" });
         }
 
         // Check if global admin or client - they have access to all restaurants
@@ -73,7 +73,7 @@ exports.restaurantAuth = () => {
         );
 
         if (!hasAccess) {
-          return res.status(403).json({ message: "Not authorized for this restaurant" });
+return res.status(403).json({ message: "Non autorisé pour ce restaurant" });
         }
 
         req.restaurantId = restaurantId;

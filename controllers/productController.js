@@ -271,7 +271,7 @@ exports.deleteProduct = async (req, res, next) => {
       { product: productId, restaurantId },
       { $pull: { product: productId } }
     );
-    res.status(200).json({ message: "Product supprimer avec succées" });
+    res.status(200).json({ message: "Produit supprimer avec succées" });
   } catch (error) {
     res.status(400).json({
       message: "Une erreur s'est produite",

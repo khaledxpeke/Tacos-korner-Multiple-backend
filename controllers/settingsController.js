@@ -20,7 +20,7 @@ exports.addSettings = async (req, res) => {
     );
 
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
+      return res.status(404).json({ message: "Restaurant non trouvée" });
     }
 
     const { currency } = req.body;
@@ -107,7 +107,7 @@ exports.getSettings = async (req, res) => {
     );
 
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
+      return res.status(404).json({ message: "Restaurant non trouvée" });
     }
     let settings = null;
     if (restaurant.settings) {
@@ -175,7 +175,7 @@ exports.getAllCurrencies = async (req, res) => {
     if (!restaurant || !restaurant.settings) {
       return res
         .status(404)
-        .json({ message: "Settings not found for this restaurant" });
+        .json({ message: "Paramètre non trouvée pour cette restaurant" });
     }
     const currencies = await Settings.findOne({
       _id: restaurant.settings,
@@ -205,7 +205,7 @@ exports.updateDefaultCurrency = async (req, res) => {
     if (!restaurant || !restaurant.settings) {
       return res
         .status(404)
-        .json({ message: "Settings not found for this restaurant" });
+        .json({ message: "Paramètre non trouvée pour cette restaurant" });
     }
 
     const { defaultCurrency } = req.body;
@@ -248,7 +248,7 @@ exports.deleteCurrency = async (req, res) => {
     if (!restaurant || !restaurant.settings) {
       return res
         .status(404)
-        .json({ message: "Settings not found for this restaurant" });
+        .json({ message: "Paramètre non trouvée pour cette restaurant" });
     }
 
     const { currency } = req.body;
@@ -306,7 +306,7 @@ exports.updateSettings = async (req, res) => {
       const restaurant = await Restaurant.findOne({ _id: restaurantId });
 
       if (!restaurant) {
-        return res.status(404).json({ message: "Restaurant not found" });
+        return res.status(404).json({ message: "Restaurant non trouvée" });
       }
 
       // Find or create settings
@@ -321,7 +321,7 @@ exports.updateSettings = async (req, res) => {
       if (!settings) {
         return res
           .status(404)
-          .json({ message: "Settings not found for this restaurant" });
+          .json({ message: "Paramètre non trouvée pour cette restaurant" });
       }
       const {
         oldCurrency,

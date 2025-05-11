@@ -89,7 +89,7 @@ exports.updateOrder = async (req, res) => {
       )
     );
 
-    res.status(200).json({ message: "Ordre mise à jour avec succès" });
+res.status(200).json({ message: "Ordre mis à jour avec succès" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -144,7 +144,7 @@ exports.deleteMedia = async (req, res) => {
     fs.unlinkSync(path.join(__dirname, "..", media.fileUrl));
     await CarouselMedia.findOneAndDelete({ _id: req.params.id, restaurantId });
 
-    res.status(200).json({ message: "Le média a été supprimé avec succès" });
+res.status(200).json({ message: "Média supprimé avec succès" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

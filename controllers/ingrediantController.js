@@ -112,7 +112,7 @@ exports.updateIngrediant = async (req, res) => {
     }
     if (err) {
       console.log(err);
-      return res.status(500).json({ message: "Server error" });
+return res.status(500).json({ message: "Erreur du serveur" });
     }
     const ingrediant = await Ingrediant.findOne({
       _id: ingrediantId,

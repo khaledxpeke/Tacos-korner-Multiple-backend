@@ -138,7 +138,7 @@ exports.updateExtra = async (req, res) => {
         }
       );
 
-      res.status(200).json({ message: "Extra modifiéer avec succées" });
+res.status(200).json({ message: "Extra modifié avec succès" });
     } catch (error) {
       res.status(500).json({ message: error.message });
     }
@@ -163,7 +163,7 @@ exports.deleteExtra = async (req, res, next) => {
     }
     await Extra.findOneAndDelete({ _id: extraId, restaurantId });
     res.status(200).json({
-      message: "Extra supprimer avec succées",
+message: "Extra supprimé avec succès",
     });
   } catch (error) {
     res.status(400).json({

@@ -275,7 +275,7 @@ exports.updateUser = async (req, res, next) => {
       .status(200)
       .json({ message: "Utilisateur modifié avec succès", savedUser });
   } catch (error) {
-    console.error("Error in updateUser:", error);
+    console.error("Erreur dans updateUser:", error);
     return res
       .status(500)
       .json({ message: "Erreur du serveur", error: error.message });
@@ -336,7 +336,7 @@ exports.deleteUser = async (req, res, next) => {
 
     return res.status(200).json({ message: "Utilisateur supprimée" });
   } catch (error) {
-    console.error("Error in deleteUser:", error);
+    console.error("Erreur dans deleteUser:", error);
     return res
       .status(500)
       .json({ message: "Erreur du serveur", error: error.message });

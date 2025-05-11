@@ -14,7 +14,7 @@ exports.getStatusHistory = async (req, res) => {
       
       res.status(200).json(statusHistory);
     } catch (error) {
-      console.error("Error fetching status history:", error);
+      console.error("Erreur de trouvée des status d'historique", error);
       res.status(500).json({ error: "Erreur interne du serveur" });
     }
   };

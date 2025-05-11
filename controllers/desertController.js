@@ -104,12 +104,12 @@ exports.deleteDesert = async (req, res, next) => {
       }
     }
     await Desert.findOneAndDelete({ _id: desertId, restaurantId });
-    res.status(200).json({
-      message: "Dessert supprimé avec succées",
+res.status(200).json({
+      message: "Dessert supprimé avec succès",
     });
   } catch (error) {
     res.status(400).json({
-      message: "Aucun dessert trouvé pour supprimer",
+message: "Aucun dessert trouvé à supprimer",
       error: error.message,
     });
   }

@@ -39,7 +39,7 @@ exports.getLargestMedia = async (req, res) => {
     res.status(200).json(largestFiles);
   } catch (error) {
     res.status(500).json({
-      message: "Une erreur s'est produite",
+message: "Une erreur s'est produite",
       error: error.message,
     });
   }

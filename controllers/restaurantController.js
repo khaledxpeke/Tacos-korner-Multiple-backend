@@ -119,9 +119,9 @@ exports.getRestaurants = async (req, res) => {
     let restaurants;
 
     if (req.user.user.role === "admin" || req.user.user.role === "client") {
-      restaurants = await Restaurant.find().select(
-        "name description active createdAt address logo"
-      ).populate("settings");
+      restaurants = await Restaurant.find()
+        .select("name description active createdAt address logo")
+        .populate("settings");
     } else {
       // For managers and waiters, find their specific restaurants
       const user = await User.findById(req.user.user._id);
@@ -133,7 +133,9 @@ exports.getRestaurants = async (req, res) => {
       const restaurantIds = user.restaurants.map((r) => r.restaurantId);
       restaurants = await Restaurant.find({
         _id: { $in: restaurantIds },
-      }).select("name description active createdAt address logo").populate("settings");
+      })
+        .select("name description active createdAt address logo")
+        .populate("settings");
     }
 
     res.status(200).json(restaurants);
@@ -149,7 +151,7 @@ exports.getRestaurantById = async (req, res) => {
     ).populate("settings");
 
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
+      return res.status(404).json({ message: "Restaurant non trouvé" });
     }
 
     res.status(200).json(restaurant);
@@ -180,7 +182,7 @@ exports.updateRestaurant = async (req, res) => {
         req.params.restaurantId
       );
       if (!existedRestaurant) {
-        return res.status(404).json({ message: "Restaurant not found" });
+        return res.status(404).json({ message: "Restaurant non trouvée" });
       }
       let logo = existedRestaurant.logo;
       if (
@@ -225,7 +227,7 @@ exports.updateRestaurant = async (req, res) => {
 
       res.status(200).json({
         existedRestaurant,
-        message: "Restaurant updated successfully",
+        message: "Restaurant mis à jour avec succès",
       });
     } catch (error) {
       res.status(500).json({ message: error.message });
@@ -241,7 +243,7 @@ exports.deleteRestaurant = async (req, res) => {
     const restaurant = await Restaurant.findById(req.params.restaurantId);
 
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
+      return res.status(404).json({ message: "Restaurant non trouvée" });
     }
 
     if (restaurant.logo) {
@@ -295,7 +297,7 @@ exports.deleteRestaurant = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    res.status(200).json({ message: "Restaurant deleted successfully" });
+    res.status(200).json({ message: "Restaurant supprimé avec succès" });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
@@ -312,7 +314,7 @@ exports.assignUserToRestaurant = async (req, res) => {
     // Check if restaurant exists
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant not found" });
+      return res.status(404).json({ message: "Restaurant non trouvée" });
     }
 
     // Handle both single user and multiple users
@@ -330,7 +332,7 @@ exports.assignUserToRestaurant = async (req, res) => {
     } else {
       return res.status(400).json({
         message:
-          "Invalid request format. Provide either userId+role or an array of users.",
+          "Invalide format de requete ajouter une id d'utilisateur et une role ou un tableau d'utilisateurs",
       });
     }
 
@@ -346,7 +348,7 @@ exports.assignUserToRestaurant = async (req, res) => {
         // Check if user exists
         const user = await User.findById(userId);
         if (!user) {
-          results.failed.push({ userId, message: "User not found" });
+          results.failed.push({ userId, message: "Utilisateur non trouvé" });
           continue;
         }
 
@@ -371,7 +373,7 @@ exports.assignUserToRestaurant = async (req, res) => {
               results.successful.push({
                 userId,
                 name: user.fullName,
-                message: "Role updated successfully",
+                message: "Rôle mis à jour avec succès",
               });
               continue;
             }
@@ -380,7 +382,8 @@ exports.assignUserToRestaurant = async (req, res) => {
             results.failed.push({
               userId,
               name: user.fullName,
-              message: "Waiters can only be assigned to one restaurant",
+              message:
+                "Les serveurs ne peuvent être assignés qu'à un seul restaurant",
             });
             continue;
           }
@@ -444,7 +447,8 @@ exports.assignUserToRestaurant = async (req, res) => {
           results.failed.push({
             userId,
             name: user.fullName,
-            message: "Clients don't need restaurant assignments",
+            message:
+              "Les clients n'ont pas besoin d'assignation à un restaurant",
           });
           continue;
         }
@@ -454,7 +458,7 @@ exports.assignUserToRestaurant = async (req, res) => {
           userId,
           name: user.fullName,
           role,
-          message: "User assigned successfully",
+          message: "Utilisateur assigné avec succès",
         });
       } catch (error) {
         results.failed.push({
@@ -469,7 +473,7 @@ exports.assignUserToRestaurant = async (req, res) => {
       // For single user case
       if (results.successful.length === 1) {
         return res.status(200).json({
-          message: "User assigned to restaurant successfully",
+          message: "Utilisateur assigné au restaurant avec succès",
           user: results.successful[0],
         });
       } else {
@@ -481,7 +485,7 @@ exports.assignUserToRestaurant = async (req, res) => {
     } else {
       // For multiple users case
       return res.status(200).json({
-        message: `${results.successful.length} users assigned successfully, ${results.failed.length} failed`,
+        message: `${results.successful.length} utilisateurs assignés avec succès, ${results.failed.length} échecs`,
         results,
       });
     }
@@ -497,7 +501,7 @@ exports.removeUserFromRestaurant = async (req, res) => {
     // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User not found" });
+      return res.status(404).json({ message: "User non trouvée" });
     }
 
     // Check if user is assigned to this restaurant
@@ -507,7 +511,7 @@ exports.removeUserFromRestaurant = async (req, res) => {
 
     if (!hasRestaurant) {
       return res.status(404).json({
-        message: "User is not assigned to this restaurant",
+        message: "L'utilisateur n'est pas assigné à ce restaurant",
       });
     }
 
@@ -520,7 +524,7 @@ exports.removeUserFromRestaurant = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "User removed from restaurant successfully" });
+      .json({ message: "Utilisateur retiré du restaurant avec succès" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

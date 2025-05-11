@@ -103,12 +103,12 @@ exports.deleteDrink = async (req, res, next) => {
       }
     }
     await Drink.findOneAndDelete({ _id: drinkId, restaurantId });
-    res.status(200).json({
-      message: "Boisson supprimé avec succées",
+res.status(200).json({
+      message: "Boisson supprimée avec succès",
     });
   } catch (error) {
     res.status(400).json({
-      message: "Aucun boisson trouvé pour supprimer",
+message: "Aucune boisson trouvée pour supprimer",
       error: error.message,
     });
   }
