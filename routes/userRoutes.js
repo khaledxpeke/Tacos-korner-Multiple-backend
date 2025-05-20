@@ -21,7 +21,7 @@ router.post("/:userId/assign", restaurantAuth(),roleAuth(["admin","manager"]), a
 router.delete("/:userId/unassign", restaurantAuth(),roleAuth(["admin","manager"]), unassignUserFromRestaurant);
 router.get("/users", restaurantAuth(),roleAuth(["admin","manager"]), getUsers);
 router.get("/users/assignable", restaurantAuth(),roleAuth(["admin","manager"]), getAssignableUsers);
-router.get("/user", roleAuth(["admin","manager"]), getUserbyId);
+router.get("/user", roleAuth(["admin","manager","waiter"]), getUserbyId);
 router.put("/:userId", restaurantAuth(),roleAuth(["admin","manager",]),updateUser );
 router.put("/block/:userId", restaurantAuth(),roleAuth(["admin","manager",]),blockUser );
 router.delete("/:userId", restaurantAuth(),roleAuth(["admin","manager",]),deleteUser );
