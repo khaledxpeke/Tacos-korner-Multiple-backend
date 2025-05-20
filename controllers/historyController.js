@@ -510,7 +510,6 @@ exports.updateStatus = async (req, res) => {
   const { status } = req.body;
   const { restaurantId } = req;
   const { fullName } = req.user.user;
-  console.log(req.user.user);
   try {
     const history = await History.findOneAndUpdate(
       { _id: id, restaurantId },
@@ -525,8 +524,8 @@ exports.updateStatus = async (req, res) => {
       status,
       updatedBy: fullName,
       updatedAt: new Date(),
+      restaurantId,
     });
-    console.log("statusHistory", statusHistory);
 
     await statusHistory.save();
     io.emit("status-update", {

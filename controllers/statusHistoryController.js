@@ -9,7 +9,7 @@ exports.getStatusHistory = async (req, res) => {
       const { historyId } = req.params;
       const { restaurantId } = req;
       
-      const statusHistory = await StatusHistory.find({ historyId: historyId, restaurantId })
+      const statusHistory = await StatusHistory.find({ historyId, restaurantId })
         .sort({ updatedAt: -1 });
       
       res.status(200).json(statusHistory);
