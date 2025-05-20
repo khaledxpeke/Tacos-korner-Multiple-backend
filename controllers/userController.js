@@ -234,13 +234,13 @@ exports.unassignUserFromRestaurant = async (req, res, next) => {
 
 exports.getUserbyId = async (req, res, next) => {
   const userId = req.user.user._id;
-  const { restaurantId } = req;
+  // const { restaurantId } = req;
   if (!userId) {
     res.status(400).json({ message: " Id non trouvée" });
   } else {
     const user = await User.findOne({
       _id: userId,
-      restaurants: { $elemMatch: { restaurantId } },
+      // restaurants: { $elemMatch: { restaurantId } },
     }).select("-password");
     res.status(200).json(user);
   }
