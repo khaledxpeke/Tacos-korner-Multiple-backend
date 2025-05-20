@@ -173,8 +173,8 @@ exports.getAssignableUsers = async (req, res, next) => {
 
 exports.assignUserToRestaurant = async (req, res, next) => {
   try {
-    const { userId } = req.params; 
-    const { restaurantId } = req; 
+    const { userId } = req.params;
+    const { restaurantId } = req;
     const { role } = req.body;
 
     if (!["manager", "waiter"].includes(role)) {
@@ -205,9 +205,8 @@ exports.assignUserToRestaurant = async (req, res, next) => {
 };
 exports.unassignUserFromRestaurant = async (req, res, next) => {
   try {
-    const { userId } = req.params; 
-    const { restaurantId } = req; 
-
+    const { userId } = req.params;
+    const { restaurantId } = req;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -238,10 +237,10 @@ exports.getUserbyId = async (req, res, next) => {
   if (!userId) {
     res.status(400).json({ message: " Id non trouvée" });
   } else {
-    const user = await User.findOne({
-      _id: userId,
+    const user = await User.findById(
+      userId
       // restaurants: { $elemMatch: { restaurantId } },
-    }).select("-password");
+    ).select("-password");
     res.status(200).json(user);
   }
 };
