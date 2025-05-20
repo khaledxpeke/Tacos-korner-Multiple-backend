@@ -524,6 +524,7 @@ exports.updateStatus = async (req, res) => {
       updatedBy: req.user.user.fullName,
       updatedAt: new Date(),
     });
+    console.log("statusHistory", statusHistory);
 
     await statusHistory.save();
     io.emit("status-update", {
