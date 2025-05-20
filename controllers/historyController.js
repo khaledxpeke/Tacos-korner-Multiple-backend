@@ -527,7 +527,7 @@ exports.updateStatus = async (req, res) => {
 
     await statusHistory.save();
     io.emit("status-update", {
-      historyId: id,
+      id,
       status,
       updatedBy: req.user.user.fullName,
       updatedAt: new Date(),
