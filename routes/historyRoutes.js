@@ -30,7 +30,7 @@ router.post(
   getCommandNumber
 );
 router.put(
-  "/statusHistory/:id",
+  "/:id",
   restaurantAuth(),
   roleAuth(["admin", "manager", "waiter"]),
   updateStatus

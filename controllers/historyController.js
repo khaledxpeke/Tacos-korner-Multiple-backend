@@ -535,7 +535,7 @@ exports.updateStatus = async (req, res) => {
     });
     res.status(200).json(history);
   } catch (error) {
-    console.error("Error updating history status:", error);
+    console.error("Erreur lors de la mise à jour du statut de l'historique:", error);
     res.status(500).json({ error: "Erreur interne du serveur" });
   }
 };
