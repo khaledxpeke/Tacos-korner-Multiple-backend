@@ -509,6 +509,8 @@ exports.updateStatus = async (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   const { restaurantId } = req;
+  const { fullName } = req.user.user;
+  console.log(req.user.user);
   try {
     const history = await History.findOneAndUpdate(
       { _id: id, restaurantId },
@@ -521,7 +523,7 @@ exports.updateStatus = async (req, res) => {
     const statusHistory = new StatusHistory({
       historyId: id,
       status,
-      updatedBy: req.user.user.fullName,
+      updatedBy: fullName,
       updatedAt: new Date(),
     });
     console.log("statusHistory", statusHistory);
@@ -530,12 +532,15 @@ exports.updateStatus = async (req, res) => {
     io.emit("status-update", {
       id,
       status,
-      updatedBy: req.user.user.fullName,
+      updatedBy: fullName,
       updatedAt: new Date(),
     });
     res.status(200).json(history);
   } catch (error) {
-    console.error("Erreur lors de la mise à jour du statut de l'historique:", error);
+    console.error(
+      "Erreur lors de la mise à jour du statut de l'historique:",
+      error
+    );
     res.status(500).json({ error: "Erreur interne du serveur" });
   }
 };
