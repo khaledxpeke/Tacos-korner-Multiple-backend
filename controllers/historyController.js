@@ -134,7 +134,7 @@ exports.addHistory = async (req, res) => {
             }
           }
         }, 20 * 60 * 1000);
-        setInterval(checkAndUpdateDelayedOrders, 20 * 60 * 1000);
+        setInterval(() => checkAndUpdateDelayedOrders(restaurantId), 20 * 60 * 1000);
         res.status(201).json(response);
       })
       .catch((err) => {
@@ -825,8 +825,7 @@ exports.getHistoriesRT = async (socket) => {
     socket.emit("error", error.message);
   }
 };
-const checkAndUpdateDelayedOrders = async () => {
-  const { restaurantId } = req;
+const checkAndUpdateDelayedOrders = async (restaurantId) => {
   try {
     const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
 

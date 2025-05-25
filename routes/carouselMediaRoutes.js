@@ -18,7 +18,6 @@ router.get(
 router.get(
   "/stream",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
   carouselController.getCarouselStream
 );
 router.put(
