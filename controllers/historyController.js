@@ -15,6 +15,7 @@ const User = require("../models/user");
 const StatusHistory = require("../models/statusHistory");
 const moment = require("moment-timezone");
 const mongoose = require("mongoose");
+const Restaurant = require("../models/restaurant");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -29,6 +30,7 @@ exports.addHistory = async (req, res) => {
     req.body;
   const { restaurantId } = req;
   try {
+    const restaurant = await Restaurant.findById(restaurantId);
     const settings = await Settings.findOne({ restaurantId });
     const parisTime = moment.tz("Europe/Paris");
     const franceDatetime = parisTime.toDate();
@@ -70,7 +72,7 @@ exports.addHistory = async (req, res) => {
       currency,
       tva,
       status: "enCours",
-      logo: settings.logo,
+      logo: restaurant.logo,
       method: {
         _id: methodExists._id,
         label: methodExists.label,
@@ -134,7 +136,10 @@ exports.addHistory = async (req, res) => {
             }
           }
         }, 20 * 60 * 1000);
-        setInterval(() => checkAndUpdateDelayedOrders(restaurantId), 20 * 60 * 1000);
+        setInterval(
+          () => checkAndUpdateDelayedOrders(restaurantId),
+          20 * 60 * 1000
+        );
         res.status(201).json(response);
       })
       .catch((err) => {
@@ -280,11 +285,12 @@ const generatePDF = async (orderData) => {
     "utf8"
   );
   const settings = await Settings.findOne({ restaurantId });
+  const restaurant = await Restaurant.findById(restaurantId);
   const tva = settings?.tva || 0;
   const address = settings?.address;
   const totalHt = (100 * orderData.total) / (100 + tva);
   const tvaAmount = orderData.total - totalHt;
-  const logoUrl = `${process.env.BASE_URL}/${settings.logo.replace(
+  const logoUrl = `${process.env.BASE_URL}/${restaurant.logo.replace(
     /\\/g,
     "/"
   )}`;
@@ -384,6 +390,7 @@ exports.addEmail = async (req, res) => {
     let formattedDate = moment(history.boughtAt)
       .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
       .format("D MMMM YYYY HH:mm");
+    const restaurant = await Restaurant.findById(restaurantId);
     const settings = await Settings.findOne({ restaurantId });
     const tva = settings?.tva || 0;
     const totalHt = (100 * history.total) / (100 + tva);
@@ -396,7 +403,7 @@ exports.addEmail = async (req, res) => {
           "Impossible d'envoyer un e-mail pour les commandes des jours précédents",
       });
     }
-    const logoUrl = `${process.env.BASE_URL}/api/${settings.logo.replace(
+    const logoUrl = `${process.env.BASE_URL}/api/${restaurant.logo.replace(
       /\\/g,
       "/"
     )}`;
