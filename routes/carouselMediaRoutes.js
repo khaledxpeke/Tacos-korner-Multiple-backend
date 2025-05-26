@@ -20,6 +20,14 @@ router.get(
   restaurantAuth(),
   carouselController.getCarouselStream
 );
+router.get(
+  "/test-carousel",
+  (req, res, next) => {
+    req.restaurantId = '67fa851dd299c52f0945b028';
+    next();
+  },
+  carouselController.getCarouselStream
+);
 router.put(
   "/order",
   restaurantAuth(),
