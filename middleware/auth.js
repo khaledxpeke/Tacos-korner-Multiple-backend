@@ -32,7 +32,7 @@ exports.restaurantAuth = () => {
         (req.path === "/register" && !req.headers["authorization"]) ||
         req.path === "/stream"
       ) {
-        console.log("Skipping token validation for register route or carousel stream");
+        // console.log("Skipping token validation for register route or carousel stream");
         req.restaurantId = restaurantId || null; // Set restaurantId if provided
         return next();
       }
