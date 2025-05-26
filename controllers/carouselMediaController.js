@@ -119,6 +119,7 @@ exports.getCarouselStream = async (req, res) => {
       .select("mediaType fileUrl duration");
     const settings = await Settings.findOne({ restaurantId });
     const STATIC_DURATION = settings.carouselDuration || 5;
+    console.log(StATIC_DURATION);
     res.render("carousel-viewer", {
       media: activeMedia,
       mediaDurations: activeMedia.map(() => STATIC_DURATION).join(","),
