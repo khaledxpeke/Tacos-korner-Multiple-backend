@@ -8,12 +8,39 @@ const jwtSecret = process.env.JWT_SECRET;
 app.use(express.json());
 
 exports.register = async (req, res, next) => {
-  const { email, password, fullName } = req.body;
-  const { restaurantId } = req;
-  const user = await User.findOne({ email });
-  if (user) {
+  const { email, password, fullName, role: roleFromBody } = req.body; // Added roleFromBody
+  const { restaurantId } = req; // restaurantId is set by middleware
+
+  const userExists = await User.findOne({ email });
+  if (userExists) {
     return res.status(400).json({ message: "L'utilisateur existe déjà" });
   }
+
+  let determinedUserRole;
+  let determinedRestaurantRoleForStaff;
+
+  if (restaurantId) {
+    // Staff registration (e.g., from Dashboard)
+    const allowedStaffRoles = ["manager", "waiter"];
+    if (roleFromBody && allowedStaffRoles.includes(roleFromBody)) {
+      determinedUserRole = roleFromBody;
+      determinedRestaurantRoleForStaff = roleFromBody;
+    } else if (roleFromBody) {
+      // Role provided but not in allowedStaffRoles
+      return res.status(400).json({
+        message: `Le rôle '${roleFromBody}' n'est pas valide pour le personnel. Les rôles valides sont : ${allowedStaffRoles.join(", ")}.`,
+      });
+    } else {
+      // No role provided for staff, default to 'waiter'
+      determinedUserRole = "waiter";
+      determinedRestaurantRoleForStaff = "waiter";
+    }
+  } else {
+    // Client registration (e.g., from Client app, Borne app)
+    // restaurantId is null due to X-App-Type handling in middleware
+    determinedUserRole = "client";
+  }
+
   try {
     bcrypt.hash(password, 10).then(async (hash) => {
       const newUser = {
@@ -21,20 +48,22 @@ exports.register = async (req, res, next) => {
         password: hash,
         fullName,
         isBlocked: false,
-        role: restaurantId ? "waiter" : "client",
+        role: determinedUserRole, // Use the determined role
       };
+
       if (restaurantId) {
         newUser.restaurants = [
           {
             restaurantId: restaurantId,
-            role: "waiter",
+            role: determinedRestaurantRoleForStaff, // Use determined role for restaurant association
           },
         ];
       }
+
       await User.create(newUser)
-        .then((user) => {
+        .then((createdUser) => { // Renamed user to createdUser to avoid conflict
           const maxAge = 8 * 60 * 60;
-          const token = jwt.sign({ id: user._id, email }, jwtSecret, {
+          const token = jwt.sign({ id: createdUser._id, email }, jwtSecret, { // Use createdUser
             expiresIn: maxAge,
           });
           res.cookie("jwt", token, {
@@ -42,24 +71,26 @@ exports.register = async (req, res, next) => {
             maxAge: maxAge * 1000,
           });
           res.status(201).json({
-            user: user,
+            user: createdUser, // Use createdUser
             token: token,
           });
         })
         .catch((error) =>
           res.status(400).json({
-            message: "Ce nom existe déjà",
+            // Consider a more generic error message for user creation failure
+            message: "Erreur lors de la création de l'utilisateur.",
             error: error.message,
           })
         );
     });
-  } catch {
+  } catch (error) { // Catch for bcrypt or other synchronous errors before the .then()
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: "Une erreur s'est produite lors du hachage du mot de passe ou de la configuration initiale.",
       error: error.message,
     });
   }
 };
+
 
 exports.login = async (req, res, next) => {
   const { email, password, fcmToken } = req.body;
@@ -141,12 +172,16 @@ exports.getAssignableUsers = async (req, res, next) => {
   try {
     const { restaurantId } = req;
     const { search, role } = req.query;
+     const loggedInUserRole = req.user.user.role; // Get the logged-in user's role
 
-    let query = {
+     let query = {
       "restaurants.restaurantId": { $ne: restaurantId },
-      role: { $ne: "admin" },
+      role: { $nin: ["admin", "client"] }, // Exclude admins and clients
     };
 
+    if (loggedInUserRole === "manager") {
+      query.role = { $nin: ["admin", "client", "manager"] }; 
+    }
     // Filter by role
     if (role) {
       query["role"] = role;
@@ -259,13 +294,21 @@ exports.updateUser = async (req, res, next) => {
     const { fullName, email, role } = req.body;
     user.fullName = fullName || user.fullName;
     user.email = email || user.email;
-    if (role) {
-      // Validate that role is either "manager" or "waiter"
-      if (role === "manager" || role === "waiter") {
+
+    if (role) { // If a role is being provided for update
+      const allowedUpdateRoles = ["manager", "waiter"];
+      if (allowedUpdateRoles.includes(role)) {
         user.role = role;
+        // Also update the role in the user.restaurants array if it's a staff role
+        if (user.restaurants && user.restaurants.length > 0) {
+          const restaurantIndexOfUser = user.restaurants.findIndex(r => r.restaurantId.toString() === restaurantId); // restaurantId from req
+          if (restaurantIndexOfUser !== -1) {
+            user.restaurants[restaurantIndexOfUser].role = role;
+          }
+        }
       } else {
         return res.status(400).json({
-          message: "Le rôle doit être 'Gérant' ou 'cassier'",
+          message: `Le rôle doit être l'un des suivants : ${allowedUpdateRoles.join(", ")}`,
         });
       }
     }
