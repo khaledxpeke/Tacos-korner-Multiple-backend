@@ -288,6 +288,11 @@ exports.deleteRestaurant = async (req, res) => {
     await carouselMedia
       .deleteMany({ restaurantId: restaurant._id })
       .session(session);
+    await User.updateMany(
+      { "restaurants.restaurantId": restaurant._id },
+      { $pull: { restaurants: { restaurantId: restaurant._id } } },
+      { session }
+    );
 
     // Delete restaurant
     await Restaurant.findByIdAndDelete(req.params.restaurantId).session(

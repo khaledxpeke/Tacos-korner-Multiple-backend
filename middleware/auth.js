@@ -72,12 +72,6 @@ exports.restaurantAuth = () => {
         return next();
       }
 
-      if (req.path === "/stream") {
-        req.restaurantId = restaurantIdFromInput || null;
-        // console.log("Stream request: bypassing full auth.");
-        return next();
-      }
-
       if (!token) {
         return res.status(401).json({ message: "Aucun jeton fourni pour cette action." });
       }
