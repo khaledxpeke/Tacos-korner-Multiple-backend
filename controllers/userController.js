@@ -222,7 +222,7 @@ exports.assignUserToRestaurant = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
-
+ 
     user.restaurants.push({ restaurantId, role });
     await user.save();
 
