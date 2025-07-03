@@ -21,10 +21,472 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
+// In-memory queue for failed print jobs (for production, use database)
+let failedPrintQueue = [];
+
+// Auto-print configuration
+const PRINTER_SERVER_URL =
+  process.env.PRINTER_SERVER_URL || "http://192.168.100.68:3301";
+const MAX_PRINT_RETRIES = 5;
+const RETRY_INTERVAL = 30000; // 30 seconds
+
 exports.setIO = (socketIO) => {
   console.log("Socket IO initializée avec id:", socketIO.id);
   io = socketIO;
+
+  // Start background worker for failed print retries
+  startPrintRetryWorker();
 };
+
+function formatLine(left, right, lineWidth = 45) {
+  const leftText = left.toString();
+  const rightText = right.toString();
+  const spaceCount = lineWidth - leftText.length - rightText.length;
+  const spaces = " ".repeat(Math.max(spaceCount, 1)); // prevent overlap
+  return `${leftText}${spaces}${rightText}`;
+}
+function alignLeftRightWide(left, right, lineWidth = 24) {
+  const leftStr = left.toString();
+  const rightStr = right.toString();
+  const spaces = Math.max(1, lineWidth - leftStr.length - rightStr.length);
+  return leftStr + " ".repeat(spaces) + rightStr;
+}
+function padLine(label, price, totalWidth = 45) {
+  const left = label;
+  const right = price.toString();
+  const space = totalWidth - left.length - right.length;
+  return `${left}${" ".repeat(Math.max(0, space))}${right}`;
+}
+// Convert order to print format - STEP 3: COMPLETE FLUTTER FORMAT
+function formatOrderForPrint(order, restaurant, settings) {
+  const tva = order.tva || 0;
+  const totalHT = (100 * order.total) / (100 + tva);
+  const tvaAmount = order.total - totalHT;
+  const currencySymbol = order.currency === "€" ? "€" : order.currency;
+
+  let productList = "";
+
+  // Add products with entry numbers like Flutter
+  order.product.forEach((product, index) => {
+    const entryNumber = `${index + 1}/${order.product.length}`;
+    const productName = `${
+      product.plat.count > 1 ? product.plat.count + " X " : ""
+    }${product.plat.name}`;
+    const productPrice = (product.plat.price * product.plat.count).toFixed(2);
+    const rightSide = `${entryNumber}   ${productPrice}`;
+    const formattedLine = formatLine(productName, rightSide);
+    productList += `<text em="true">${formattedLine}</text>`;
+    productList += `<feed line="1"/>`;
+    const hasVariation = product.variation && product.variation.name;
+    const hasAddons = product.addons && product.addons.length > 0;
+    const hasExtras = product.extras && product.extras.length > 0;
+    if (hasVariation || hasAddons || hasExtras) {
+      productList += `<text align="center">-------------------------------</text>`;
+      productList += `<feed line="1"/>`;
+    }
+    // productList += `<text align="center">-------------------------------</text>`;
+    // productList += `<feed line="1"/>`;
+
+    // Add variation if exists
+    if (product.variation && product.variation.name) {
+      const variationPrice =
+        product.variation.price == 0
+          ? ""
+          : (product.plat.count * product.variation.price).toFixed(2);
+      // productList += `<text> ${product.variation.name}                  </text>`;
+
+      if (variationPrice) {
+        const formattedLine = formatLine(
+          product.variation.name,
+          variationPrice
+        );
+        productList += `<text em="false" align="left">${formattedLine}</text>`;
+      } else {
+        productList += `<text em="false" align="left">${product.variation.name}</text>`;
+      }
+      productList += `<feed line="1"/>`;
+    }
+
+    // Add addons (grouped like Flutter) - Fixed data handling
+    if (product.addons && product.addons.length > 0) {
+      const addonGroups = {};
+      product.addons.forEach((addon) => {
+        const name = addon.name || "Addon";
+        const price = parseFloat(addon.price) || 0;
+
+        if (!addonGroups[name]) {
+          addonGroups[name] = { name: name, price: price, count: 0 };
+        }
+        addonGroups[name].count++;
+      });
+
+      Object.values(addonGroups).forEach((addon) => {
+        const addonName = `${addon.count > 1 ? " " + addon.count + "X " : " "}${
+          addon.name
+        }`;
+        const addonPrice =
+          addon.price === 0
+            ? ""
+            : (product.plat.count * addon.count * addon.price).toFixed(2);
+        // productList += `<text>${addonName}                   </text>`;
+        if (addonPrice) {
+          const formattedLine = formatLine(addonName, addonPrice); // aligned
+          productList += `<text align="left">${formattedLine}</text>`;
+        } else {
+          productList += `<text align="left">${addonName}</text>`; // just name
+        }
+        productList += `<feed line="1"/>`;
+      });
+    }
+
+    // Add extras (grouped like Flutter) - Fixed data handling
+    if (product.extras && product.extras.length > 0) {
+      productList += `<text align="left" em="true">Extras:</text>`;
+      productList += `<feed line="1"/>`;
+      const extraGroups = {};
+      product.extras.forEach((extra) => {
+        const name = extra.name || "Extra";
+        const price = parseFloat(extra.price) || 0;
+
+        if (!extraGroups[name]) {
+          extraGroups[name] = { name: name, price: price, count: 0 };
+        }
+        extraGroups[name].count++;
+      });
+
+      Object.values(extraGroups).forEach((extra) => {
+        const extraName = `${extra.count > 1 ? " " + extra.count + "X " : " "}${
+          extra.name
+        }`;
+        const extraPrice = (
+          product.plat.count *
+          extra.count *
+          extra.price
+        ).toFixed(2);
+        const formattedLine = formatLine(extraName, extraPrice);
+        productList += `<text width="1" height="1" em="false">${formattedLine}</text>`;
+        productList += `<feed line="1"/>`;
+      });
+    }
+
+    // Add separator between products
+    if (index < order.product.length - 1) {
+      productList += `<text>-----------------------------------------------</text>`;
+      productList += `<feed line="1"/>`;
+    }
+  });
+
+  // --- Kitchen Ticket ---
+  let kitchenProductList = "";
+  order.product.forEach((product, index) => {
+    const entryNumber = `${index + 1}/${order.product.length}`;
+    const productName = `${
+      product.plat.count > 1 ? product.plat.count + " X " : ""
+    }${product.plat.name}`;
+    // kitchenProductList += `<text width="2" height="2">${productName}</text>`;
+    // kitchenProductList += `<text width="2" height="2" align="right">${entryNumber}</text>`;
+    // kitchenProductList += `<feed line="1"/>`;
+    const line = alignLeftRightWide(productName, entryNumber, 24);
+    kitchenProductList += `<text width="1" height="1">-----------------------------------------------</text>`;
+    kitchenProductList += `<feed line="1"/>`;
+    kitchenProductList += `<text width="2" height="2" em="true">${line}</text>\n<feed line="2"/>`;
+    kitchenProductList += `<text width="1" height="1">-----------------------------------------------</text>`;
+    kitchenProductList += `<feed line="1"/>`;
+    // Variation
+    if (product.variation && product.variation.name) {
+      kitchenProductList += `<text width="2" height="2" align="left" em="false">${product.variation.name}</text>`;
+      kitchenProductList += `<feed line="1"/>`;
+    }
+
+    // Addons
+    if (product.addons && product.addons.length > 0) {
+      const uniqueAddons = [
+        ...new Map(product.addons.map((a) => [a.name, a])).values(),
+      ];
+      uniqueAddons.forEach((addon) => {
+        const count = product.addons.filter(
+          (a) => a.name === addon.name
+        ).length;
+        kitchenProductList += `<text width="2" height="2" align="left" em="false"> ${
+          count > 1 ? count + "X " : ""
+        }${addon.name}</text>`;
+        kitchenProductList += `<feed line="1"/>`;
+      });
+    }
+
+    // Extras
+    if (product.extras && product.extras.length > 0) {
+      kitchenProductList += `<text width="2" height="2" align="left" em="true">Extras:</text>`;
+      kitchenProductList += `<feed line="1"/>`;
+      const uniqueExtras = [
+        ...new Map(product.extras.map((e) => [e.name, e])).values(),
+      ];
+      uniqueExtras.forEach((extra) => {
+        const count = product.extras.filter(
+          (e) => e.name === extra.name
+        ).length;
+        kitchenProductList += `<text width="2" height="2" align="left" em="false"> ${
+          count > 1 ? count + "X " : ""
+        }${extra.name}</text>`;
+        kitchenProductList += `<feed line="1"/>`;
+      });
+    }
+
+    // if (index < order.product.length - 1) {
+    //   kitchenProductList += `<text width="1" height="1" em="false"></text>`;
+    //   kitchenProductList += `<text>-----------------------------------------------</text><feed line="1"/>`;
+    // }
+  });
+
+  return `<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+<text align="left" em="true">${restaurant.name}</text>
+<feed line="1"/>
+<text em="false">${restaurant.address.replace(/\n/g, " ")}</text>
+<feed line="2"/>
+<text reverse="true" width="2" height="2">${alignLeftRightWide(
+    "#" + order.commandNumber,
+    order.pack.label,
+    24
+  )}</text>
+<feed line="3"/>
+<text width="2" height="2" align="left" reverse="true">${order.name}</text>
+<feed line="3"/>
+<text width="1" height="1" align="left" reverse="false"/>
+<text>Date: ${new Date(order.boughtAt).toLocaleString("fr-FR")}</text>
+<feed line="2"/>
+<text em="true">Méthode de paiement: ${order.method.label}</text>
+<feed line="2"/>
+<text em="true">${padLine("Produits", "Prix")}</text>
+<feed line="1"/>
+<text em="false" width="1" height="1"/>
+<text>-----------------------------------------------</text>
+<feed line="1"/>
+${productList}
+<feed line="1"/>
+<text>===============================================</text>
+<feed line="1"/>
+<text em="false" align="left">${formatLine(
+    `TVA(${tva}%)`,
+    tvaAmount.toFixed(2)
+  )}</text>
+<feed line="1"/>
+<text>${formatLine("Total(HT)", totalHT.toFixed(2))}</text>
+<feed line="1"/>
+<text>===============================================</text>
+<feed line="1"/>
+<text em="true">${formatLine(
+    "Total",
+    order.total.toFixed(2) + " " + currencySymbol
+  )}</text>
+<feed line="2"/>
+
+<text em="false" align="center">Merci de nous laisser 5 étoiles sur Google SVP:)</text>
+<text>À très vite !</text>
+<feed line="1"/>
+<symbol type="qrcode_model_2" level="level_l" width="7" height="7" align="center">${
+    settings.qrCode
+  }</symbol>
+<feed line="1"/>
+<text align="center" em="true" >Powered by LayaFood</text>
+<feed line="2"/>
+<cut/>
+<text reverse="true" width="2" height="2" >${alignLeftRightWide(
+    "#" + order.commandNumber,
+    order.pack.label,
+    24
+  )}</text>
+<feed line="3"/>
+<text width="2" height="2" align="left" reverse="true">${order.name}</text>
+<feed line="3"/>
+<text width="1" height="1" align="left" reverse="false" em="false">${new Date(
+    order.boughtAt
+  ).toLocaleString("fr-FR")}</text>
+<feed line="2"/>
+${kitchenProductList}
+<feed line="2"/>
+<cut/>
+</epos-print>`;
+}
+
+// Send print job to printer server
+async function sendToPrinterServer(printData) {
+  console.log(
+    `🔗 Sending to printer server: ${PRINTER_SERVER_URL}/api/printer/add-order`
+  );
+
+  const response = await fetch(`${PRINTER_SERVER_URL}/api/printer/add-order`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(printData),
+    timeout: 5000, // 5 second timeout
+  });
+
+  if (!response.ok) {
+    throw new Error(
+      `Printer server responded with status: ${response.status} at URL: ${PRINTER_SERVER_URL}/api/printer/add-order`
+    );
+  }
+
+  return response.json();
+}
+
+// Auto-print function (non-blocking)
+async function triggerAutoPrint(order) {
+  try {
+    const settings = await Settings.findOne({
+      restaurantId: order.restaurantId,
+    });
+    const restaurant = await Restaurant.findById(order.restaurantId);
+    const printData = {
+      orderId: order._id,
+      commandNumber: order.commandNumber,
+      customerName: order.name,
+      source: "Auto", // You can track source (Kiosk/Mobile/Cashier) here
+      createdAt: order.boughtAt,
+      items: order.product,
+      total: order.total,
+      pack: order.pack,
+      method: order.method,
+      printXml: formatOrderForPrint(order, restaurant, settings),
+    };
+
+    await sendToPrinterServer(printData);
+
+    // Success - update print status
+    await History.findByIdAndUpdate(order._id, {
+      printStatus: "printed",
+      lastPrintAttempt: new Date(),
+    });
+
+    // Notify via WebSocket
+    if (io) {
+      io.emit("print_success", {
+        orderId: order._id,
+        commandNumber: order.commandNumber,
+        message: "Commande imprimée avec succès",
+      });
+    }
+
+    console.log(`✅ Order #${order.commandNumber} printed successfully`);
+  } catch (error) {
+    console.log(
+      `❌ Failed to print order #${order.commandNumber}:`,
+      error.message
+    );
+
+    // Queue for retry
+    await queueFailedPrint(order, error.message);
+
+    // Notify via WebSocket
+    if (io) {
+      io.emit("print_failed", {
+        orderId: order._id,
+        commandNumber: order.commandNumber,
+        error: error.message,
+        message: "Échec d'impression - nouvel essai automatique",
+      });
+    }
+  }
+}
+
+// Queue failed print for background retry
+async function queueFailedPrint(order, errorMessage) {
+  try {
+    // Update order status
+    await History.findByIdAndUpdate(order._id, {
+      printStatus: "failed",
+      lastPrintAttempt: new Date(),
+      printError: errorMessage,
+    });
+
+    // Add to retry queue
+    const retryJob = {
+      orderId: order._id,
+      order: order,
+      attempts: 0,
+      nextRetry: new Date(Date.now() + RETRY_INTERVAL),
+      error: errorMessage,
+      createdAt: new Date(),
+    };
+
+    failedPrintQueue.push(retryJob);
+    console.log(`📋 Queued order #${order.commandNumber} for print retry`);
+  } catch (error) {
+    console.error("Error queuing failed print:", error);
+  }
+}
+
+// Background worker for print retries
+function startPrintRetryWorker() {
+  setInterval(async () => {
+    const now = new Date();
+    const jobsToRetry = failedPrintQueue.filter(
+      (job) => job.nextRetry <= now && job.attempts < MAX_PRINT_RETRIES
+    );
+
+    for (const job of jobsToRetry) {
+      try {
+        console.log(
+          `🔄 Retrying print for order #${job.order.commandNumber} (attempt ${
+            job.attempts + 1
+          })`
+        );
+
+        await triggerAutoPrint(job.order);
+
+        // Success - remove from queue
+        const index = failedPrintQueue.indexOf(job);
+        if (index > -1) {
+          failedPrintQueue.splice(index, 1);
+        }
+      } catch (error) {
+        // Failed again - update retry info
+        job.attempts++;
+        job.nextRetry = new Date(
+          Date.now() + RETRY_INTERVAL * Math.pow(2, job.attempts)
+        ); // Exponential backoff
+        job.error = error.message;
+
+        console.log(
+          `⏰ Will retry order #${job.order.commandNumber} in ${
+            Math.pow(2, job.attempts) * 30
+          } seconds`
+        );
+
+        if (job.attempts >= MAX_PRINT_RETRIES) {
+          console.log(
+            `💀 Order #${job.order.commandNumber} exceeded max retry attempts`
+          );
+
+          // Update final status
+          await History.findByIdAndUpdate(job.order._id, {
+            printStatus: "retry_exhausted",
+            printError: `Max retries exceeded: ${error.message}`,
+          });
+
+          // Notify admin via WebSocket
+          if (io) {
+            io.emit("print_retry_exhausted", {
+              orderId: job.order._id,
+              commandNumber: job.order.commandNumber,
+              error: error.message,
+              message: "Impression échouée - intervention manuelle requise",
+            });
+          }
+        }
+      }
+    }
+
+    // Clean up completed/exhausted jobs
+    failedPrintQueue = failedPrintQueue.filter(
+      (job) => job.attempts < MAX_PRINT_RETRIES
+    );
+  }, RETRY_INTERVAL);
+
+  console.log("🖨️ Print retry worker started");
+}
 exports.addHistory = async (req, res) => {
   const { products, pack, name, method, total, currency, commandNumber } =
     req.body;
@@ -115,6 +577,10 @@ exports.addHistory = async (req, res) => {
         } else {
           console.log("Socket n'est pas initializer, aucun emit performé");
         }
+
+        // 🚀 AUTO-PRINT: Trigger printing immediately after order is saved (non-blocking)
+        setImmediate(() => triggerAutoPrint(result));
+
         setTimeout(async () => {
           const order = await History.findOne({
             _id: result._id,
@@ -1289,5 +1755,231 @@ exports.getLatestPrintJob = async (req, res) => {
   } catch (error) {
     console.error("Error fetching print job:", error);
     res.status(500).json({ message: "Erreur interne du serveur" });
+  }
+};
+
+// 🖨️ Manual print endpoint for cashiers
+exports.manualPrint = async (req, res) => {
+  const { id } = req.params;
+  const { restaurantId } = req;
+
+  try {
+    const order = await History.findOne({ _id: id, restaurantId });
+
+    if (!order) {
+      return res.status(404).json({ message: "Commande non trouvée" });
+    }
+
+    // Immediate response to cashier
+    res.status(200).json({
+      success: true,
+      message: "Demande d'impression envoyée",
+      orderId: id,
+      commandNumber: order.commandNumber,
+    });
+
+    // Trigger print (non-blocking)
+    setImmediate(() => triggerAutoPrint(order));
+  } catch (error) {
+    console.error("Error triggering manual print:", error);
+    res.status(500).json({ error: "Erreur interne du serveur" });
+  }
+};
+
+// 📊 Get failed prints for admin dashboard
+exports.getFailedPrints = async (req, res) => {
+  const { restaurantId } = req;
+
+  try {
+    // Get orders with failed print status
+    const failedOrders = await History.find({
+      restaurantId,
+      printStatus: { $in: ["failed", "retry_exhausted"] },
+    })
+      .sort({ lastPrintAttempt: -1 })
+      .limit(20);
+
+    // Get in-memory queue status
+    const queuedJobs = failedPrintQueue
+      .filter((job) => job.order.restaurantId.toString() === restaurantId)
+      .map((job) => ({
+        orderId: job.orderId,
+        commandNumber: job.order.commandNumber,
+        attempts: job.attempts,
+        nextRetry: job.nextRetry,
+        error: job.error,
+        createdAt: job.createdAt,
+      }));
+
+    res.status(200).json({
+      failedOrders: failedOrders.map((order) => ({
+        _id: order._id,
+        commandNumber: order.commandNumber,
+        name: order.name,
+        total: order.total,
+        boughtAt: order.boughtAt,
+        printStatus: order.printStatus,
+        printError: order.printError,
+        lastPrintAttempt: order.lastPrintAttempt,
+      })),
+      queuedRetries: queuedJobs,
+      totalFailed: failedOrders.length,
+      totalQueued: queuedJobs.length,
+    });
+  } catch (error) {
+    console.error("Error fetching failed prints:", error);
+    res.status(500).json({ error: "Erreur interne du serveur" });
+  }
+};
+
+// 🔄 Retry specific print job
+exports.retryPrint = async (req, res) => {
+  const { id } = req.params;
+  const { restaurantId } = req;
+
+  try {
+    const order = await History.findOne({ _id: id, restaurantId });
+
+    if (!order) {
+      return res.status(404).json({ message: "Commande non trouvée" });
+    }
+
+    // Reset print status
+    await History.findByIdAndUpdate(id, {
+      printStatus: "pending",
+      printError: null,
+      lastPrintAttempt: new Date(),
+    });
+
+    // Remove from failed queue if exists
+    const jobIndex = failedPrintQueue.findIndex(
+      (job) => job.orderId.toString() === id
+    );
+    if (jobIndex > -1) {
+      failedPrintQueue.splice(jobIndex, 1);
+    }
+
+    // Immediate response
+    res.status(200).json({
+      success: true,
+      message: "Impression relancée",
+      orderId: id,
+      commandNumber: order.commandNumber,
+    });
+
+    // Trigger print
+    setImmediate(() => triggerAutoPrint(order));
+  } catch (error) {
+    console.error("Error retrying print:", error);
+    res.status(500).json({ error: "Erreur interne du serveur" });
+  }
+};
+
+// 🔄 Retry all failed prints
+exports.retryAllFailedPrints = async (req, res) => {
+  const { restaurantId } = req;
+
+  try {
+    const failedOrders = await History.find({
+      restaurantId,
+      printStatus: { $in: ["failed", "retry_exhausted"] },
+    });
+
+    // Reset all failed orders
+    await History.updateMany(
+      {
+        restaurantId,
+        printStatus: { $in: ["failed", "retry_exhausted"] },
+      },
+      {
+        printStatus: "pending",
+        printError: null,
+        lastPrintAttempt: new Date(),
+      }
+    );
+
+    // Clear failed queue for this restaurant
+    failedPrintQueue = failedPrintQueue.filter(
+      (job) => job.order.restaurantId.toString() !== restaurantId
+    );
+
+    // Immediate response
+    res.status(200).json({
+      success: true,
+      message: `${failedOrders.length} impressions relancées`,
+      retriedCount: failedOrders.length,
+    });
+
+    // Trigger prints for all failed orders
+    failedOrders.forEach((order) => {
+      setImmediate(() => triggerAutoPrint(order));
+    });
+  } catch (error) {
+    console.error("Error retrying all failed prints:", error);
+    res.status(500).json({ error: "Erreur interne du serveur" });
+  }
+};
+
+// 📈 Get print statistics
+exports.getPrintStats = async (req, res) => {
+  const { restaurantId } = req;
+
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const stats = await History.aggregate([
+      {
+        $match: {
+          restaurantId: new mongoose.Types.ObjectId(restaurantId),
+          boughtAt: { $gte: today },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          printedSuccessfully: {
+            $sum: { $cond: [{ $eq: ["$printStatus", "printed"] }, 1, 0] },
+          },
+          printFailed: {
+            $sum: { $cond: [{ $eq: ["$printStatus", "failed"] }, 1, 0] },
+          },
+          printRetryExhausted: {
+            $sum: {
+              $cond: [{ $eq: ["$printStatus", "retry_exhausted"] }, 1, 0],
+            },
+          },
+          printPending: {
+            $sum: { $cond: [{ $eq: ["$printStatus", "pending"] }, 1, 0] },
+          },
+        },
+      },
+    ]);
+
+    const result = stats[0] || {
+      totalOrders: 0,
+      printedSuccessfully: 0,
+      printFailed: 0,
+      printRetryExhausted: 0,
+      printPending: 0,
+    };
+
+    // Calculate success rate
+    const successRate =
+      result.totalOrders > 0
+        ? Math.round((result.printedSuccessfully / result.totalOrders) * 100)
+        : 0;
+
+    res.status(200).json({
+      ...result,
+      successRate,
+      activeRetries: failedPrintQueue.filter(
+        (job) => job.order.restaurantId.toString() === restaurantId
+      ).length,
+    });
+  } catch (error) {
+    console.error("Error fetching print stats:", error);
+    res.status(500).json({ error: "Erreur interne du serveur" });
   }
 };

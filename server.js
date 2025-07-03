@@ -45,7 +45,7 @@ app.use(
   })
 );
 
-app.use(express.json());
+app.use(express.json({limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 connectDB();
 
@@ -70,7 +70,6 @@ app.use("/api/typeVariation", require("./routes/typeVariationRoutes"));
 app.use("/api/carousel", require("./routes/carouselMediaRoutes"));
 app.use("/api/media", require("./routes/mediaRoutes"));
 app.use("/api/restaurant", require("./routes/restaurantRoutes"));
-app.use("/api/printer", require("./routes/printerRoutes"));
 app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(
   "/api/uploads/carousel",

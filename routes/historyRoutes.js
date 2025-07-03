@@ -9,6 +9,11 @@ const {
   getLatestPrintJob,
   updateStatus,
   getStatistics,
+  manualPrint,
+  getFailedPrints,
+  retryPrint,
+  retryAllFailedPrints,
+  getPrintStats,
 } = require("../controllers/historyController");
 
 router.post(
@@ -58,6 +63,42 @@ router.get(
   restaurantAuth(),
   roleAuth(["admin", "manager"]),
   getLatestPrintJob
+);
+
+// 🖨️ Print Management Routes
+router.post(
+  "/:id/print",
+  restaurantAuth(),
+  roleAuth(["admin", "manager", "waiter"]),
+  manualPrint
+);
+
+router.get(
+  "/print/failed",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  getFailedPrints
+);
+
+router.post(
+  "/print/:id/retry",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  retryPrint
+);
+
+router.post(
+  "/print/retry-all",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  retryAllFailedPrints
+);
+
+router.get(
+  "/print/stats",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  getPrintStats
 );
 
 module.exports = router;
