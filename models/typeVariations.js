@@ -3,7 +3,6 @@ const typeVariationSchema = mongoose.Schema({
     name: {
       type: String,
       required: true,
-      unique: true,
     },
     label: {
       type: String,
