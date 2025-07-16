@@ -84,7 +84,7 @@ exports.getDashboardExtras = async (req, res, next) => {
 // };
 
 exports.updateExtra = async (req, res) => {
-  req.uploadTarget = "dessert";
+  req.uploadTarget = "extras";
   const extraId = req.params.extraId;
   const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
