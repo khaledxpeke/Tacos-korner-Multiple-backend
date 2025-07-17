@@ -77,6 +77,30 @@ const settingsSchema = new mongoose.Schema({
     type: String,
     default: "https://www.google.com",
   },
+  host: {
+    type: String,
+    default: "smtp.example.com",
+  },
+  port : {
+    type: Number,
+    default: 587,
+  },
+  emailUser: {
+    type: String,
+    default: "",
+  },
+  emailPass: {
+    type: String,
+    default: "",
+  },
+  emailSender: {
+    type: String,
+    default: "",
+  },
+  emailName: {
+    type: String,
+    default: "",
+  },
   method: [methodSchema],
   pack: [packSchema],
   restaurantId: {

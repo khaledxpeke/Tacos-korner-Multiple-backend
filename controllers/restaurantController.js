@@ -89,6 +89,14 @@ exports.createRestaurant = async (req, res) => {
         ],
         carouselDuration: 5,
         carouselTiming: 120,
+        qrCode: "https://www.google.com",
+        host: process.env.EMAIL_HOST || "smtp.example.com",
+        port: process.env.EMAIL_PORT || 587,
+        emailUser: process.env.EMAIL_USER || "",
+        emailPass: process.env.EMAIL_PASSWORD || "",
+        emailSender: process.env.EMAIL_SENDER || "",
+        emailName: process.env.EMAIL_NAME || "Restaurant",
+        printerServerUrl: process.env.PRINTER_SERVER_URL || "",
       });
       await settings.save();
       restaurant.settings = settings._id;

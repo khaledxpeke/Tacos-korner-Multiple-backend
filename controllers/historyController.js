@@ -26,12 +26,11 @@ let failedPrintQueue = [];
 
 // Auto-print configuration
 const PRINTER_SERVER_URL =
-  process.env.PRINTER_SERVER_URL || "http://192.168.100.68:3301";
+  process.env.PRINTER_SERVER_URL || "http://localhost:3301";
 const MAX_PRINT_RETRIES = 5;
 const RETRY_INTERVAL = 30000; // 30 seconds
 
 exports.setIO = (socketIO) => {
-  console.log("Socket IO initializée avec id:", socketIO.id);
   io = socketIO;
 
   // Start background worker for failed print retries
@@ -309,12 +308,8 @@ ${kitchenProductList}
 }
 
 // Send print job to printer server
-async function sendToPrinterServer(printData) {
-  console.log(
-    `🔗 Sending to printer server: ${PRINTER_SERVER_URL}/api/printer/add-order`
-  );
-
-  const response = await fetch(`${PRINTER_SERVER_URL}/api/printer/add-order`, {
+async function sendToPrinterServer(printData,printerServerUrl = PRINTER_SERVER_URL) {
+  const response = await fetch(`${printerServerUrl}/api/printer/add-order`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -325,7 +320,7 @@ async function sendToPrinterServer(printData) {
 
   if (!response.ok) {
     throw new Error(
-      `Printer server responded with status: ${response.status} at URL: ${PRINTER_SERVER_URL}/api/printer/add-order`
+      `Printer server responded with status: ${response.status} at URL: ${printerServerUrl}/api/printer/add-order`
     );
   }
 
@@ -337,7 +332,7 @@ async function triggerAutoPrint(orderId) {
   try {
     const order = await History.findById(orderId);
     if (!order) {
-      console.log(`❌ Order with ID ${orderId} not found`);
+      console.error(`❌ Order with ID ${orderId} not found`);
       return;
     }
     const settings = await Settings.findOne({
@@ -346,12 +341,13 @@ async function triggerAutoPrint(orderId) {
     const restaurant = await Restaurant.findById(order.restaurantId);
 
     if (!settings || !restaurant) {
-      console.log(
+      console.error(
         `❌ Settings or restaurant not found for order ${order.commandNumber}`
       );
       return;
     }
     const printData = {
+      restaurantId: order.restaurantId, // Pass restaurantId to the printer server
       orderId: order._id,
       commandNumber: order.commandNumber,
       customerName: order.name,
@@ -380,15 +376,13 @@ async function triggerAutoPrint(orderId) {
         message: "Commande imprimée avec succès",
       });
     }
-
-    console.log(`✅ Order #${order.commandNumber} printed successfully`);
   } catch (error) {
-    console.log(`❌ Failed to print order ID ${orderId}:`, error.message);
+    console.error(`❌ Failed to print order ID ${orderId}:`, error.message);
     let order;
     try {
       order = await History.findById(orderId);
     } catch (findError) {
-      console.log(`❌ Could not find order ${orderId} for error handling`);
+      console.error(`❌ Could not find order ${orderId} for error handling`);
       return;
     }
     // Queue for retry
@@ -430,7 +424,6 @@ async function queueFailedPrint(order, errorMessage) {
     };
 
     failedPrintQueue.push(retryJob);
-    console.log(`📋 Queued order #${order.commandNumber} for print retry`);
   } catch (error) {
     console.error("Error queuing failed print:", error);
   }
@@ -446,12 +439,6 @@ function startPrintRetryWorker() {
 
     for (const job of jobsToRetry) {
       try {
-        console.log(
-          `🔄 Retrying print for order #${job.orderId} (attempt ${
-            job.attempts + 1
-          })`
-        );
-
         await triggerAutoPrint(job.orderId);
 
         // Success - remove from queue
@@ -467,14 +454,8 @@ function startPrintRetryWorker() {
         ); // Exponential backoff
         job.error = error.message;
 
-        console.log(
-          `⏰ Will retry order #${job.orderId} in ${
-            Math.pow(2, job.attempts) * 30
-          } seconds`
-        );
-
         if (job.attempts >= MAX_PRINT_RETRIES) {
-          console.log(
+          console.error(
             `💀 Order #${job.orderId} exceeded max retry attempts`
           );
 
@@ -502,8 +483,6 @@ function startPrintRetryWorker() {
       (job) => job.attempts < MAX_PRINT_RETRIES
     );
   }, RETRY_INTERVAL);
-
-  console.log("🖨️ Print retry worker started");
 }
 exports.addHistory = async (req, res) => {
   const { products, pack, name, method, total, currency, commandNumber } =
@@ -592,8 +571,6 @@ exports.addHistory = async (req, res) => {
           });
           io.emit("new-history", response);
           await notifyWaiters(history);
-        } else {
-          console.log("Socket n'est pas initializer, aucun emit performé");
         }
 
         // 🚀 AUTO-PRINT: Trigger printing immediately after order is saved (non-blocking)
@@ -627,7 +604,7 @@ exports.addHistory = async (req, res) => {
         res.status(201).json(response);
       })
       .catch((err) => {
-        console.log(
+        console.error(
           "Une erreur s'est produite lors de l'enregistrement de l'historique:",
           err
         );

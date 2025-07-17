@@ -84,6 +84,11 @@ exports.addSettings = async (req, res) => {
         carouselDuration: 5,
         carouselTiming: 120,
         qrCode: "https://www.google.com",
+        host: process.env.EMAIL_HOST || "smtp.example.com",
+        port: process.env.EMAIL_PORT || 587,
+        emailPass: process.env.EMAIL_PASSWORD || "",
+        emailSender: process.env.EMAIL_SENDER || "",
+        emailName: process.env.EMAIL_NAME || "Restaurant",
       });
       await newSettings.save();
       restaurant.settings = newSettings._id;
@@ -152,6 +157,12 @@ exports.getSettings = async (req, res) => {
         carouselDuration: 5,
         carouselTiming: 120,
         qrCode: "https://www.google.com",
+        host: process.env.EMAIL_HOST || "smtp.example.com",
+        port: process.env.EMAIL_PORT || 587,
+        emailPass: process.env.EMAIL_PASSWORD || "",
+        emailSender: process.env.EMAIL_SENDER || "",
+        emailUser: process.env.EMAIL_USER || "",
+        emailName: process.env.EMAIL_NAME || "Restaurant",
       });
 
       await settings.save();
@@ -336,6 +347,12 @@ exports.updateSettings = async (req, res) => {
         carouselDuration,
         carouselTiming,
         qrCode,
+        host,
+        port,
+        emailUser,
+        emailPass,
+        emailSender,
+        emailName,
       } = req.body;
 
       if (oldCurrency && newCurrency) {
@@ -457,6 +474,25 @@ exports.updateSettings = async (req, res) => {
       }
       if (carouselTiming) {
         settings.carouselTiming = carouselTiming || settings.carouselTiming;
+      }
+      if (host) {
+        settings.host = host || settings.host;
+      }
+      if (port) {
+        settings.port = port || settings.port;
+      }
+      if (emailUser) {
+        settings.emailUser = emailUser || settings.emailUser;
+      }
+      if (emailPass) {
+        const cleanedPass = emailPass.replace(/"/g, "").replace(/'/g, "");
+        settings.emailPass = cleanedPass || settings.emailPass;
+      }
+      if (emailSender) {
+        settings.emailSender = emailSender || settings.emailSender;
+      }
+      if (emailName) {
+        settings.emailName = emailName || settings.emailName;
       }
 
       await settings.save();
