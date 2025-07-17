@@ -3,7 +3,7 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const transporter = require("../middleware/email");
+const createTransporter = require("../middleware/email");
 var pdf = require("pdf-creator-node");
 const path = require("path");
 var fs = require("fs");
@@ -869,9 +869,9 @@ exports.addEmail = async (req, res) => {
       "/"
     )}`;
     const pdfPath = await generatePDF(history);
+    const transporter = await createTransporter(restaurantId);
     const mailOptions = {
-      from: `${process.env.EMAIL_NAME} <${process.env.EMAIL_SENDER}>`,
-      // from: "khaledbouajila5481@gmail.com",
+      from: `${settings.emailName} <${settings.emailSender}>`,
       to: email,
       subject: "Ticket de commande",
       text: "",

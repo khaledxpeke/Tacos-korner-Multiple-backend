@@ -10,6 +10,7 @@ const multer = require("multer");
 const multerStorage = require("../middleware/multerStorage");
 const upload = multer({ storage: multerStorage });
 const { default: mongoose } = require("mongoose");
+const { encrypt } = require("../middleware/crypto");
 
 exports.addSettings = async (req, res) => {
   try {
@@ -169,7 +170,12 @@ exports.getSettings = async (req, res) => {
       restaurant.settings = settings._id;
       await restaurant.save();
     }
-    return res.status(200).json(settings);
+    
+    const settingsObject = settings.toObject();
+    settingsObject.isPasswordSet = !!settingsObject.emailPass;
+    delete settingsObject.emailPass;
+
+    return res.status(200).json(settingsObject);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -486,7 +492,9 @@ exports.updateSettings = async (req, res) => {
       }
       if (emailPass) {
         const cleanedPass = emailPass.replace(/"/g, "").replace(/'/g, "");
-        settings.emailPass = cleanedPass || settings.emailPass;
+        if (cleanedPass) { // Only update if a new password is provided
+          settings.emailPass = encrypt(cleanedPass);
+        }
       }
       if (emailSender) {
         settings.emailSender = emailSender || settings.emailSender;
