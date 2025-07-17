@@ -767,6 +767,11 @@ const generatePDF = async (orderData) => {
     },
     type: "pdf",
     localUrlAccess: true,
+    childProcessOptions: {
+      env: {
+        OPENSSL_CONF: '/dev/null',
+      },
+    },
     css: `
       body {
         font-family: Arial, sans-serif;
