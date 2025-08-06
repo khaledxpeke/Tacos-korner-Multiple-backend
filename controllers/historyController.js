@@ -308,7 +308,10 @@ ${kitchenProductList}
 }
 
 // Send print job to printer server
-async function sendToPrinterServer(printData,printerServerUrl = PRINTER_SERVER_URL) {
+async function sendToPrinterServer(
+  printData,
+  printerServerUrl = PRINTER_SERVER_URL
+) {
   const response = await fetch(`${printerServerUrl}/api/printer/add-order`, {
     method: "POST",
     headers: {
@@ -455,9 +458,7 @@ function startPrintRetryWorker() {
         job.error = error.message;
 
         if (job.attempts >= MAX_PRINT_RETRIES) {
-          console.error(
-            `💀 Order #${job.orderId} exceeded max retry attempts`
-          );
+          console.error(`💀 Order #${job.orderId} exceeded max retry attempts`);
 
           // Update final status
           await History.findByIdAndUpdate(job.orderId, {
@@ -769,7 +770,7 @@ const generatePDF = async (orderData) => {
     localUrlAccess: true,
     childProcessOptions: {
       env: {
-        OPENSSL_CONF: '/dev/null',
+        OPENSSL_CONF: "/dev/null",
       },
     },
     css: `
@@ -1639,6 +1640,17 @@ exports.getStatistics = async (req, res) => {
       },
     ]);
 
+    const totalPlatStats = await History.aggregate([
+      { $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId) } },
+      { $unwind: "$product" },
+      {
+        $group: {
+          _id: null,
+          totalPlat: { $sum: "$product.plat.count" }, // Sum all product quantities
+        },
+      },
+    ]);
+
     const previousPeriodStats = await History.aggregate([
       { $match: previousPeriodRevenueMatchQuery },
       {
@@ -1698,6 +1710,7 @@ exports.getStatistics = async (req, res) => {
         deliveryTypes: { surPlace: 0, emporter: 0 },
       }),
       totalOrders: statusCounts[0]?.totalOrders || 0,
+      totalPlat: totalPlatStats[0]?.totalPlat || 0,
       orderStatuses: statusCounts[0]?.orderStatuses || {
         enCours: 0,
         terminee: 0,
