@@ -12,6 +12,38 @@ const fs = require("fs");
 const path = require("path");
 const Settings = require("../models/settings");
 const Restaurant = require("../models/restaurant");
+const moment = require("moment-timezone");
+const RESTAURANT_TIMEZONE = process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
+
+// Helper function to calculate discount information
+const calculateDiscountInfo = (product) => {
+  const now = moment().tz(RESTAURANT_TIMEZONE);
+  let hasActiveDiscount = false;
+  let currentPrice = product.price;
+  let originalPrice = product.originalPrice || product.price;
+  let discountAmount = 0;
+
+  if (product.discountValue > 0) {
+    // Check if discount is within active period
+    const isAfterStart = !product.discountStartDate || now.isAfter(moment(product.discountStartDate).tz(RESTAURANT_TIMEZONE));
+    const isBeforeEnd = !product.discountEndDate || now.isBefore(moment(product.discountEndDate).tz(RESTAURANT_TIMEZONE));
+    
+    if (isAfterStart && isBeforeEnd) {
+      hasActiveDiscount = true;
+      discountAmount = Math.min(product.discountValue, originalPrice);
+      currentPrice = originalPrice - discountAmount;
+    }
+  }
+
+  return {
+    price: Math.round(currentPrice * 100) / 100,
+    originalPrice: hasActiveDiscount ? originalPrice : null,
+    hasDiscount: hasActiveDiscount,
+    discountValue: hasActiveDiscount ? product.discountValue : null,
+    discountAmount: hasActiveDiscount ? Math.round(discountAmount * 100) / 100 : 0,
+    discountActive: hasActiveDiscount
+  };
+};
 
 exports.addProductToCategory = async (req, res, next) => {
   req.uploadTarget = "product";
@@ -121,7 +153,16 @@ exports.getProductsByCategory = async (req, res, next) => {
       })
       .sort({ position: 1 });
 
-    res.status(200).json(products);
+    // Add discount information to each product
+    const productsWithDiscounts = products.map(product => {
+      const discountInfo = calculateDiscountInfo(product.toObject());
+      return {
+        ...product.toObject(),
+        ...discountInfo
+      };
+    });
+
+    res.status(200).json(productsWithDiscounts);
   } catch (error) {
     res.status(400).json({
       message: "Une erreur s'est produite",
@@ -234,11 +275,12 @@ exports.getProductData = async (req, res) => {
       })
     );
 
-    const finalPrice = Number(product.price);
+    // Calculate discount information
+    const discountInfo = calculateDiscountInfo(product);
 
     res.status(200).json({
       ...product,
-      price: finalPrice,
+      ...discountInfo,
       type: typesWithIngredients.filter((t) => t !== null),
     });
   } catch (error) {
@@ -398,4 +440,113 @@ exports.updateProduct = async (req, res) => {
       res.status(500).json({ message: "Erreur de serveur" });
     }
   });
+};
+
+// Helper function to add Z to date strings if missing (same as coupon controller)
+const addTimezoneZ = (dateString) => {
+  if (!dateString) return null;
+  
+  if (!dateString.includes('Z') && !dateString.includes('+') && !dateString.match(/-\d{2}:\d{2}$/)) {
+    return dateString + 'Z';
+  }
+  
+  return dateString;
+};
+
+exports.setProductDiscount = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { restaurantId } = req;
+    const {
+      discountValue,
+      discountStartDate,
+      discountEndDate
+    } = req.body;
+
+    if (!discountValue) {
+      return res.status(400).json({
+        message: "Valeur de remise requise"
+      });
+    }
+
+    if (discountValue <= 0) {
+      return res.status(400).json({
+        message: "La valeur de la remise doit être supérieure à 0"
+      });
+    }
+
+    const product = await Product.findOne({ _id: productId, restaurantId });
+    if (!product) {
+      return res.status(404).json({ message: "Produit non trouvé" });
+    }
+
+    // Validate date interval if provided
+    if (discountStartDate && discountEndDate) {
+      const start = moment(addTimezoneZ(discountStartDate)).tz(RESTAURANT_TIMEZONE);
+      const end = moment(addTimezoneZ(discountEndDate)).tz(RESTAURANT_TIMEZONE);
+      
+      if (start.isSameOrAfter(end)) {
+        return res.status(400).json({
+          message: "La date et l'heure de fin doivent être postérieures à la date et l'heure de début"
+        });
+      }
+    }
+
+    // Store original price if not already stored
+    if (!product.originalPrice) {
+      product.originalPrice = product.price;
+    }
+
+    product.discountValue = Number(discountValue);
+    product.discountStartDate = discountStartDate ? moment(addTimezoneZ(discountStartDate)).tz(RESTAURANT_TIMEZONE).toDate() : null;
+    product.discountEndDate = discountEndDate ? moment(addTimezoneZ(discountEndDate)).tz(RESTAURANT_TIMEZONE).toDate() : null;
+
+    await product.save();
+
+    // Calculate and return discount info
+    const discountInfo = calculateDiscountInfo(product.toObject());
+
+    res.status(200).json({
+      message: "Remise appliquée avec succès",
+      product: {
+        ...product.toObject(),
+        ...discountInfo
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Une erreur s'est produite",
+      error: error.message
+    });
+  }
+};
+
+exports.removeProductDiscount = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { restaurantId } = req;
+
+    const product = await Product.findOne({ _id: productId, restaurantId });
+    if (!product) {
+      return res.status(404).json({ message: "Produit non trouvé" });
+    }
+
+    // Reset discount fields
+    product.discountValue = 0;
+    product.discountStartDate = null;
+    product.discountEndDate = null;
+    product.originalPrice = null;
+
+    await product.save();
+
+    res.status(200).json({
+      message: "Remise supprimée avec succès",
+      product: product
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Une erreur s'est produite",
+      error: error.message
+    });
+  }
 };

@@ -79,6 +79,24 @@ const ProductSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Restaurant",
     required: true
+  },
+  // Discount fields
+  discountValue: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  originalPrice: {
+    type: Number,
+    default: null
+  },
+  discountStartDate: {
+    type: Date,
+    default: null
+  },
+  discountEndDate: {
+    type: Date,
+    default: null
   }
   // rules : [{
   //   type: mongoose.Schema.Types.ObjectId,

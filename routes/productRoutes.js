@@ -7,6 +7,8 @@ const {
   updateProduct,
   getAllProducts,
   getProductData,
+  setProductDiscount,
+  removeProductDiscount,
 } = require("../controllers/productController");
 
 router.post(
@@ -44,6 +46,20 @@ router.delete(
   restaurantAuth(),
   roleAuth(["admin", "manager"]),
   deleteProduct
+);
+
+// Product discount routes
+router.put(
+  "/discount/:productId",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  setProductDiscount
+);
+router.delete(
+  "/discount/:productId",
+  restaurantAuth(),
+  roleAuth(["admin", "manager"]),
+  removeProductDiscount
 );
 
 module.exports = router;
