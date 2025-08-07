@@ -48,6 +48,9 @@ const couponSchema = mongoose.Schema({
     ref: "Restaurant",
     required: true,
   },
+},
+{
+  timestamps: true,
 });
 
 couponSchema.index({ restaurantId: 1, code: 1 }, { unique: true });
