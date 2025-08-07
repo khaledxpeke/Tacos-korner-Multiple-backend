@@ -198,13 +198,9 @@ exports.updateCoupon = async (req, res) => {
       moment(addTimezoneZ(startDate)).tz(RESTAURANT_TIMEZONE) : 
       moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
 
-      console.log("New Start Date:", newStartDate.format());
-    
     const newEndDate = endDate !== undefined ? 
       (endDate ? moment(addTimezoneZ(endDate)).tz(RESTAURANT_TIMEZONE) : null) : 
       (coupon.endDate ? moment(coupon.endDate).tz(RESTAURANT_TIMEZONE) : null);
-
-      console.log("New End Date:", newEndDate ? newEndDate.format() : "null");
 
     if (newEndDate && newStartDate.isSameOrAfter(newEndDate)) {
       return res.status(400).json({
