@@ -8,6 +8,18 @@ app.use(express.json());
 const moment = require("moment-timezone");
 const RESTAURANT_TIMEZONE = process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
 
+// Helper function to add Z to date strings if missing
+const addTimezoneZ = (dateString) => {
+  if (!dateString) return null;
+  
+  // If date doesn't have timezone info, add Z at the end
+  if (!dateString.includes('Z') && !dateString.includes('+') && !dateString.match(/-\d{2}:\d{2}$/)) {
+    return dateString + 'Z';
+  }
+  
+  return dateString;
+};
+
 exports.addCoupon = async (req, res) => {
   try {
     const { restaurantId } = req;
@@ -47,12 +59,12 @@ exports.addCoupon = async (req, res) => {
 
     // Validate date interval
     const now = moment().tz(RESTAURANT_TIMEZONE);
-    const start = startDate ? moment(startDate).tz(RESTAURANT_TIMEZONE) : now;
-    const end = endDate ? moment(endDate).tz(RESTAURANT_TIMEZONE) : null;
+    const start = startDate ? moment(addTimezoneZ(startDate)).tz(RESTAURANT_TIMEZONE) : now;
+    const end = endDate ? moment(addTimezoneZ(endDate)).tz(RESTAURANT_TIMEZONE) : null;
 
     if (end && start.isSameOrAfter(end)) {
       return res.status(400).json({
-        message: "La date de fin doit être postérieure à la date de début",
+        message: "La date et l'heure de fin doivent être postérieures à la date et l'heure de début",
       });
     }
     // Check if coupon code already exists for this restaurant
@@ -183,16 +195,16 @@ exports.updateCoupon = async (req, res) => {
     }
 
      const newStartDate = startDate ? 
-      moment(startDate).tz(RESTAURANT_TIMEZONE) : 
+      moment(addTimezoneZ(startDate)).tz(RESTAURANT_TIMEZONE) : 
       moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
     
     const newEndDate = endDate !== undefined ? 
-      (endDate ? moment(endDate).tz(RESTAURANT_TIMEZONE) : null) : 
+      (endDate ? moment(addTimezoneZ(endDate)).tz(RESTAURANT_TIMEZONE) : null) : 
       (coupon.endDate ? moment(coupon.endDate).tz(RESTAURANT_TIMEZONE) : null);
 
     if (newEndDate && newStartDate.isSameOrAfter(newEndDate)) {
       return res.status(400).json({
-        message: "La date de fin doit être postérieure à la date de début",
+        message: "La date et l'heure de fin doivent être postérieures à la date et l'heure de début",
       });
     }
 
