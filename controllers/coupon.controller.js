@@ -350,9 +350,10 @@ exports.validateCoupon = async (req, res) => {
       // Only proceed if there are categories (safety check)
       if (coupon.couponCategories && coupon.couponCategories.length > 0) {
         const categoryIds = coupon.couponCategories.map(cat => cat._id.toString());
-        applicableItems = orderItems.filter(item => 
-          categoryIds.includes(item.product?.category?.toString())
-        );
+        applicableItems = orderItems.filter(item => {
+          const itemCategory = item.product?.category?.toString() || item.category?.toString();
+          return categoryIds.includes(itemCategory);
+        });
         
         // Calculate total of applicable items
         applicableTotal = applicableItems.reduce((total, item) => {
@@ -398,8 +399,8 @@ exports.validateCoupon = async (req, res) => {
       discountAmount: Math.round(discountAmount * 100) / 100,
       finalTotal: Math.round(finalTotal * 100) / 100,
       applicableItems: applicableItems.map(item => ({
-        id: item.product._id,
-        name: item.product.name,
+        id: item.product?._id || item._id,
+        name: item.product?.name || item.name,
         quantity: item.quantity,
         price: item.price
       }))

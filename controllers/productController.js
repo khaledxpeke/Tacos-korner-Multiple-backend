@@ -127,7 +127,7 @@ exports.addProductToCategory = async (req, res, next) => {
         );
 
         res.status(201).json({
-          product: savedProduct,
+          ...savedProduct.toObject(),
           category: updatedCategory,
           message: "Produit ajouté avec succées",
         });
@@ -434,7 +434,7 @@ exports.updateProduct = async (req, res) => {
 
       res
         .status(200)
-        .json({ updatedProduct, message: "Produit mis à jour avec succès" });
+        .json({ ...updatedProduct.toObject(), message: "Produit mis à jour avec succès" });
     } catch (error) {
       console.log(error);
       res.status(500).json({ message: "Erreur de serveur" });
@@ -508,10 +508,8 @@ exports.setProductDiscount = async (req, res) => {
 
     res.status(200).json({
       message: "Remise appliquée avec succès",
-      product: {
-        ...product.toObject(),
-        ...discountInfo
-      }
+      ...product.toObject(),
+      ...discountInfo
     });
   } catch (error) {
     res.status(500).json({
@@ -541,7 +539,7 @@ exports.removeProductDiscount = async (req, res) => {
 
     res.status(200).json({
       message: "Remise supprimée avec succès",
-      product: product
+      ...product.toObject()
     });
   } catch (error) {
     res.status(500).json({
