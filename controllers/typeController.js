@@ -15,11 +15,11 @@ exports.createType = async (req, res, next) => {
   try {
     const existingType = await Type.findOne({ name, restaurantId });
     if (existingType) {
-return res.status(400).json({ message: "Option déjà existante" });
+return res.status(400).json({ message: req.t('type.already_exists') });
     }
     if (min > max) {
       return res.status(400).json({
-message: "Le minimum doit être inférieur au maximum",
+message: req.t('type.min_max_error'),
       });
     }
     const newType = new Type({
@@ -34,11 +34,11 @@ message: "Le minimum doit être inférieur au maximum",
     });
     await newType.save();
 
-res.status(201).json({ message: "Option créée avec succès" });
+res.status(201).json({ message: req.t('type.created') });
   } catch (error) {
     res
       .status(500)
-.json({ message: "Une erreur s'est produite", error: error.message });
+.json({ message: req.t('type.creation_error'), error: error.message });
   }
 };
 
@@ -49,7 +49,7 @@ exports.getAllTypes = async (req, res, next) => {
     res.status(200).json(types);
   } catch (error) {
     res.status(400).json({
-message: "Aucune option trouvée",
+message: req.t('type.not_found'),
       error: error.message,
     });
   }
@@ -64,12 +64,12 @@ exports.getTypeById = async (req, res, next) => {
       restaurantId: restaurantId,
     });
     if (!type) {
-return res.status(404).json({ message: "Option non trouvée" });
+return res.status(404).json({ message: req.t('type.option_not_found') });
     }
     res.status(200).json(type);
   } catch (error) {
     res.status(400).json({
-      message: "Aucun option trouvé",
+      message: req.t('type.no_option_found'),
       error: error.message,
     });
   }
@@ -82,11 +82,11 @@ exports.updateType = async (req, res, next) => {
     const { name, label, message, min, max, payment, selection } = req.body;
     const type = await Type.findOne({ _id: typeId, restaurantId });
     if (!type) {
-res.status(500).json({ message: "Aucune option trouvée" });
+res.status(500).json({ message: req.t('type.not_found') });
     }
     if (min > max) {
       return res.status(400).json({
-        message: "Le minimum doit être inférieur à la maximumu",
+        message: req.t('type.min_max_error'),
       });
     }
     const updatedType = await Type.findOneAndUpdate(
@@ -106,10 +106,10 @@ res.status(500).json({ message: "Aucune option trouvée" });
 
     res
       .status(200)
-.json({ updatedType, message: "Option modifiée avec succès" });
+.json({ updatedType, message: req.t('type.updated') });
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('type.update_error'),
       error: error.message,
     });
   }
@@ -124,7 +124,7 @@ exports.deleteType = async (req, res, next) => {
       restaurantId: restaurantId,
     });
     if (!type) {
-      return res.status(404).json({ message: "Option non trouvée" });
+      return res.status(404).json({ message: req.t('type.option_not_found') });
     }
 
     const ingredients = await Ingrediant.find({ type: typeId, restaurantId });
@@ -148,10 +148,10 @@ exports.deleteType = async (req, res, next) => {
     await Ingrediant.deleteMany({ type: typeId, restaurantId });
 
     await Product.updateMany({ type: typeId, restaurantId }, { $pull: { type: typeId } });
-res.status(200).json({ message: "Option supprimée avec succès" });
+res.status(200).json({ message: req.t('type.deleted') });
   } catch (error) {
     res.status(400).json({
-      message: "Aucun option trouvé",
+      message: req.t('type.no_option_found'),
       error: error.message,
     });
   }

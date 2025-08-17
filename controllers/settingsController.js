@@ -56,14 +56,14 @@ exports.addSettings = async (req, res) => {
         defaultCurrency: currency.toUpperCase(),
         tva: 10,
         method: [
-          {
+           {
             _id: new mongoose.Types.ObjectId(),
-            label: "Espèce",
+            label: "Carte bancaire",
             isActive: true,
           },
           {
             _id: new mongoose.Types.ObjectId(),
-            label: "Carte bancaire",
+            label: "Espèce",
             isActive: true,
           },
         ],
@@ -359,6 +359,8 @@ exports.updateSettings = async (req, res) => {
         emailPass,
         emailSender,
         emailName,
+        printMode,
+        printerIp
       } = req.body;
 
       if (oldCurrency && newCurrency) {
@@ -501,6 +503,12 @@ exports.updateSettings = async (req, res) => {
       }
       if (emailName) {
         settings.emailName = emailName || settings.emailName;
+      }
+      if (printMode) {
+        settings.printMode = printMode || settings.printMode;
+      }
+      if (printerIp) {
+        settings.printerIp = printerIp || settings.printerIp;
       }
 
       await settings.save();

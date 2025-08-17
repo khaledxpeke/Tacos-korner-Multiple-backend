@@ -25,14 +25,14 @@ exports.createRestaurant = async (req, res) => {
   upload.single("logo")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: "Le téléchargement de l'image a échoué",
+        message: req.t('errors.image_upload_failed'),
         error: err.message,
       });
     }
     if (!req.file) {
       return res.status(400).json({
-        message: "Ajouter une image",
-        error: "Veuillez télécharger une image",
+        message: req.t('product.add_image'),
+        error: req.t('errors.image_required'),
       });
     }
 
@@ -42,7 +42,7 @@ exports.createRestaurant = async (req, res) => {
       const { name, description, address } = req.body;
       if (!name || !description || !address) {
         return res.status(400).json({
-          message: "les champs name, description et address sont obligatoires",
+          message: req.t('restaurant.fields_required'),
         });
       }
 
@@ -61,12 +61,12 @@ exports.createRestaurant = async (req, res) => {
         method: [
           {
             _id: new mongoose.Types.ObjectId(),
-            label: "Espèce",
+            label: "Carte bancaire",
             isActive: true,
           },
           {
             _id: new mongoose.Types.ObjectId(),
-            label: "Carte bancaire",
+            label: "Espèce",
             isActive: true,
           },
         ],
@@ -114,10 +114,10 @@ exports.createRestaurant = async (req, res) => {
 
       res.status(201).json({
         restaurant,
-        message: "Restaurant créé avec succès",
+        message: req.t('restaurant.created'),
       });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: req.t('errors.unknown') });
     }
   });
 };
@@ -148,7 +148,7 @@ exports.getRestaurants = async (req, res) => {
 
     res.status(200).json(restaurants);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('errors.unknown') });
   }
 };
 
@@ -159,7 +159,7 @@ exports.getRestaurantById = async (req, res) => {
     ).populate("settings");
 
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant non trouvé" });
+      return res.status(404).json({ message: req.t('restaurant.not_found') });
     }
 
     res.status(200).json(restaurant);
@@ -173,14 +173,14 @@ exports.updateRestaurant = async (req, res) => {
   upload.single("logo")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: "Le téléchargement de l'image a échoué",
+        message: req.t('errors.image_upload_failed'),
         error: err.message,
       });
     }
     if (!req.file) {
       return res.status(400).json({
-        message: "Ajouter une image",
-        error: "Veuillez télécharger une image",
+        message: req.t('product.add_image'),
+        error: req.t('errors.image_required'),
       });
     }
 
@@ -190,7 +190,7 @@ exports.updateRestaurant = async (req, res) => {
         req.params.restaurantId
       );
       if (!existedRestaurant) {
-        return res.status(404).json({ message: "Restaurant non trouvée" });
+        return res.status(404).json({ message: req.t('restaurant.not_found') });
       }
       let logo = existedRestaurant.logo;
       if (
@@ -235,10 +235,10 @@ exports.updateRestaurant = async (req, res) => {
 
       res.status(200).json({
         existedRestaurant,
-        message: "Restaurant mis à jour avec succès",
+        message: req.t('restaurant.updated'),
       });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: req.t('errors.unknown') });
     }
   });
 };
@@ -251,7 +251,7 @@ exports.deleteRestaurant = async (req, res) => {
     const restaurant = await Restaurant.findById(req.params.restaurantId);
 
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant non trouvée" });
+      return res.status(404).json({ message: req.t('restaurant.not_found') });
     }
 
     if (restaurant.logo) {
@@ -310,12 +310,12 @@ exports.deleteRestaurant = async (req, res) => {
     await session.commitTransaction();
     session.endSession();
 
-    res.status(200).json({ message: "Restaurant supprimé avec succès" });
+    res.status(200).json({ message: req.t('restaurant.deleted') });
   } catch (error) {
     await session.abortTransaction();
     session.endSession();
     console.error("Error deleting restaurant:", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('errors.unknown') });
   }
 };
 
@@ -327,7 +327,7 @@ exports.assignUserToRestaurant = async (req, res) => {
     // Check if restaurant exists
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant non trouvée" });
+      return res.status(404).json({ message: req.t('restaurant.not_found') });
     }
 
     // Handle both single user and multiple users
@@ -344,8 +344,7 @@ exports.assignUserToRestaurant = async (req, res) => {
       ];
     } else {
       return res.status(400).json({
-        message:
-          "Invalide format de requete ajouter une id d'utilisateur et une role ou un tableau d'utilisateurs",
+        message: req.t('restaurant.invalid_request'),
       });
     }
 
@@ -361,7 +360,7 @@ exports.assignUserToRestaurant = async (req, res) => {
         // Check if user exists
         const user = await User.findById(userId);
         if (!user) {
-          results.failed.push({ userId, message: "Utilisateur non trouvé" });
+          results.failed.push({ userId, message: req.t('restaurant.user_not_found') });
           continue;
         }
 
@@ -386,7 +385,7 @@ exports.assignUserToRestaurant = async (req, res) => {
               results.successful.push({
                 userId,
                 name: user.fullName,
-                message: "Rôle mis à jour avec succès",
+                message: req.t('restaurant.role_updated'),
               });
               continue;
             }
@@ -395,8 +394,7 @@ exports.assignUserToRestaurant = async (req, res) => {
             results.failed.push({
               userId,
               name: user.fullName,
-              message:
-                "Les serveurs ne peuvent être assignés qu'à un seul restaurant",
+              message: req.t('restaurant.waiter_single_restaurant'),
             });
             continue;
           }
@@ -460,8 +458,7 @@ exports.assignUserToRestaurant = async (req, res) => {
           results.failed.push({
             userId,
             name: user.fullName,
-            message:
-              "Les clients n'ont pas besoin d'assignation à un restaurant",
+            message: req.t('restaurant.client_no_assignment'),
           });
           continue;
         }
@@ -471,7 +468,7 @@ exports.assignUserToRestaurant = async (req, res) => {
           userId,
           name: user.fullName,
           role,
-          message: "Utilisateur assigné avec succès",
+          message: req.t('restaurant.user_assigned'),
         });
       } catch (error) {
         results.failed.push({
@@ -486,7 +483,7 @@ exports.assignUserToRestaurant = async (req, res) => {
       // For single user case
       if (results.successful.length === 1) {
         return res.status(200).json({
-          message: "Utilisateur assigné au restaurant avec succès",
+          message: req.t('restaurant.user_assigned'),
           user: results.successful[0],
         });
       } else {
@@ -498,12 +495,15 @@ exports.assignUserToRestaurant = async (req, res) => {
     } else {
       // For multiple users case
       return res.status(200).json({
-        message: `${results.successful.length} utilisateurs assignés avec succès, ${results.failed.length} échecs`,
+        message: req.t('restaurant.assignment_results', { 
+          successful: results.successful.length, 
+          failed: results.failed.length 
+        }),
         results,
       });
     }
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('errors.unknown') });
   }
 };
 exports.removeUserFromRestaurant = async (req, res) => {
@@ -514,7 +514,7 @@ exports.removeUserFromRestaurant = async (req, res) => {
     // Check if user exists
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "User non trouvée" });
+      return res.status(404).json({ message: req.t('restaurant.user_not_found') });
     }
 
     // Check if user is assigned to this restaurant
@@ -524,7 +524,7 @@ exports.removeUserFromRestaurant = async (req, res) => {
 
     if (!hasRestaurant) {
       return res.status(404).json({
-        message: "L'utilisateur n'est pas assigné à ce restaurant",
+        message: req.t('restaurant.user_not_assigned'),
       });
     }
 
@@ -537,8 +537,8 @@ exports.removeUserFromRestaurant = async (req, res) => {
 
     res
       .status(200)
-      .json({ message: "Utilisateur retiré du restaurant avec succès" });
+      .json({ message: req.t('restaurant.user_removed') });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('errors.unknown') });
   }
 };

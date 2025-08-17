@@ -46,19 +46,20 @@ const calculateDiscountInfo = (product) => {
 };
 
 exports.addProductToCategory = async (req, res, next) => {
+const { getBlurhashFromImage } = require("../utils/blurhash");
   req.uploadTarget = "product";
   const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: "Le téléchargement de l'image a échoué",
+        message: req.t('errors.image_upload_failed'),
         error: err.message,
       });
     }
     if (!req.file) {
       return res.status(400).json({
-        message: "Ajouter une image",
-        error: "Veuillez télécharger une image",
+        message: req.t('product.add_image'),
+        error: req.t('errors.image_required'),
       });
     }
 
@@ -82,7 +83,7 @@ exports.addProductToCategory = async (req, res, next) => {
 
       if (product) {
         return res.status(400).json({
-          message: "Produit existe déja",
+          message: req.t('product.exists'),
         });
       } else {
         if (typeVariation && variations) {
@@ -100,6 +101,11 @@ exports.addProductToCategory = async (req, res, next) => {
         const parsedTypeIds = Array.isArray(typeIds)
           ? typeIds
           : JSON.parse(typeIds);
+        let imagePreviewHash = null;
+        if (image) {
+          const imagePath = path.join(__dirname, "..", image);
+          imagePreviewHash = await getBlurhashFromImage(imagePath);
+        }
         const product = new Product({
           name,
           description,
@@ -112,12 +118,9 @@ exports.addProductToCategory = async (req, res, next) => {
           createdBy: userId,
           choice,
           restaurantId,
+          image,
+          imagePreviewHash,
         });
-        if (image) {
-          product.image = image;
-          await product.save();
-        }
-
         const savedProduct = await product.save();
 
         const updatedCategory = await Category.findOneAndUpdate(
@@ -129,12 +132,12 @@ exports.addProductToCategory = async (req, res, next) => {
         res.status(201).json({
           ...savedProduct.toObject(),
           category: updatedCategory,
-          message: "Produit ajouté avec succées",
+          message: req.t('product.created'),
         });
       }
     } catch (error) {
       res.status(400).json({
-        message: "Une erreur s'est produite",
+        message: req.t('product.error'),
         error: error.message,
       });
     }
@@ -165,7 +168,7 @@ exports.getProductsByCategory = async (req, res, next) => {
     res.status(200).json(productsWithDiscounts);
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('product.error'),
       error: error.message,
     });
   }
@@ -182,7 +185,7 @@ exports.getAllProducts = async (req, res, next) => {
     res.status(200).json(products);
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('product.error'),
       error: error.message,
     });
   }
@@ -217,7 +220,7 @@ exports.getProductData = async (req, res) => {
       .lean();
 
     if (!product) {
-      return res.status(404).json({ message: "Produit non trouvé" });
+      return res.status(404).json({ message: req.t('product.not_found') });
     }
 
     if (product.typeVariations) {
@@ -285,7 +288,7 @@ exports.getProductData = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      message: "Une erreur s'est produite",
+      message: req.t('errors.unknown'),
       error: error.message,
     });
   }
@@ -296,7 +299,7 @@ exports.deleteProduct = async (req, res, next) => {
   try {
     const product = await Product.findOne({ _id: productId, restaurantId });
     if (!product) {
-      return res.status(404).json({ message: "Aucun produit trouvé" });
+      return res.status(404).json({ message: req.t('product.not_found') });
     }
     if (product.image) {
       const imagePath = path.join(__dirname, "..", product.image);
@@ -313,10 +316,10 @@ exports.deleteProduct = async (req, res, next) => {
       { product: productId, restaurantId },
       { $pull: { product: productId } }
     );
-    res.status(200).json({ message: "Produit supprimer avec succées" });
+    res.status(200).json({ message: req.t('product.deleted') });
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('product.error'),
       error: error.message,
     });
   }
@@ -329,7 +332,7 @@ exports.updateProduct = async (req, res) => {
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: "Le téléchargement de l'image a échoué",
+        message: req.t('errors.image_upload_failed'),
         error: err.message,
       });
     }
@@ -352,7 +355,7 @@ exports.updateProduct = async (req, res) => {
       let typeVariationsData = null;
       const product = await Product.findOne({ _id: productId, restaurantId });
       if (!product) {
-        return res.status(404).json({ message: "Produit non trouvé" });
+        return res.status(404).json({ message: req.t('product.not_found') });
       }
 
       if (category && category !== product.category.toString()) {
@@ -414,6 +417,14 @@ exports.updateProduct = async (req, res) => {
         }
 
         product.image = image;
+        // Generate new hash for updated image
+        const imagePath = path.join(__dirname, "..", image);
+        product.imagePreviewHash = await getBlurhashFromImage(imagePath);
+      } else if (req.body.image && req.body.image !== product.image) {
+        // If image is updated via body (not file upload), update hash
+        product.image = req.body.image;
+        const imagePath = path.join(__dirname, "..", req.body.image);
+        product.imagePreviewHash = await getBlurhashFromImage(imagePath);
       }
 
       product.name = name || product.name;
@@ -434,10 +445,10 @@ exports.updateProduct = async (req, res) => {
 
       res
         .status(200)
-        .json({ ...updatedProduct.toObject(), message: "Produit mis à jour avec succès" });
+        .json({ ...updatedProduct.toObject(), message: req.t('product.updated_success') });
     } catch (error) {
       console.log(error);
-      res.status(500).json({ message: "Erreur de serveur" });
+      res.status(500).json({ message: req.t('errors.unknown') });
     }
   });
 };
@@ -465,19 +476,19 @@ exports.setProductDiscount = async (req, res) => {
 
     if (!discountValue) {
       return res.status(400).json({
-        message: "Valeur de remise requise"
+        message: req.t('product.discount.value_required')
       });
     }
 
     if (discountValue <= 0) {
       return res.status(400).json({
-        message: "La valeur de la remise doit être supérieure à 0"
+        message: req.t('product.discount.value_gt_zero')
       });
     }
 
     const product = await Product.findOne({ _id: productId, restaurantId });
     if (!product) {
-      return res.status(404).json({ message: "Produit non trouvé" });
+      return res.status(404).json({ message: req.t('product.not_found') });
     }
 
     // Validate date interval if provided
@@ -487,7 +498,7 @@ exports.setProductDiscount = async (req, res) => {
       
       if (start.isSameOrAfter(end)) {
         return res.status(400).json({
-          message: "La date et l'heure de fin doivent être postérieures à la date et l'heure de début"
+          message: req.t('product.discount.end_after_start')
         });
       }
     }
@@ -507,13 +518,13 @@ exports.setProductDiscount = async (req, res) => {
     const discountInfo = calculateDiscountInfo(product.toObject());
 
     res.status(200).json({
-      message: "Remise appliquée avec succès",
+      message: req.t('product.discount.applied'),
       ...product.toObject(),
       ...discountInfo
     });
   } catch (error) {
     res.status(500).json({
-      message: "Une erreur s'est produite",
+      message: req.t('errors.unknown'),
       error: error.message
     });
   }
@@ -526,7 +537,7 @@ exports.removeProductDiscount = async (req, res) => {
 
     const product = await Product.findOne({ _id: productId, restaurantId });
     if (!product) {
-      return res.status(404).json({ message: "Produit non trouvé" });
+      return res.status(404).json({ message: req.t('product.not_found') });
     }
 
     // Reset discount fields
@@ -538,12 +549,12 @@ exports.removeProductDiscount = async (req, res) => {
     await product.save();
 
     res.status(200).json({
-      message: "Remise supprimée avec succès",
+      message: req.t('product.discount.removed'),
       ...product.toObject()
     });
   } catch (error) {
     res.status(500).json({
-      message: "Une erreur s'est produite",
+      message: req.t('errors.unknown'),
       error: error.message
     });
   }

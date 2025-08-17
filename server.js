@@ -6,6 +6,9 @@ const cors = require("cors");
 const { roleAuth } = require("./middleware/auth");
 const path = require("path");
 const socketIo = require("socket.io");
+const i18next = require('i18next');
+const i18nextMiddleware = require('i18next-http-middleware');
+const FsBackend = require('i18next-fs-backend');
 const { setIO, getHistoriesRT } = require("./controllers/historyController");
 const http = require("http");
 const PORT = process.env.PORT;
@@ -45,9 +48,31 @@ app.use(
   })
 );
 
-app.use(express.json({limit: '2mb' }));
+app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 connectDB();
+
+i18next
+  .use(FsBackend)
+  .use(i18nextMiddleware.LanguageDetector)
+  .init({
+    fallbackLng: 'fr',
+    preload: ['en', 'fr', 'ar'],
+    ns: ['translation'],
+    defaultNS: 'translation',
+    backend: { loadPath: path.join(__dirname, 'translations/{{lng}}.json') },
+    detection: { order: ['querystring', 'header', 'cookie'], lookupQuerystring: 'lng' },
+    initImmediate: false,
+    keySeparator: false
+  });
+
+app.use(i18nextMiddleware.handle(i18next));
+
+app.use((req, res, next) => {
+  res.locals.t = req.t.bind(req);
+  res.locals.lang = req.language;
+  next();
+});
 
 // server = app.listen(PORT, function () {
 //   console.log(`Server is listening on port ${PORT}`);
@@ -68,32 +93,55 @@ app.use("/api/settings", require("./routes/settingsRoutes"));
 app.use("/api/variation", require("./routes/variationRoutes"));
 app.use("/api/typeVariation", require("./routes/typeVariationRoutes"));
 app.use("/api/carousel", require("./routes/carouselMediaRoutes"));
-app.use("/api/media", require("./routes/mediaRoutes"));
 app.use("/api/restaurant", require("./routes/restaurantRoutes"));
 app.use("/api/coupon", require("./routes/couponRoutes"));
+app.use("/api/database", require("./routes/databaseExporterRoutes"));
 app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(
   "/api/uploads/carousel",
   express.static(path.join(__dirname, "uploads", "carousel"))
 );
 app.get("/adminRoute", roleAuth("admin"), (req, res) => {
-  res.send("Authenticated Route for Admin");
+  res.send(req.t('routes.authenticated.admin'));
 });
 app.get("/managerRoute", roleAuth("manager"), (req, res) => {
-  res.send("Authenticated Route for Manager");
+  res.send(req.t('routes.authenticated.manager'));
 });
 app.get("/waiterRoute", roleAuth(["waiter"]), (req, res) => {
-  res.send("Authenticated Route for waiter");
+  res.send(req.t('routes.authenticated.waiter'));
 });
 app.get("/clientRoute", roleAuth("client"), (req, res) => {
-  res.send("Authenticated Route for Client");
+  res.send(req.t('routes.authenticated.client'));
 });
+
+app.get('/welcome', (req, res) => {
+  res.json({ lang: req.language, message: req.t('welcome') });
+});
+
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
 app.get("/logout", (req, res) => {
   res.cookie("jwt", "", { maxAge: "1" });
   res.redirect("/");
 });
+// 404 handler for unmatched routes
+app.use((req, res, next) => {
+  res.status(404).json({ success: false, message: req.t('errors.not_found') });
+});
+/**
+ * Global error handler with i18n
+ */
+app.use((err, req, res, next) => {
+  console.error(err);
+  const status = err.status || 500;
+  const key =
+    status === 401 ? 'errors.unauthorized' :
+    status === 403 ? 'errors.forbidden' :
+    status === 404 ? 'errors.not_found' :
+    'errors.unknown';
+  res.status(status).json({ success: false, message: req.t(key) });
+});
+
 server.listen(PORT, () => {
   console.log(`Server is listening on port ${PORT}`);
 });

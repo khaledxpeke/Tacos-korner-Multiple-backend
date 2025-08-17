@@ -9,6 +9,7 @@ const fs = require("fs");
 const Ingrediant = require("../models/ingrediant");
 const path = require("path");
 const Product = require("../models/product");
+const { getBlurhashFromImage } = require("../utils/blurhash");
 
 const upload = multer({ storage: multerStorage });
 exports.createCategory = async (req, res) => {
@@ -17,34 +18,41 @@ exports.createCategory = async (req, res) => {
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: "Le téléchargement de l'image a échoué",
+        message: req.t('errors.image_upload_failed'),
         error: err.message,
       });
     }
     if (!req.file) {
       return res.status(400).json({
-        message: "Ajouter une image",
-        error: "Veuillez télécharger une image",
+        message: req.t('product.add_image'),
+        error: req.t('errors.image_required'),
       });
     }
 
     const userId = req.user.user._id;
     const image = `uploads/category/${req.file?.filename}` || "";
     try {
+      // Generate blurhash for image
+      let imagePreviewHash = null;
+      if (image) {
+        const imagePath = path.join(__dirname, "..", image);
+        imagePreviewHash = await getBlurhashFromImage(imagePath);
+      }
       const category = await Category.create({
         createdBy: userId,
         name: req.body.name,
         image,
+        imagePreviewHash,
         restaurantId,
       });
 
       const newCategory = await category.save();
       res
         .status(201)
-        .json({ newCategory, message: "categorie créer avec succées" });
+        .json({ newCategory, message: req.t('category.created') });
     } catch (error) {
       res.status(400).json({
-        message: "Some error occured",
+        message: req.t('errors.unknown'),
         error: error.message,
       });
     }
@@ -59,7 +67,7 @@ exports.getAllCategories = async (req, res) => {
       .populate({
         path: "products",
         select:
-          "name price image type choice description category outOfStock variations visible",
+          "name price image type choice description category outOfStock variations visible imagePreviewHash",
         options: { sort: { position: 1 } },
         populate: [
           {
@@ -87,7 +95,7 @@ exports.getAllCategories = async (req, res) => {
           },
         ],
       });
-    const populatedCategories = await Promise.all(
+      const populatedCategories = await Promise.all(
       categories
         .filter((category) =>
           category.products.some((product) => product.visible)
@@ -95,11 +103,17 @@ exports.getAllCategories = async (req, res) => {
         .map(async (category) => {
           const categoryObj = category.toObject();
 
+          // Just keep existing hash
+          categoryObj.imagePreviewHash = categoryObj.imagePreviewHash || null;
+
           categoryObj.products = await Promise.all(
             category.products
               .filter((product) => product.visible !== false)
               .map(async (product) => {
                 const productObj = product.toObject();
+
+                // Just keep existing hash
+                productObj.imagePreviewHash = productObj.imagePreviewHash || null;
 
                 if (
                   productObj.typeVariations &&
@@ -129,11 +143,7 @@ exports.getAllCategories = async (req, res) => {
                     productObj.typeVariations = null;
                   }
                 }
-                // productObj.variations = productObj.variations.map(v => ({
-                //   _id: v._id._id,
-                //   name: v._id.name,
-                //   price: v.price
-                // }));
+
                 const typesWithIngredients = await Promise.all(
                   product.type.map(async (type) => {
                     const typeObj = type.toObject();
@@ -141,17 +151,20 @@ exports.getAllCategories = async (req, res) => {
                     const typeIngredients = await Ingrediant.find({
                       types: type._id,
                       visible: true,
-                    }).select("name image price suppPrice outOfStock visible");
+                    }).select("name image price suppPrice outOfStock visible imagePreviewHash");
+
                     if (typeIngredients.length > 0) {
                       typeObj.ingrediants = typeIngredients.map((ing) => {
                         const basePrice = !type.payment
                           ? ing.suppPrice
                           : ing.price;
                         const priceWithTVA = Number(basePrice.toFixed(2));
+
                         return {
                           _id: ing._id,
                           name: ing.name,
                           image: ing.image,
+                          imagePreviewHash: ing.imagePreviewHash || null,
                           price: priceWithTVA,
                           outOfStock: ing.outOfStock,
                           visible: ing.visible,
@@ -173,9 +186,11 @@ exports.getAllCategories = async (req, res) => {
           return categoryObj;
         })
     );
+
     const finalCategories = populatedCategories.filter(
       (cat) => cat.products.length > 0
     );
+
     res.status(200).json(finalCategories);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -214,11 +229,11 @@ exports.updateCategory = async (req, res) => {
   upload.single("image")(req, res, async (err) => {
     if (err) {
       console.log(err);
-      return res.status(500).json({ message: "Probleme image" });
+      return res.status(500).json({ message: req.t('errors.image_upload_failed') });
     }
     const category = await Category.findOne({ _id: categoryId, restaurantId });
     if (!category) {
-      return res.status(404).json({ message: "Aucun Categorie trouvée" });
+      return res.status(404).json({ message: req.t('category.not_found') });
     }
     if (category.image && !category.image.startsWith("uploads/category/")) {
       const oldImagePath = path.join(__dirname, "..", category.image);
@@ -245,6 +260,9 @@ exports.updateCategory = async (req, res) => {
       }
 
       category.image = image;
+      // Generate new hash for updated image
+      const imagePath = path.join(__dirname, "..", image);
+      category.imagePreviewHash = await getBlurhashFromImage(imagePath);
     }
     try {
       const updatedcategory = await Category.findOneAndUpdate(
@@ -252,15 +270,16 @@ exports.updateCategory = async (req, res) => {
         {
           name: req.body.name || category.name,
           image: category.image,
+          imagePreviewHash: category.imagePreviewHash,
         },
         { new: true }
       );
 
       res
         .status(200)
-        .json({ updatedcategory, message: "Categorie modifié avec succées" });
+        .json({ updatedcategory, message: req.t('category.updated') });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: req.t('errors.unknown') });
     }
   });
 };
@@ -281,10 +300,10 @@ exports.updatePositions = async (req, res) => {
       })
     );
 
-res.status(200).json({ message: "Positions mises à jour avec succès" });
+res.status(200).json({ message: req.t('category.positions_updated') });
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('errors.unknown'),
       error: error.message,
     });
   }
@@ -303,10 +322,10 @@ exports.updateCategoryPositions = async (req, res) => {
       );
     }
 
-    res.status(200).json({ message: "Positions updated successfully" });
+    res.status(200).json({ message: req.t('category.positions_updated') });
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('errors.unknown'),
       error: error.message,
     });
   }
@@ -318,7 +337,7 @@ exports.deleteCategory = async (req, res) => {
   try {
     let category = await Category.findOne({ _id: categoryId, restaurantId });
     if (!category) {
-      return res.status(404).json({ message: "Aucun Categorie trouvée" });
+      return res.status(404).json({ message: req.t('category.not_found') });
     }
 
     await Product.deleteMany({ category: categoryId, restaurantId });
@@ -335,8 +354,8 @@ exports.deleteCategory = async (req, res) => {
     }
     await Category.findOneAndDelete({ _id: categoryId, restaurantId });
 
-    res.status(200).json({ message: "categorie supprimée avec succées" });
+    res.status(200).json({ message: req.t('category.deleted') });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('errors.unknown') });
   }
 };

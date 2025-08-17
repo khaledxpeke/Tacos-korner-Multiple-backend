@@ -13,6 +13,7 @@ const path = require("path");
 const upload = multer({ storage: multerStorage });
 
 exports.createIngredient = async (req, res, next) => {
+const { getBlurhashFromImage } = require("../utils/blurhash");
   req.uploadTarget = "ingrediants";
   const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
@@ -54,9 +55,15 @@ exports.createIngredient = async (req, res, next) => {
           ? variations
           : JSON.parse(variations);
       }
+      let imagePreviewHash = null;
+      if (image) {
+        const imagePath = path.join(__dirname, "..", image);
+        imagePreviewHash = await getBlurhashFromImage(imagePath);
+      }
       const ingredient = await Ingrediant.create({
         name,
         image,
+        imagePreviewHash,
         types: typesArray,
         variations: variationsArray || [],
         outOfStock,
@@ -151,6 +158,14 @@ return res.status(500).json({ message: "Erreur du serveur" });
       }
 
       ingrediant.image = image;
+      // Generate new hash for updated image
+      const imagePath = path.join(__dirname, "..", image);
+      ingrediant.imagePreviewHash = await getBlurhashFromImage(imagePath);
+    } else if (req.body.image && req.body.image !== ingrediant.image) {
+      // If image is updated via body (not file upload), update hash
+      ingrediant.image = req.body.image;
+      const imagePath = path.join(__dirname, "..", req.body.image);
+      ingrediant.imagePreviewHash = await getBlurhashFromImage(imagePath);
     }
     try {
       ingrediant.name = name || ingrediant.name;

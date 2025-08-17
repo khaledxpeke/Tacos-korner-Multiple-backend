@@ -13,7 +13,7 @@ exports.register = async (req, res, next) => {
 
   const userExists = await User.findOne({ email });
   if (userExists) {
-    return res.status(400).json({ message: "L'utilisateur existe déjà" });
+    return res.status(400).json({ message: req.t('user.already_exists') });
   }
 
   let determinedUserRole;
@@ -28,7 +28,10 @@ exports.register = async (req, res, next) => {
     } else if (roleFromBody) {
       // Role provided but not in allowedStaffRoles
       return res.status(400).json({
-        message: `Le rôle '${roleFromBody}' n'est pas valide pour le personnel. Les rôles valides sont : ${allowedStaffRoles.join(", ")}.`,
+        message: req.t('user.invalid_staff_role', { 
+          role: roleFromBody, 
+          validRoles: allowedStaffRoles.join(", ") 
+        }),
       });
     } else {
       // No role provided for staff, default to 'waiter'
@@ -78,14 +81,14 @@ exports.register = async (req, res, next) => {
         .catch((error) =>
           res.status(400).json({
             // Consider a more generic error message for user creation failure
-            message: "Erreur lors de la création de l'utilisateur.",
+            message: req.t('user.creation_error'),
             error: error.message,
           })
         );
     });
   } catch (error) { // Catch for bcrypt or other synchronous errors before the .then()
     res.status(400).json({
-      message: "Une erreur s'est produite lors du hachage du mot de passe ou de la configuration initiale.",
+      message: req.t('user.password_hash_error'),
       error: error.message,
     });
   }
@@ -97,21 +100,20 @@ exports.login = async (req, res, next) => {
 
   if (!email || !password) {
     return res.status(400).json({
-      message: "L'email ou le mot de passe est incorrect !",
+      message: req.t('user.invalid_credentials'),
     });
   }
   try {
     const user = await User.findOne({ email });
     if (!user) {
       res.status(401).json({
-        message: "Utilisateur non trouvé",
-        error: "Utilisateur non trouvé",
+        message: req.t('user.not_found'),
+        error: req.t('user.not_found'),
       });
     } else {
       if (user.isBlocked) {
         return res.status(403).json({
-          message:
-            "Votre compte a été bloqué. Veuillez contacter l'administrateur.",
+          message: req.t('user.account_blocked'),
           error: "Compte bloqué",
         });
       }
@@ -141,13 +143,13 @@ exports.login = async (req, res, next) => {
         } else {
           res
             .status(400)
-            .json({ message: "L'email ou le mot de passe est incorrect !" });
+            .json({ message: req.t('user.invalid_credentials') });
         }
       });
     }
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('user.login_error'),
       error: error.message,
     });
   }
@@ -163,7 +165,7 @@ exports.getUsers = async (req, res, next) => {
     res.status(200).json(users);
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('user.get_users_error'),
       error: error.message,
     });
   }
@@ -200,7 +202,7 @@ exports.getAssignableUsers = async (req, res, next) => {
     res.status(200).json(users);
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('user.get_users_error'),
       error: error.message,
     });
   }
@@ -214,26 +216,26 @@ exports.assignUserToRestaurant = async (req, res, next) => {
 
     if (!["manager", "waiter"].includes(role)) {
       return res.status(400).json({
-        message: "Le rôle doit être 'manager' ou 'waiter'",
+        message: req.t('user.invalid_role'),
       });
     }
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
+      return res.status(404).json({ message: req.t('user.not_found') });
     }
  
     user.restaurants.push({ restaurantId, role });
     await user.save();
 
     res.status(200).json({
-      message: "Utilisateur assigné au restaurant avec succès",
+      message: req.t('user.assigned_successfully'),
       user,
     });
   } catch (error) {
     console.error("Error in assignUserToRestaurant:", error);
     res.status(500).json({
-      message: "Erreur du serveur",
+      message: req.t('user.assignment_error'),
       error: error.message,
     });
   }
@@ -245,7 +247,7 @@ exports.unassignUserFromRestaurant = async (req, res, next) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
+      return res.status(404).json({ message: req.t('user.not_found') });
     }
 
     user.restaurants = user.restaurants.filter(
@@ -254,13 +256,13 @@ exports.unassignUserFromRestaurant = async (req, res, next) => {
     await user.save();
 
     res.status(200).json({
-      message: "Utilisateur désassigné du restaurant avec succès",
+      message: req.t('user.unassigned_successfully'),
       user,
     });
   } catch (error) {
     console.error("Error in unassignUserFromRestaurant:", error);
     res.status(500).json({
-      message: "Erreur du serveur",
+      message: req.t('user.unassignment_error'),
       error: error.message,
     });
   }
@@ -270,7 +272,7 @@ exports.getUserbyId = async (req, res, next) => {
   const userId = req.user.user._id;
   // const { restaurantId } = req;
   if (!userId) {
-    res.status(400).json({ message: " Id non trouvée" });
+    res.status(400).json({ message: req.t('user.id_not_found') });
   } else {
     const user = await User.findById(
       userId
@@ -289,7 +291,7 @@ exports.updateUser = async (req, res, next) => {
       restaurants: { $elemMatch: { restaurantId } },
     });
     if (!user) {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
+      return res.status(404).json({ message: req.t('user.not_found') });
     }
     const { fullName, email, role } = req.body;
     user.fullName = fullName || user.fullName;
@@ -308,19 +310,19 @@ exports.updateUser = async (req, res, next) => {
         }
       } else {
         return res.status(400).json({
-          message: `Le rôle doit être l'un des suivants : ${allowedUpdateRoles.join(", ")}`,
+          message: req.t('user.invalid_update_role', { validRoles: allowedUpdateRoles.join(", ") }),
         });
       }
     }
     const savedUser = await user.save();
     return res
       .status(200)
-      .json({ message: "Utilisateur modifié avec succès", savedUser });
+      .json({ message: req.t('user.updated_successfully'), savedUser });
   } catch (error) {
     console.error("Erreur dans updateUser:", error);
     return res
       .status(500)
-      .json({ message: "Erreur du serveur", error: error.message });
+      .json({ message: req.t('user.update_error'), error: error.message });
   }
 };
 
@@ -334,7 +336,7 @@ exports.blockUser = async (req, res, next) => {
       restaurants: { $elemMatch: { restaurantId } },
     }).select("-password");
     if (!user) {
-      return res.status(404).json({ message: "Utilisateur non trouvé" });
+      return res.status(404).json({ message: req.t('user.not_found') });
     }
     if (userRole == "manager") {
       const user = await User.findOne({
@@ -343,23 +345,22 @@ exports.blockUser = async (req, res, next) => {
       }).select("-password");
       if (user.role === "manager") {
         return res.status(403).json({
-          message:
-            "Vous ne pouvez pas bloquer un administrateur ou une autre gérant",
+          message: req.t('user.cannot_block_admin_manager'),
         });
       }
     }
     user.isBlocked = !user.isBlocked;
     await user.save();
     return res.status(200).json({
-      message: `Utilisateur ${
-        user.isBlocked ? "bloqué" : "débloqué"
-      } avec succès`,
+      message: req.t('user.blocked_successfully', { 
+        action: user.isBlocked ? "bloqué" : "débloqué" 
+      }),
     });
   } catch (error) {
     console.error("Error in blockUser:", error);
     return res
       .status(500)
-      .json({ message: "Erreur du serveur", error: error.message });
+      .json({ message: req.t('user.block_error'), error: error.message });
   }
 };
 
@@ -373,15 +374,15 @@ exports.deleteUser = async (req, res, next) => {
     });
 
     if (!deletedUser) {
-      return res.status(404).json({ message: "Utilisateur non trouvée" });
+      return res.status(404).json({ message: req.t('user.not_found') });
     }
 
-    return res.status(200).json({ message: "Utilisateur supprimée" });
+    return res.status(200).json({ message: req.t('user.deleted_successfully') });
   } catch (error) {
     console.error("Erreur dans deleteUser:", error);
     return res
       .status(500)
-      .json({ message: "Erreur du serveur", error: error.message });
+      .json({ message: req.t('user.delete_error'), error: error.message });
   }
 };
 
@@ -390,5 +391,5 @@ exports.logout = async (req, res) => {
   const user = await User.findById(userId);
   user.fcmToken = "";
   await user.save();
-  res.status(200).json({ message: "mise à jour du token réussie" });
+  res.status(200).json({ message: req.t('user.token_updated') });
 };

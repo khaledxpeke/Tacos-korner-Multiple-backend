@@ -1,0 +1,3285 @@
+{
+  "CarouselMedia": [
+    {
+      "_id": "68a0dc2d480b4befe75d6b7c",
+      "mediaType": "image",
+      "fileUrl": "uploads/carousel/1746390771797-STUDENT CARD.jpg",
+      "duration": 5,
+      "order": 2,
+      "isActive": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b7d",
+      "mediaType": "image",
+      "fileUrl": "uploads/carousel/1748221456895-1315631.png",
+      "duration": 5,
+      "order": 1,
+      "isActive": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "Category": [
+    {
+      "_id": "68a0dc2d480b4befe75d6b7f",
+      "name": "burgers",
+      "image": "uploads/category/1748198254761.png",
+      "products": [
+        "683363893eafac769359f38d",
+        "683363a43eafac769359f3e2"
+      ],
+      "position": 1,
+      "createdBy": "67fa922b0e419f7da2b19e2c",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b80",
+      "name": "aaabb",
+      "image": "uploads/category/1749395970401.png",
+      "products": [],
+      "position": 2,
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b81",
+      "name": "Burger",
+      "image": "uploads/category/1755098020972.jpg",
+      "products": [],
+      "position": 0,
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "Desert": [
+    {
+      "_id": "68a0dc2d480b4befe75d6b83",
+      "name": "cake",
+      "price": 2,
+      "image": "uploads/dessert/1746199608960.jpg",
+      "outOfStock": false,
+      "visible": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "Drink": [
+    {
+      "_id": "68a0dc2d480b4befe75d6b85",
+      "name": "water",
+      "price": 2,
+      "image": "uploads/boisson/1746199974683.jpg",
+      "outOfStock": false,
+      "visible": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b86",
+      "name": "boga",
+      "price": 3,
+      "image": "uploads/boisson/1746368491383.png",
+      "outOfStock": false,
+      "visible": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "Extra": [
+    {
+      "_id": "68a0dc2d480b4befe75d6b88",
+      "name": "frites",
+      "image": "uploads/extras/1746199252244.jpg",
+      "price": 5,
+      "outOfStock": false,
+      "visible": true,
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "History": [
+    {
+      "_id": "68a0dc2d480b4befe75d6b8a",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "6817bc4e20ec43e1b0280537"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "6817bc4e20ec43e1b0280538"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "6817bc4e20ec43e1b0280539"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "6817bc4e20ec43e1b028053a"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "6817bc4e20ec43e1b028053b"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "6817bc4e20ec43e1b028053c"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "6817bc4e20ec43e1b028053d"
+            }
+          ],
+          "total": 25.3,
+          "_id": "6817bc4e20ec43e1b0280536"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "6817bc4e20ec43e1b028053e"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 2,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 15,
+      "status": "enAttente",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "boughtAt": "2025-05-04T19:13:18.345Z",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b8b",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "681f50c2f4c8f78fa89b4336"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "681f50c2f4c8f78fa89b4337"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "681f50c2f4c8f78fa89b4338"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "681f50c2f4c8f78fa89b4339"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "681f50c2f4c8f78fa89b433a"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "681f50c2f4c8f78fa89b433b"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "681f50c2f4c8f78fa89b433c"
+            }
+          ],
+          "total": 25.3,
+          "_id": "681f50c2f4c8f78fa89b4335"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "681f50c2f4c8f78fa89b433d"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "khaled",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-10T13:12:34.725Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b8c",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103bf5762e01e6913f7da"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103bf5762e01e6913f7db"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103bf5762e01e6913f7dc"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103bf5762e01e6913f7dd"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103bf5762e01e6913f7de"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103bf5762e01e6913f7df"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103bf5762e01e6913f7e0"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103bf5762e01e6913f7d9"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103bf5762e01e6913f7e1"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-11T20:08:31.968Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b8d",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103c55762e01e6913f7f9"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103c55762e01e6913f7fa"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103c55762e01e6913f7fb"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103c55762e01e6913f7fc"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103c55762e01e6913f7fd"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103c55762e01e6913f7fe"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103c55762e01e6913f7ff"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103c55762e01e6913f7f8"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103c55762e01e6913f800"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-11T20:08:37.658Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b8e",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103c95762e01e6913f818"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103c95762e01e6913f819"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103c95762e01e6913f81a"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103c95762e01e6913f81b"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103c95762e01e6913f81c"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103c95762e01e6913f81d"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103c95762e01e6913f81e"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103c95762e01e6913f817"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103c95762e01e6913f81f"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-11T20:08:41.208Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b8f",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103cb5762e01e6913f837"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103cb5762e01e6913f838"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103cb5762e01e6913f839"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103cb5762e01e6913f83a"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103cb5762e01e6913f83b"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103cb5762e01e6913f83c"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103cb5762e01e6913f83d"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103cb5762e01e6913f836"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103cb5762e01e6913f83e"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-11T20:08:43.404Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b90",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103cd5762e01e6913f856"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103cd5762e01e6913f857"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103cd5762e01e6913f858"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103cd5762e01e6913f859"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103cd5762e01e6913f85a"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103cd5762e01e6913f85b"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103cd5762e01e6913f85c"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103cd5762e01e6913f855"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103cd5762e01e6913f85d"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-11T20:08:45.255Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b91",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103cf5762e01e6913f875"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103cf5762e01e6913f876"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103cf5762e01e6913f877"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103cf5762e01e6913f878"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103cf5762e01e6913f879"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103cf5762e01e6913f87a"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103cf5762e01e6913f87b"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103cf5762e01e6913f874"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103cf5762e01e6913f87c"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-11T20:08:47.129Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b92",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103d15762e01e6913f894"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103d15762e01e6913f895"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103d15762e01e6913f896"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103d15762e01e6913f897"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103d15762e01e6913f898"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103d15762e01e6913f899"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103d15762e01e6913f89a"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103d15762e01e6913f893"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103d15762e01e6913f89b"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "terminee",
+      "boughtAt": "2025-05-11T20:08:49.479Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b93",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103d45762e01e6913f8b3"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103d45762e01e6913f8b4"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103d45762e01e6913f8b5"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103d45762e01e6913f8b6"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103d45762e01e6913f8b7"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103d45762e01e6913f8b8"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103d45762e01e6913f8b9"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103d45762e01e6913f8b2"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103d45762e01e6913f8ba"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "terminee",
+      "boughtAt": "2025-05-11T20:08:52.139Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b94",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103da5762e01e6913f8d2"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103da5762e01e6913f8d3"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103da5762e01e6913f8d4"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103da5762e01e6913f8d5"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103da5762e01e6913f8d6"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103da5762e01e6913f8d7"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103da5762e01e6913f8d8"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103da5762e01e6913f8d1"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103da5762e01e6913f8d9"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "terminee",
+      "boughtAt": "2025-05-11T20:08:58.679Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b95",
+      "product": [
+        {
+          "plat": {
+            "_id": "677c0ce3a8dcf832c2d383d7",
+            "category": "67fa95b8d575bda53849a0e9",
+            "name": "Boisson21",
+            "price": 26.4,
+            "count": 2
+          },
+          "variation": {
+            "name": "Junior",
+            "price": 1
+          },
+          "addons": [
+            {
+              "name": "mayonnaise",
+              "count": 2,
+              "price": 2,
+              "_id": "682103e35762e01e6913f8f1"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 1.1,
+              "_id": "682103e35762e01e6913f8f2"
+            },
+            {
+              "name": "ketchup",
+              "count": 1,
+              "price": 0,
+              "_id": "682103e35762e01e6913f8f3"
+            },
+            {
+              "name": "tenders",
+              "count": 1,
+              "price": 3.3,
+              "_id": "682103e35762e01e6913f8f4"
+            }
+          ],
+          "extras": [
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103e35762e01e6913f8f5"
+            },
+            {
+              "name": "mayonnaise",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103e35762e01e6913f8f6"
+            },
+            {
+              "name": "ketchup",
+              "price": 1.1,
+              "count": 1,
+              "_id": "682103e35762e01e6913f8f7"
+            }
+          ],
+          "total": 25.3,
+          "_id": "682103e35762e01e6913f8f0"
+        },
+        {
+          "plat": {
+            "_id": "64abe952291c687eff6145b7",
+            "category": "681144bef085759e10b7404a",
+            "name": "Water",
+            "price": 2.2,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 2.2,
+          "_id": "682103e35762e01e6913f8f8"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "test1",
+      "total": 27.5,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enAttente",
+      "boughtAt": "2025-05-11T20:09:07.716Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b96",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "683365ab3eafac769359f47b"
+        },
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "683365ab3eafac769359f47d"
+            }
+          ],
+          "extras": [],
+          "total": 80,
+          "_id": "683365ab3eafac769359f47c"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "gfg",
+      "total": 180,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-25T18:47:07.735Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b97",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "683365e83eafac769359f4ac"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "df",
+      "total": 100,
+      "commandNumber": 2,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-25T18:48:08.296Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b98",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "683365f73eafac769359f4c8"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "dfdf",
+      "total": 100,
+      "commandNumber": 3,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-25T18:48:23.972Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b99",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "683366543eafac769359f4f5"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "sdf",
+      "total": 100,
+      "commandNumber": 4,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-25T18:49:56.632Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b9a",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "6833cc13a605359eac342050"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "test",
+      "total": 100,
+      "commandNumber": 1,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-26T02:04:03.086Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b9b",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "6833cda4e63dc8f14723de1a"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "gffg",
+      "total": 100,
+      "commandNumber": 2,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-05-26T02:10:44.640Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b9c",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "6845b7fc2da420c77570baf2"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "ccxc",
+      "total": 100,
+      "commandNumber": 1,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-06-08T16:19:08.862Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b9d",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "6845b81b2da420c77570bb14"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "hgh",
+      "total": 100,
+      "commandNumber": 2,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-06-08T16:19:39.771Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b9e",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "68584c28cbdc502f49b0e1e2"
+            }
+          ],
+          "extras": [
+            {
+              "name": "frites",
+              "price": 5,
+              "count": 1,
+              "_id": "68584c28cbdc502f49b0e1e3"
+            },
+            {
+              "name": "water",
+              "price": 2,
+              "count": 1,
+              "_id": "68584c28cbdc502f49b0e1e4"
+            },
+            {
+              "name": "cake",
+              "price": 2,
+              "count": 1,
+              "_id": "68584c28cbdc502f49b0e1e5"
+            }
+          ],
+          "total": 89,
+          "_id": "68584c28cbdc502f49b0e1e1"
+        },
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 200,
+            "count": 2
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "68584c28cbdc502f49b0e1e6"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Khaled",
+      "total": 289,
+      "commandNumber": 1,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-06-22T18:32:08.725Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6b9f",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 160,
+            "count": 2
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "68584e0fa716e416262e4d20"
+            }
+          ],
+          "extras": [
+            {
+              "name": "water",
+              "price": 2,
+              "count": 1,
+              "_id": "68584e0fa716e416262e4d21"
+            },
+            {
+              "name": "cake",
+              "price": 2,
+              "count": 1,
+              "_id": "68584e0fa716e416262e4d22"
+            },
+            {
+              "name": "frites",
+              "price": 10,
+              "count": 2,
+              "_id": "68584e0fa716e416262e4d23"
+            }
+          ],
+          "total": 94,
+          "_id": "68584e0fa716e416262e4d1f"
+        },
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "68584e0fa716e416262e4d24"
+        },
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "68584e0fa716e416262e4d26"
+            }
+          ],
+          "extras": [
+            {
+              "name": "water",
+              "price": 2,
+              "count": 1,
+              "_id": "68584e0fa716e416262e4d27"
+            },
+            {
+              "name": "boga",
+              "price": 3,
+              "count": 1,
+              "_id": "68584e0fa716e416262e4d28"
+            },
+            {
+              "name": "cake",
+              "price": 2,
+              "count": 1,
+              "_id": "68584e0fa716e416262e4d29"
+            }
+          ],
+          "total": 87,
+          "_id": "68584e0fa716e416262e4d25"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Test",
+      "total": 375,
+      "commandNumber": 2,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-06-22T18:40:15.735Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba0",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "68584f87d5650c08da634cab"
+            }
+          ],
+          "extras": [
+            {
+              "name": "frites",
+              "price": 5,
+              "count": 1,
+              "_id": "68584f87d5650c08da634cac"
+            },
+            {
+              "name": "water",
+              "price": 2,
+              "count": 1,
+              "_id": "68584f87d5650c08da634cad"
+            },
+            {
+              "name": "cake",
+              "price": 4,
+              "count": 2,
+              "_id": "68584f87d5650c08da634cae"
+            }
+          ],
+          "total": 91,
+          "_id": "68584f87d5650c08da634caa"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Khaled",
+      "total": 91,
+      "commandNumber": 3,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-06-22T18:46:31.848Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba1",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "685850786e97bb8dbb94d2f4"
+            }
+          ],
+          "extras": [
+            {
+              "name": "frites",
+              "price": 10,
+              "count": 2,
+              "_id": "685850786e97bb8dbb94d2f5"
+            },
+            {
+              "name": "boga",
+              "price": 3,
+              "count": 1,
+              "_id": "685850786e97bb8dbb94d2f6"
+            },
+            {
+              "name": "cake",
+              "price": 2,
+              "count": 1,
+              "_id": "685850786e97bb8dbb94d2f7"
+            }
+          ],
+          "total": 95,
+          "_id": "685850786e97bb8dbb94d2f3"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Hh",
+      "total": 95,
+      "commandNumber": 4,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-06-22T18:50:32.002Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba2",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "685850b39819fbfd549a6638"
+            }
+          ],
+          "extras": [
+            {
+              "name": "frites",
+              "price": 10,
+              "count": 2,
+              "_id": "685850b39819fbfd549a6639"
+            },
+            {
+              "name": "water",
+              "price": 2,
+              "count": 1,
+              "_id": "685850b39819fbfd549a663a"
+            }
+          ],
+          "total": 92,
+          "_id": "685850b39819fbfd549a6637"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "A",
+      "total": 92,
+      "commandNumber": 5,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-06-22T18:51:31.570Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba3",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "6858510f8763f78ae464ad39"
+            }
+          ],
+          "extras": [
+            {
+              "name": "frites",
+              "price": 5,
+              "count": 1,
+              "_id": "6858510f8763f78ae464ad3a"
+            },
+            {
+              "name": "water",
+              "price": 2,
+              "count": 1,
+              "_id": "6858510f8763f78ae464ad3b"
+            },
+            {
+              "name": "cake",
+              "price": 2,
+              "count": 1,
+              "_id": "6858510f8763f78ae464ad3c"
+            }
+          ],
+          "total": 89,
+          "_id": "6858510f8763f78ae464ad38"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Aa",
+      "total": 89,
+      "commandNumber": 6,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-06-22T18:53:03.110Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba4",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "687947984eb20dc4c2d6035f"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Aa",
+      "total": 100,
+      "commandNumber": 1,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T18:57:28.179Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba5",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "687948284eb20dc4c2d603c3"
+            }
+          ],
+          "extras": [
+            {
+              "name": "frites",
+              "price": 5,
+              "count": 1,
+              "_id": "687948284eb20dc4c2d603c4"
+            },
+            {
+              "name": "water",
+              "price": 2,
+              "count": 1,
+              "_id": "687948284eb20dc4c2d603c5"
+            }
+          ],
+          "total": 87,
+          "_id": "687948284eb20dc4c2d603c2"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c79",
+        "label": "À Emporter"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "Khaled",
+      "total": 87,
+      "commandNumber": 2,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T18:59:52.357Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba6",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "687949fb8247c5ba950c9774"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Bb",
+      "total": 100,
+      "commandNumber": 3,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T19:07:39.639Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba7",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "68794a9c7b2987b4d7505645"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Aa",
+      "total": 100,
+      "commandNumber": 4,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T19:10:20.776Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba8",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [
+            {
+              "name": "Oignons frits",
+              "count": 1,
+              "price": 0,
+              "_id": "68794abb7b2987b4d7505683"
+            }
+          ],
+          "extras": [],
+          "total": 80,
+          "_id": "68794abb7b2987b4d7505682"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c79",
+        "label": "À Emporter"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Khaled",
+      "total": 80,
+      "commandNumber": 5,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T19:10:51.090Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6ba9",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "68794b3371985c84038dd507"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "A",
+      "total": 100,
+      "commandNumber": 6,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T19:12:51.716Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6baa",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "68794beef025d5354c78708f"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Ah",
+      "total": 100,
+      "commandNumber": 7,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T19:15:58.581Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6bab",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "687953812b844da2ce1749ee"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "Aa",
+      "total": 100,
+      "commandNumber": 8,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T19:48:17.329Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6bac",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "687953bd47a879ad6f9ecfad"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "Aa",
+      "total": 100,
+      "commandNumber": 9,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T19:49:17.269Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6bad",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "6879739e4729bd8f4558a6cc"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856be",
+        "label": "Card"
+      },
+      "name": "Khaled",
+      "total": 100,
+      "commandNumber": 10,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T22:05:18.483Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6bae",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "687975a07e359b808e15c6c6"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "Aa",
+      "total": 100,
+      "commandNumber": 11,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T22:13:52.208Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6baf",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 100,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "687976ba22de5eb4e1669120"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "€",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "A",
+      "total": 100,
+      "commandNumber": 12,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-07-17T22:18:34.233Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6bb0",
+      "product": [
+        {
+          "plat": {
+            "_id": "683363893eafac769359f38d",
+            "category": "6833636e3eafac769359f350",
+            "name": "Burger",
+            "price": 200,
+            "count": 2
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 100,
+          "_id": "689fa7d1f53e929889fe6bdd"
+        },
+        {
+          "plat": {
+            "_id": "683363a43eafac769359f3e2",
+            "category": "6833636e3eafac769359f350",
+            "name": "burger 2",
+            "price": 80,
+            "count": 1
+          },
+          "variation": null,
+          "addons": [],
+          "extras": [],
+          "total": 80,
+          "_id": "689fa7d1f53e929889fe6bde"
+        }
+      ],
+      "pack": {
+        "_id": "677fbce4bf0d2c57a78d7c78",
+        "label": "Sur Place"
+      },
+      "currency": "$",
+      "method": {
+        "_id": "676d58944efe8ef061d856bd",
+        "label": "Cash"
+      },
+      "name": "gdhgh",
+      "total": 280,
+      "commandNumber": 1,
+      "logo": "uploads/restaurant/1746711094094.jpg",
+      "tva": 10,
+      "status": "enCours",
+      "boughtAt": "2025-08-15T21:34:09.760Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "Ingrediant": [
+    {
+      "_id": "68a0dc2d480b4befe75d6bb2",
+      "name": "Oignons frits",
+      "image": "uploads/ingrediants/1746198571189.jpg",
+      "product": [],
+      "types": [
+        "680e37a548022a251b5f2c75"
+      ],
+      "suppPrice": 0,
+      "outOfStock": false,
+      "visible": true,
+      "variations": [
+        {
+          "_id": "6814dd30fba834b995cf5599",
+          "price": 0
+        },
+        {
+          "_id": "6814da3002837836c7406969",
+          "price": 1.5
+        }
+      ],
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "price": 1
+    }
+  ],
+  "Product": [
+    {
+      "_id": "68a0dc2d480b4befe75d6bb4",
+      "name": "Burger",
+      "description": "hello",
+      "price": 100,
+      "image": "uploads/product/1748198281210.png",
+      "category": "6833636e3eafac769359f350",
+      "typeVariations": null,
+      "type": [],
+      "createdBy": "67fa922b0e419f7da2b19e2c",
+      "choice": "seul",
+      "outOfStock": false,
+      "visible": true,
+      "position": 0,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "discountEndDate": "2025-08-23T00:00:00.000Z",
+      "discountStartDate": "2025-08-07T00:00:00.000Z",
+      "discountValue": 20,
+      "originalPrice": 100
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6bb5",
+      "name": "burger 2",
+      "description": "test",
+      "price": 80,
+      "image": "uploads/product/1748198308460.png",
+      "category": "6833636e3eafac769359f350",
+      "typeVariations": null,
+      "type": [
+        "680e37a548022a251b5f2c75"
+      ],
+      "createdBy": "67fa922b0e419f7da2b19e2c",
+      "choice": "multiple",
+      "outOfStock": false,
+      "visible": true,
+      "position": 0,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2d480b4befe75d6bb6",
+      "name": "test ",
+      "description": "zaeazeazeaze",
+      "price": 1,
+      "image": "uploads/product/1755095813903.jpg",
+      "category": "67fa95b8d575bda53849a0e9",
+      "typeVariations": null,
+      "type": [
+        "680e37a548022a251b5f2c75"
+      ],
+      "createdBy": "67fa83088376b70b5e453170",
+      "choice": "multiple",
+      "outOfStock": false,
+      "visible": true,
+      "position": 0,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "discountValue": 0,
+      "originalPrice": null,
+      "discountStartDate": null,
+      "discountEndDate": null,
+      "__v": 0
+    }
+  ],
+  "Settings": [
+    {
+      "_id": "68a0dc2d480b4befe75d6bb8",
+      "currencies": [
+        "€",
+        "$",
+        "DT"
+      ],
+      "defaultCurrency": "$",
+      "tva": 10,
+      "maxExtras": 10,
+      "maxDessert": 12,
+      "maxDrink": 15,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "banner": "uploads\\1748186230233.jpg",
+      "address": "Votre adresse",
+      "carouselDuration": 5,
+      "carouselTiming": 120,
+      "method": [
+        {
+          "label": "Card",
+          "isActive": true,
+          "_id": "676d58944efe8ef061d856be"
+        },
+        {
+          "label": "Cash",
+          "isActive": true,
+          "_id": "676d58944efe8ef061d856bd"
+        }
+      ],
+      "pack": [
+        {
+          "label": "Sur Place",
+          "isActive": true,
+          "_id": "677fbce4bf0d2c57a78d7c78"
+        },
+        {
+          "label": "À Emporter",
+          "isActive": true,
+          "_id": "677fbce4bf0d2c57a78d7c79"
+        }
+      ],
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 12,
+      "qrCode": "https://www.google.com",
+      "emailName": "Tacos Korner",
+      "emailPass": "409786e1463bbdd8ca9e3838dc86e877:93da1ad72fc77ee51122d07d6689d934cc31847965744574443364eeb2799a37",
+      "emailSender": "contact@tacos-korner.fr",
+      "emailUser": "khaledbouajila5481@gmail.com",
+      "host": "smtp.gmail.com",
+      "port": 587
+    }
+  ],
+  "StatusHistory": [
+    {
+      "_id": "68a0dc2e480b4befe75d6bba",
+      "historyId": "681f50c2f4c8f78fa89b4334",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-10T13:12:34.725Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bbb",
+      "historyId": "682103bf5762e01e6913f7d8",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:31.968Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bbc",
+      "historyId": "682103c55762e01e6913f7f7",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:37.658Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bbd",
+      "historyId": "682103c95762e01e6913f816",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:41.208Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bbe",
+      "historyId": "682103cb5762e01e6913f835",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:43.404Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bbf",
+      "historyId": "682103cd5762e01e6913f854",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:45.255Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc0",
+      "historyId": "682103cf5762e01e6913f873",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:47.129Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc1",
+      "historyId": "682103d15762e01e6913f892",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:49.479Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc2",
+      "historyId": "682103d45762e01e6913f8b1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:52.139Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc3",
+      "historyId": "682103da5762e01e6913f8d0",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:58.679Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc4",
+      "historyId": "682103e35762e01e6913f8ef",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:09:07.716Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc5",
+      "historyId": "682103e35762e01e6913f8ef",
+      "status": "enAttente",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-05-20T18:39:32.326Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc6",
+      "historyId": "683365ab3eafac769359f47a",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-25T18:47:07.735Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc7",
+      "historyId": "683365e83eafac769359f4ab",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-25T18:48:08.296Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc8",
+      "historyId": "683365f73eafac769359f4c7",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-25T18:48:23.972Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bc9",
+      "historyId": "683366543eafac769359f4f4",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-25T18:49:56.632Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bca",
+      "historyId": "6833cc13a605359eac34204f",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-26T02:04:03.086Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bcb",
+      "historyId": "6833cda4e63dc8f14723de19",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-26T02:10:44.640Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bcc",
+      "historyId": "6845b7fc2da420c77570baf1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-08T16:19:08.862Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bcd",
+      "historyId": "6845b81b2da420c77570bb13",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-08T16:19:39.771Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bce",
+      "historyId": "68584c28cbdc502f49b0e1e0",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:32:08.725Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bcf",
+      "historyId": "68584e0fa716e416262e4d1e",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:40:15.735Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd0",
+      "historyId": "68584f87d5650c08da634ca9",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:46:31.848Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd1",
+      "historyId": "685850786e97bb8dbb94d2f2",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:50:32.002Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd2",
+      "historyId": "685850b39819fbfd549a6636",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:51:31.570Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd3",
+      "historyId": "6858510f8763f78ae464ad37",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:53:03.110Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd4",
+      "historyId": "687947984eb20dc4c2d6035e",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T18:57:28.179Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd5",
+      "historyId": "687948284eb20dc4c2d603c1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T18:59:52.357Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd6",
+      "historyId": "687949fb8247c5ba950c9773",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:07:39.639Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd7",
+      "historyId": "68794a9c7b2987b4d7505644",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:10:20.776Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd8",
+      "historyId": "68794abb7b2987b4d7505681",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:10:51.090Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bd9",
+      "historyId": "68794b3371985c84038dd506",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:12:51.716Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bda",
+      "historyId": "68794beef025d5354c78708e",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:15:58.581Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bdb",
+      "historyId": "687953812b844da2ce1749ed",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:48:17.329Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bdc",
+      "historyId": "687953bd47a879ad6f9ecfac",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:49:17.269Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bdd",
+      "historyId": "6879739e4729bd8f4558a6cb",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T22:05:18.483Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bde",
+      "historyId": "687975a07e359b808e15c6c5",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T22:13:52.208Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bdf",
+      "historyId": "687976ba22de5eb4e166911f",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T22:18:34.233Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6be0",
+      "historyId": "689fa7d1f53e929889fe6bdc",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-15T21:34:09.760Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "Type": [
+    {
+      "_id": "68a0dc2e480b4befe75d6be2",
+      "name": "sauce",
+      "label": "sauce burger",
+      "message": "selectionner 2 sauce",
+      "min": 0,
+      "payment": false,
+      "selection": false,
+      "max": 2,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "TypeVariation": [
+    {
+      "_id": "68a0dc2e480b4befe75d6be4",
+      "name": "Taille",
+      "label": "Taille",
+      "description": "Taille",
+      "variations": [
+        "6814da3002837836c7406969",
+        "6814dd30fba834b995cf5599"
+      ],
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "User": [
+    {
+      "_id": "68a0dc2e480b4befe75d6be6",
+      "email": "khaledbouajila5481@gmail.com",
+      "role": "admin",
+      "password": "$2a$10$wfjnLIIP38BQFTkZLqC1Q.81KgmqHMVP65Ly2lHJ1rOIyaNtcmTx2",
+      "fullName": "khaled bouajila",
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "manager",
+          "_id": "67fa851dd299c52f0945b035"
+        },
+        {
+          "restaurantId": "67fa9a991f0491306bf3ef47",
+          "role": "admin",
+          "_id": "67fa9a991f0491306bf3ef54"
+        },
+        {
+          "restaurantId": "6845aa20d8ce264b3f54d387",
+          "role": "admin",
+          "_id": "6845aa20d8ce264b3f54d394"
+        }
+      ],
+      "__v": 0,
+      "fcmToken": "deu_NAqzSLCtJIsn4kol7c:APA91bGGg3n4aXexoJPnFBSrU9Ismttz3gleSy9LiWBhujfvZ9RogR_ikx6fJPdgd_5bddSY1UD8CYjxA0imxOHZatHwJUO4L0hifgv2UW8K9LJvil4zcPI",
+      "isBlocked": false
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6be7",
+      "email": "helmi.br1999@gmail.com",
+      "role": "admin",
+      "password": "$2a$10$J8rBWCFFw/X5EGlwjqxM4uZ/2nX6az8wd9M2nUqGYK8ZXZaJsLPeO",
+      "fullName": "helmi ben romdhane",
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "waiter",
+          "_id": "67fa93910e419f7da2b19e3e"
+        },
+        {
+          "restaurantId": "6820aa358ffb952b9b1fb3c2",
+          "role": "admin",
+          "_id": "6820aa358ffb952b9b1fb3cf"
+        }
+      ],
+      "__v": 0,
+      "fcmToken": "dQao3F8VS-G5o0lV3h29V8:APA91bH0n4QuSnjpNqKlE81rMurxwWRYJ3tu36F6fm7jJShPwIL2FHOlA0E0ejMtg3InV7-RTDOHRyoBnngSVgboUbFS_vFje6leuTmkC7_388SNmqnqLeA",
+      "isBlocked": false
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6be8",
+      "email": "khaled@gmail.com",
+      "role": "manager",
+      "password": "$2a$10$PhbmiNgO0l/ZtHVJNdMAHeBqlJPC6FwPRmG9N.6GPfD/0ZiCpANI6",
+      "fullName": "khaled bouajila",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "67fa9a991f0491306bf3ef47",
+          "role": "waiter",
+          "_id": "681dfd6f3eb2b84eab790261"
+        },
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "manager",
+          "_id": "6820f13f0cfe4f577a7bd374"
+        }
+      ],
+      "__v": 31,
+      "fcmToken": ""
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6be9",
+      "email": "helmi@gmail.com",
+      "role": "manager",
+      "password": "$2a$10$n6kRLZQ9p7B70qD9g7x42uCx6MYDIYmdgF/UkcVgAssmj8grGGQR.",
+      "fullName": "helmi ben",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "67fa9a991f0491306bf3ef47",
+          "role": "manager",
+          "_id": "6820ab138ffb952b9b1fb716"
+        }
+      ],
+      "__v": 20
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bea",
+      "email": "helmi.benromdhane@esprit.tn",
+      "role": "waiter",
+      "password": "$2a$10$hpgIuKKFwbfmOtEaiYSaV.sLDwIXW6soWUmKVobhBs8PyA0hf4w.q",
+      "fullName": "ahmed ahmed",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "waiter",
+          "_id": "6820f27b0cfe4f577a7bd47e"
+        },
+        {
+          "restaurantId": "67fa9a991f0491306bf3ef47",
+          "role": "waiter",
+          "_id": "682491898d66aeb2287435a4"
+        }
+      ],
+      "__v": 1,
+      "fcmToken": ""
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6beb",
+      "email": "helmi.br@gmail.com",
+      "role": "client",
+      "password": "$2a$10$vMCLY7aIc/W6i3DJ6q/TLuTYUt4vJuWPOrCSYxMbp7.I7jhETVAZO",
+      "fullName": "helmi ben romdhane",
+      "isBlocked": false,
+      "restaurants": [],
+      "__v": 0,
+      "fcmToken": "diZMY3CFSziJ95exz0FLT2:APA91bH4mUmsiI-4UJJG_HCTSjYq1LGzwgOjjstUDXH2gKSoxE8zuSOOk45YDU6PSb5oqsgj5pK7lz0EotHVeU8qF6Rmp4dU4Z5f2BBmeSH-NHTCP9nhWnQ"
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bec",
+      "email": "helmi.1@gmail.com",
+      "role": "waiter",
+      "password": "$2a$10$OKjMYMWM1caFmmfFboq0HeidiNfOQKdOAUf4i8g9hTVMtit2PAv8.",
+      "fullName": "helmi ben romdhane",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "waiter",
+          "_id": "683ef08dd7022fad1f215346"
+        }
+      ],
+      "__v": 0,
+      "fcmToken": ""
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bed",
+      "email": "helmi1@gmail.com",
+      "role": "client",
+      "password": "$2a$10$1ZGeOCsysLvFEw78SQ7s7.3C6ylYI6uj4IeTCXUeU2E.2/4gkqHwi",
+      "fullName": "helmi ben romdhane",
+      "isBlocked": false,
+      "restaurants": [],
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bee",
+      "email": "khaled123@gmail.com",
+      "role": "waiter",
+      "password": "$2a$10$rso0OZW9J41sdZ3uTQZgoudSqPPPlUWzXU9xsf5nbuWpZN1bSh4XG",
+      "fullName": "khaled bouajila",
+      "isBlocked": true,
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "waiter",
+          "_id": "683ef140d7022fad1f215421"
+        }
+      ],
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bef",
+      "email": "test@gmail.com",
+      "role": "manager",
+      "password": "$2a$10$B4BzzXEHqLF48QL02I0d8eQEBerBmzyXHtIkPyDI4bJJ.zHNQ9bJO",
+      "fullName": "test test",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "6845aa20d8ce264b3f54d387",
+          "role": "manager",
+          "_id": "6845ab51d8ce264b3f54d73b"
+        }
+      ],
+      "__v": 0
+    }
+  ],
+  "Variation": [
+    {
+      "_id": "68a0dc2e480b4befe75d6bf1",
+      "name": "Méga",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a0dc2e480b4befe75d6bf2",
+      "name": "Sénior",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ]
+}

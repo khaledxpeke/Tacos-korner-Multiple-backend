@@ -349,36 +349,51 @@ async function triggerAutoPrint(orderId) {
       );
       return;
     }
-    const printData = {
-      restaurantId: order.restaurantId, // Pass restaurantId to the printer server
-      orderId: order._id,
-      commandNumber: order.commandNumber,
-      customerName: order.name,
-      source: "Auto", // You can track source (Kiosk/Mobile/Cashier) here
-      createdAt: order.boughtAt,
-      items: order.product,
-      total: order.total,
-      pack: order.pack,
-      method: order.method,
-      printXml: formatOrderForPrint(order, restaurant, settings),
-    };
-
-    await sendToPrinterServer(printData);
-
-    // Success - update print status
-    await History.findByIdAndUpdate(order._id, {
-      printStatus: "printed",
-      lastPrintAttempt: new Date(),
-    });
-
-    // Notify via WebSocket
-    if (io) {
-      io.emit("print_success", {
+      const printData = {
+        restaurantId: order.restaurantId, // Pass restaurantId to the printer server
         orderId: order._id,
         commandNumber: order.commandNumber,
-        message: "Commande imprimée avec succès",
-      });
-    }
+        customerName: order.name,
+        source: "Auto", // You can track source (Kiosk/Mobile/Cashier) here
+        createdAt: order.boughtAt,
+        items: order.product,
+        total: order.total,
+        pack: order.pack,
+        method: order.method,
+        printXml: formatOrderForPrint(order, restaurant, settings),
+      };
+
+      if (settings.printMode === "auto") {
+        await sendToPrinterServer(printData);
+
+        // Success - update print status
+        await History.findByIdAndUpdate(order._id, {
+          printStatus: "printed",
+          lastPrintAttempt: new Date(),
+        });
+
+        // Notify via WebSocket
+        if (io) {
+          io.emit("print_success", {
+            orderId: order._id,
+            commandNumber: order.commandNumber,
+            message: "Commande imprimée avec succès",
+          });
+        }
+      } else {
+        // Print mode is local, skip auto print
+        await History.findByIdAndUpdate(order._id, {
+          printStatus: "skipped",
+          lastPrintAttempt: new Date(),
+        });
+        if (io) {
+          io.emit("print_skipped", {
+            orderId: order._id,
+            commandNumber: order.commandNumber,
+            message: "Impression automatique désactivée (mode local)",
+          });
+        }
+      }
   } catch (error) {
     console.error(`❌ Failed to print order ID ${orderId}:`, error.message);
     let order;

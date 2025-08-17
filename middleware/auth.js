@@ -8,12 +8,12 @@ exports.roleAuth = (expectedRoles) => {
   return (req, res, next) => {
     const authHeader = req.headers["authorization"];
     const token = authHeader && authHeader.split(" ")[1];
-    if (token == null) return res.status(401).json({ message: "Non autorisé" });
+    if (token == null) return res.status(401).json({ message: req.t('errors.token_missing') });
     jwt.verify(token, jwtSecret, (err, user) => {
-      if (err) return res.status(403).json({ message: "Non autorisé" });
+      if (err) return res.status(403).json({ message: req.t('errors.token_invalid') });
 
       if (!expectedRoles.includes(user.user.role)) {
-        return res.status(403).json({ message: "Non autorisé" });
+        return res.status(403).json({ message: req.t('errors.forbidden') });
       }
       req.user = user;
       next();
@@ -41,7 +41,7 @@ exports.restaurantAuth = () => {
             // Case 1: Initial staff registration (e.g., first admin for a restaurant, no existing session)
             // Requires restaurantId in input.
             if (!restaurantIdFromInput) {
-              return res.status(400).json({ message: `Identifiant du restaurant requis pour l'enregistrement initial du personnel via ${appType}.` });
+              return res.status(400).json({ message: req.t('restaurant.register.restaurant_id_required_initial', { appType }) });
             }
             req.restaurantId = restaurantIdFromInput;
             // console.log(`Initial staff registration for ${appType} (restaurant: ${restaurantIdFromInput}): no token, restaurantId present.`);
@@ -59,7 +59,7 @@ exports.restaurantAuth = () => {
             return next();
           } else if (!token && !restaurantIdFromInput) {
             // No appType, no token, no restaurantId -> invalid for register
-            return res.status(400).json({ message: "Informations d'enregistrement incomplètes (type d'application ou identifiant de restaurant manquant)." });
+            return res.status(400).json({ message: req.t('restaurant.register.incomplete_info') });
           }
           // If appType is missing/unknown but a token is present, it will fall through to general auth.
         }
@@ -73,34 +73,45 @@ exports.restaurantAuth = () => {
       }
 
       if (!token) {
-        return res.status(401).json({ message: "Aucun jeton fourni pour cette action." });
+        return res.status(401).json({ message: req.t('errors.token_missing') });
       }
 
       jwt.verify(token, jwtSecret, async (err, decoded) => {
         if (err) {
-          return res.status(403).json({ message: "Jeton invalide." });
+          return res.status(403).json({ message: req.t('errors.token_invalid') });
         }
 
         req.user = decoded; 
 
         const userDoc = await User.findById(decoded.user._id);
         if (!userDoc) {
-          return res.status(404).json({ message: "Utilisateur du jeton non trouvé." });
+          return res.status(404).json({ message: req.t('errors.user_not_found') });
         }
 
         if (req.path === "/register") { 
           if (!restaurantIdFromInput) { 
-            return res.status(400).json({ message: "Identifiant du restaurant requis lors de l'enregistrement d'un nouvel utilisateur du personnel." });
+            return res.status(400).json({ message: req.t('restaurant.register.restaurant_id_required_existing') });
           }
         }
 
-        if (decoded.user.role === "admin" || decoded.user.role === "client") {
-          req.restaurantId = restaurantIdFromInput; 
-          return next();
-        }
+    if (decoded.user.role === "admin") {
+      // For admins, restaurant-id is still required for restaurant-specific operations
+      if (!restaurantIdFromInput) {
+        return res.status(400).json({ 
+          message: req.t('errors.restaurant_id_required')
+        });
+      }
+      req.restaurantId = restaurantIdFromInput;
+      return next();
+    }
+    
+    if (decoded.user.role === "client") {
+      req.restaurantId = restaurantIdFromInput;
+      return next();
+    }
 
         if (!restaurantIdFromInput) {
-            return res.status(400).json({ message: `Identifiant du restaurant requis pour cette action (${decoded.user.role}).` });
+            return res.status(400).json({ message: req.t('errors.restaurant_id_required_for_role', { role: decoded.user.role }) });
         }
 
         const hasAccess = userDoc.restaurants && userDoc.restaurants.some(
@@ -108,7 +119,7 @@ exports.restaurantAuth = () => {
         );
 
         if (!hasAccess) {
-          return res.status(403).json({ message: `Non autorisé pour le restaurant ${restaurantIdFromInput}.` });
+          return res.status(403).json({ message: req.t('errors.not_authorized_for_restaurant', { restaurantId: restaurantIdFromInput }) });
         }
 
         req.restaurantId = restaurantIdFromInput; 
@@ -116,7 +127,7 @@ exports.restaurantAuth = () => {
       });
     } catch (error) {
       console.error("Restaurant auth error:", error);
-      res.status(500).json({ message: "Erreur d'authentification du restaurant: " + error.message });
+      res.status(500).json({ message: req.t('restaurant.auth_error'), error: error.message });
     }
   };
 };
