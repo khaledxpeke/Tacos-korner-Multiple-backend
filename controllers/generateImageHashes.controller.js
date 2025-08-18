@@ -1,6 +1,9 @@
 const Category = require('../models/category');
 const Product = require('../models/product');
 const Ingrediant = require('../models/ingrediant');
+const Extra = require('../models/extra');
+const Dessert = require('../models/desert');
+const Drink = require('../models/drink');
 const path = require('path');
 const { getBlurhashFromImage } = require('../utils/blurhash');
 
@@ -12,14 +15,17 @@ async function updateImageHashes(Model, imageField = 'image', hashField = 'image
     if (doc[imageField] && !doc[hashField]) {
       const imagePath = path.join(__dirname, '..', doc[imageField]);
       try {
+        console.log(`[${Model.modelName}] Generating hash for:`, imagePath);
         const hash = await getBlurhashFromImage(imagePath);
         await Model.findByIdAndUpdate(doc._id, { [hashField]: hash });
         updated++;
+        console.log(`[${Model.modelName}] Hash updated for ID:`, doc._id);
       } catch (err) {
-        // Ignore errors for missing/corrupt images
+        console.error(`[${Model.modelName}] Error for ID: ${doc._id} - ${imagePath}`, err.message);
       }
     }
   }
+  console.log(`[${Model.modelName}] Total updated:`, updated);
   return updated;
 }
 
@@ -29,11 +35,17 @@ exports.generateAllImageHashes = async (req, res) => {
     const catCount = await updateImageHashes(Category);
     const prodCount = await updateImageHashes(Product);
     const ingCount = await updateImageHashes(Ingrediant);
+    const extraCount = await updateImageHashes(Extra);
+    const dessertCount = await updateImageHashes(Dessert);
+    const drinkCount = await updateImageHashes(Drink);
     res.status(200).json({
       message: 'Image hashes generated',
       categoriesUpdated: catCount,
       productsUpdated: prodCount,
       ingrediantsUpdated: ingCount,
+      extrasUpdated: extraCount,
+      dessertsUpdated: dessertCount,
+      drinksUpdated: drinkCount,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

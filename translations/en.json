@@ -92,5 +92,17 @@
   "type.no_option_found": "No option found",
   "type.updated": "Option updated successfully",
   "type.update_error": "An error occurred",
-  "type.deleted": "Option deleted successfully"
+  "type.deleted": "Option deleted successfully",
+  "desert.created": "Dessert created successfully",
+  "desert.not_found": "Dessert not found",
+  "desert.updated": "Dessert updated successfully",
+  "desert.deleted": "Dessert deleted successfully",
+  "drink.created": "Drink created successfully",
+  "drink.not_found": "Drink not found",
+  "drink.updated": "Drink updated successfully",
+  "drink.deleted": "Drink deleted successfully",
+  "extra.created": "Extra created successfully",
+  "extra.not_found": "Extra not found",
+  "extra.updated": "Extra updated successfully",
+  "extra.deleted": "Extra deleted successfully"
 }

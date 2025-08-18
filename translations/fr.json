@@ -92,5 +92,17 @@
   "type.no_option_found": "Aucun option trouvé",
   "type.updated": "Option modifiée avec succès",
   "type.update_error": "Une erreur s'est produite",
-  "type.deleted": "Option supprimée avec succès"
+  "type.deleted": "Option supprimée avec succès",
+  "desert.created": "Dessert créé avec succès",
+  "desert.not_found": "Dessert non trouvé",
+  "desert.updated": "Dessert mis à jour avec succès",
+  "desert.deleted": "Dessert supprimé avec succès",
+  "drink.created": "Boisson créée avec succès",
+  "drink.not_found": "Boisson non trouvée",
+  "drink.updated": "Boisson mise à jour avec succès",
+  "drink.deleted": "Boisson supprimée avec succès",
+  "extra.created": "Extra créé avec succès",
+  "extra.not_found": "Extra non trouvé",
+  "extra.updated": "Extra mis à jour avec succès",
+  "extra.deleted": "Extra supprimé avec succès"
 }

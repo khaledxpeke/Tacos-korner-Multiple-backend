@@ -96,6 +96,7 @@ app.use("/api/carousel", require("./routes/carouselMediaRoutes"));
 app.use("/api/restaurant", require("./routes/restaurantRoutes"));
 app.use("/api/coupon", require("./routes/couponRoutes"));
 app.use("/api/database", require("./routes/databaseExporterRoutes"));
+app.use("/api/images", require("./routes/generateImageHashesRoutes"));
 app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(
   "/api/uploads/carousel",

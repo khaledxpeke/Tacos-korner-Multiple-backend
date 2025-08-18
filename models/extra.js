@@ -10,6 +10,10 @@ const extraSchema = mongoose.Schema({
     default:
       "https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
   },
+  imagePreviewHash: {
+    type: String,
+    default: null
+  },
   price: {
     type: Number,
   },

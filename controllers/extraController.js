@@ -7,6 +7,7 @@ const multer = require("multer");
 const multerStorage = require("../middleware/multerStorage");
 const fs = require("fs");
 const path = require("path");
+const { getBlurhashFromImage } = require("../utils/blurhash");
 const upload = multer({ storage: multerStorage });
 
 exports.addExtra = async (req, res, next) => {
@@ -15,29 +16,40 @@ exports.addExtra = async (req, res, next) => {
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: "Le téléchargement de l'image a échoué",
+        message: req.t('errors.image_upload_failed'),
         error: err.message,
       });
     }
-
+    if (!req.file) {
+      return res.status(400).json({
+        message: req.t('product.add_image'),
+        error: req.t('errors.image_required'),
+      });
+    }
     const { name, price, outOfStock, visible } = req.body;
     const userId = req.user.user._id;
     const image = `uploads/extras\\${req.file?.filename}` || "";
+     let imagePreviewHash = null;
+      if (image) {
+        const imagePath = path.join(__dirname, "..", image);
+        imagePreviewHash = await getBlurhashFromImage(imagePath);
+      }
     try {
       const extra = await Extra.create({
         name,
         image,
         price,
+        imagePreviewHash,
         outOfStock,
         visible,
         createdBy: userId,
         restaurantId,
       });
       await extra.save();
-      res.status(201).json({ extra, message: "extra créer avec succées" });
+      res.status(201).json({ extra, message: req.t('extra.created') });
     } catch (error) {
       res.status(400).json({
-        message: "Une erreur s'est produite",
+        message: req.t('errors.unknown'),
         error: error.message,
       });
     }
@@ -51,7 +63,7 @@ exports.getExtras = async (req, res, next) => {
     res.status(200).json(extras);
   } catch (error) {
     res.status(400).json({
-      message: "Aucune Extra trouvé",
+      message: req.t('extra.not_found'),
       error: error.message,
     });
   }
@@ -64,7 +76,7 @@ exports.getDashboardExtras = async (req, res, next) => {
     res.status(200).json(extras);
   } catch (error) {
     res.status(400).json({
-      message: "Aucune Extra trouvé",
+      message: req.t('extra.not_found'),
       error: error.message,
     });
   }
@@ -91,11 +103,11 @@ exports.updateExtra = async (req, res) => {
     const { name, price, outOfStock, visible } = req.body;
     if (err) {
       console.log(err);
-      return res.status(500).json({ message: "Probleme image" });
+      return res.status(500).json({ message: req.t('errors.image_upload_failed') });
     }
     const extra = await Extra.findOne({ _id: extraId, restaurantId });
     if (!extra) {
-      res.status(500).json({ message: "aucun Extra trouvée" });
+      res.status(500).json({ message: req.t('extra.not_found') });
     }
     if (extra.image && !extra.image.startsWith("uploads/extras/")) {
       const oldImagePath = path.join(__dirname, "..", extra.image);
@@ -122,6 +134,8 @@ exports.updateExtra = async (req, res) => {
       }
 
       extra.image = image;
+      const imagePath = path.join(__dirname, "..", image);
+      extra.imagePreviewHash = await getBlurhashFromImage(imagePath);
     }
     try {
       const updatedextra = await Extra.findOneAndUpdate(
@@ -130,6 +144,7 @@ exports.updateExtra = async (req, res) => {
           name: name || extra.name,
           price: price || extra.price,
           image: extra.image,
+          imagePreviewHash: extra.imagePreviewHash,
           outOfStock: outOfStock || extra.outOfStock,
           visible: visible || extra.visible,
         },
@@ -138,9 +153,9 @@ exports.updateExtra = async (req, res) => {
         }
       );
 
-res.status(200).json({ message: "Extra modifié avec succès" });
+res.status(200).json({ message: req.t('extra.updated') });
     } catch (error) {
-      res.status(500).json({ message: error.message });
+      res.status(500).json({ message: req.t('errors.unknown'), error: error.message });
     }
   });
 };
@@ -152,7 +167,7 @@ exports.deleteExtra = async (req, res, next) => {
     const extra = await Extra.findOne({ _id: extraId, restaurantId });
     if (!extra) {
       return res.status(404).json({
-        message: "il n'y a pas de extra avec cet id",
+        message: req.t('extra.not_found'),
       });
     }
     if (extra.image) {
@@ -163,11 +178,11 @@ exports.deleteExtra = async (req, res, next) => {
     }
     await Extra.findOneAndDelete({ _id: extraId, restaurantId });
     res.status(200).json({
-message: "Extra supprimé avec succès",
+      message: req.t('extra.deleted'),
     });
   } catch (error) {
     res.status(400).json({
-      message: "Une erreur s'est produite",
+      message: req.t('errors.unknown'),
       error: error.message,
     });
   }

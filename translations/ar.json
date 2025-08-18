@@ -92,5 +92,18 @@
   "type.no_option_found": "لم يتم العثور على خيار",
   "type.updated": "تم تحديث الخيار بنجاح",
   "type.update_error": "حدث خطأ",
-  "type.deleted": "تم حذف الخيار بنجاح"
+  "type.deleted": "تم حذف الخيار بنجاح",
+  "desert.created": "تم إنشاء الحلوى بنجاح",
+  "desert.not_found": "الحلوى غير موجودة",
+  "desert.updated": "تم تحديث الحلوى بنجاح",
+  "desert.deleted": "تم حذف الحلوى بنجاح",
+  "extra.created": "تم إنشاء الإضافات بنجاح",
+  "extra.not_found": "الإضافات غير موجودة",
+  "extra.updated": "تم تحديث الإضافات بنجاح",
+  "extra.deleted": "تم حذف الإضافات بنجاح",
+  "drink.created": "تم إنشاء المشروب بنجاح",
+  "drink.not_found": "المشروب غير موجود",
+  "drink.updated": "تم تحديث المشروب بنجاح",
+  "drink.deleted": "تم حذف المشروب بنجاح"
+
 }
