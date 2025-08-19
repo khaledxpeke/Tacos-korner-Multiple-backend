@@ -32,6 +32,7 @@ exports.addCoupon = async (req, res) => {
       endDate,
       categoryType,
       couponCategories,
+      couponProducts,
     } = req.body;
 
     if (!code || !couponType || !couponValue) {
@@ -41,19 +42,27 @@ exports.addCoupon = async (req, res) => {
     }
 
     // Validate categoryType
-    if (!["all", "categories"].includes(categoryType)) {
+    if (!["categories", "products", "categories_products"].includes(categoryType)) {
       return res.status(400).json({
-        message: "Type de catégorie invalide. Doit être 'all' ou 'categories'",
+        message: "Type de catégorie invalide. Doit être 'categories', 'products' ou 'categories_products'",
       });
     }
 
-    // Validate that categories are provided when needed
+    // Validate that categories/products are provided when needed
     if (
-      categoryType === "categories" &&
+      (categoryType === "categories" || categoryType === "categories_products") &&
       (!couponCategories || couponCategories.length === 0)
     ) {
       return res.status(400).json({
         message: "Veuillez sélectionner au moins une catégorie",
+      });
+    }
+    if (
+      (categoryType === "products" || categoryType === "categories_products") &&
+      (!couponProducts || couponProducts.length === 0)
+    ) {
+      return res.status(400).json({
+        message: "Veuillez sélectionner au moins un produit",
       });
     }
 
@@ -85,8 +94,9 @@ exports.addCoupon = async (req, res) => {
       isActive: true,
       startDate: start,
       endDate: end,
-      categoryType: categoryType || "all",
-      couponCategories: categoryType === "categories" ? couponCategories : [],
+      categoryType: categoryType,
+      couponCategories: ["categories", "categories_products"].includes(categoryType) ? couponCategories : [],
+      couponProducts: ["products", "categories_products"].includes(categoryType) ? couponProducts : [],
       restaurantId,
     });
 
@@ -107,6 +117,7 @@ exports.getCoupons = async (req, res) => {
 
     const coupons = await Coupon.find({ restaurantId })
       .populate("couponCategories", "name")
+      .populate("couponProducts", "name")
       .sort({ createdAt: -1 });
 
     return res.status(200).json(
@@ -125,7 +136,9 @@ exports.getCoupon = async (req, res) => {
     const coupon = await Coupon.findOne({
       _id: couponId,
       restaurantId,
-    }).populate("couponCategories", "name");
+    })
+      .populate("couponCategories", "name")
+      .populate("couponProducts", "name");
 
     if (!coupon) {
       return res.status(404).json({ message: "Code promo non trouvé" });
@@ -153,6 +166,7 @@ exports.updateCoupon = async (req, res) => {
       endDate,
       categoryType,
       couponCategories,
+      couponProducts,
     } = req.body;
 
     const coupon = await Coupon.findOne({
@@ -178,19 +192,27 @@ exports.updateCoupon = async (req, res) => {
     }
 
     // Validate categoryType if provided
-    if (categoryType && !["all", "categories"].includes(categoryType)) {
+    if (categoryType && !["categories", "products", "categories_products"].includes(categoryType)) {
       return res.status(400).json({
-        message: "Type de catégorie invalide. Doit être 'all' ou 'categories'",
+        message: "Type de catégorie invalide. Doit être 'categories', 'products' ou 'categories_products'",
       });
     }
 
-    // Validate categories if categoryType is categories
+    // Validate categories/products if needed
     if (
-      categoryType === "categories" &&
+      (categoryType === "categories" || categoryType === "categories_products") &&
       (!couponCategories || couponCategories.length === 0)
     ) {
       return res.status(400).json({
         message: "Veuillez sélectionner au moins une catégorie",
+      });
+    }
+    if (
+      (categoryType === "products" || categoryType === "categories_products") &&
+      (!couponProducts || couponProducts.length === 0)
+    ) {
+      return res.status(400).json({
+        message: "Veuillez sélectionner au moins un produit",
       });
     }
 
@@ -220,7 +242,9 @@ exports.updateCoupon = async (req, res) => {
     if (categoryType) {
       coupon.categoryType = categoryType;
       coupon.couponCategories =
-        categoryType === "categories" ? couponCategories || [] : [];
+        ["categories", "categories_products"].includes(categoryType) ? couponCategories || [] : [];
+      coupon.couponProducts =
+        ["products", "categories_products"].includes(categoryType) ? couponProducts || [] : [];
     }
 
     await coupon.save();
@@ -297,7 +321,9 @@ exports.validateCoupon = async (req, res) => {
       restaurantId,
       code: code.toUpperCase(),
       isActive: true
-    }).populate('couponCategories', '_id name');
+    })
+      .populate('couponCategories', '_id name')
+      .populate('couponProducts', '_id name');
 
     if (!coupon) {
       return res.status(404).json({ message: "Code promo invalide ou inactif" });
@@ -343,23 +369,44 @@ exports.validateCoupon = async (req, res) => {
     let applicableItems = [];
     let applicableTotal = 0;
 
-    if (coupon.categoryType === "all") {
-      applicableItems = orderItems;
-      applicableTotal = orderTotal;
-    } else if (coupon.categoryType === "categories") {
-      // Only proceed if there are categories (safety check)
+    if (coupon.categoryType === "categories") {
       if (coupon.couponCategories && coupon.couponCategories.length > 0) {
         const categoryIds = coupon.couponCategories.map(cat => cat._id.toString());
         applicableItems = orderItems.filter(item => {
           const itemCategory = item.product?.category?.toString() || item.category?.toString();
           return categoryIds.includes(itemCategory);
         });
-        
-        // Calculate total of applicable items
         applicableTotal = applicableItems.reduce((total, item) => {
           return total + (item.price * item.quantity);
         }, 0);
       }
+    } else if (coupon.categoryType === "products") {
+      if (coupon.couponProducts && coupon.couponProducts.length > 0) {
+        const productIds = coupon.couponProducts.map(prod => prod._id.toString());
+        applicableItems = orderItems.filter(item => {
+          const itemProduct = item.product?._id?.toString() || item._id?.toString();
+          return productIds.includes(itemProduct);
+        });
+        applicableTotal = applicableItems.reduce((total, item) => {
+          return total + (item.price * item.quantity);
+        }, 0);
+      }
+    } else if (coupon.categoryType === "categories_products") {
+      let categoryIds = [], productIds = [];
+      if (coupon.couponCategories && coupon.couponCategories.length > 0) {
+        categoryIds = coupon.couponCategories.map(cat => cat._id.toString());
+      }
+      if (coupon.couponProducts && coupon.couponProducts.length > 0) {
+        productIds = coupon.couponProducts.map(prod => prod._id.toString());
+      }
+      applicableItems = orderItems.filter(item => {
+        const itemCategory = item.product?.category?.toString() || item.category?.toString();
+        const itemProduct = item.product?._id?.toString() || item._id?.toString();
+        return categoryIds.includes(itemCategory) || productIds.includes(itemProduct);
+      });
+      applicableTotal = applicableItems.reduce((total, item) => {
+        return total + (item.price * item.quantity);
+      }, 0);
     }
 
     if (applicableTotal === 0) {
@@ -388,7 +435,8 @@ exports.validateCoupon = async (req, res) => {
         couponType: coupon.couponType,
         couponValue: coupon.couponValue,
         categoryType: coupon.categoryType,
-        couponCategories: coupon.categoryType === "categories" ? coupon.couponCategories : [],
+        couponCategories: ["categories", "categories_products"].includes(coupon.categoryType) ? coupon.couponCategories : [],
+        couponProducts: ["products", "categories_products"].includes(coupon.categoryType) ? coupon.couponProducts : [],
         startDate: coupon.startDate,
         endDate: coupon.endDate,
         maxUsage: coupon.maxUsage,

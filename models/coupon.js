@@ -34,13 +34,19 @@ const couponSchema = mongoose.Schema({
   },
   categoryType: {
     type: String,
-    enum: ["all", "categories"],
+    enum: ["all", "categories", "products", "categories_products"],
     default: "all",
   },
   couponCategories: [
     {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
+    },
+  ],
+  couponProducts: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
     },
   ],
   restaurantId: {

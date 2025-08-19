@@ -77,34 +77,25 @@ exports.exportRestaurantData = async (req, res) => {
   if (!restaurantId) return res.status(400).json({ message: "Restaurant ID missing from middleware." });
 
   try {
-
     const exportDataRaw = {};
     const exportDataCloned = {};
-    const oidMap = new Map();
-    // First pass: clone all docs and build oidMap
+    // Export all collections for raw
     for (const [name, Model] of Object.entries(models)) {
       let query = {};
       if (Model.schema.paths.restaurantId) query.restaurantId = restaurantId;
       const data = await Model.find(query).lean();
       if (!data || data.length === 0) continue;
       exportDataRaw[name] = data;
-      exportDataCloned[name] = data.map(doc => {
-        const newDoc = { ...doc };
-        if (newDoc._id) {
-          const oldId = newDoc._id.toString();
-          const newId = new ObjectId().toHexString();
-          oidMap.set(oldId, newId);
-          newDoc._id = newId;
-        }
-        return newDoc;
-      });
     }
-    // Second pass: update references in all cloned docs
-    for (const [name, clonedArr] of Object.entries(exportDataCloned)) {
-      clonedArr.forEach(doc => updateOids(doc, oidMap));
+    // For cloned, export all except History
+    for (const [name, Model] of Object.entries(models)) {
+      if (name === 'History') continue;
+      let query = {};
+      if (Model.schema.paths.restaurantId) query.restaurantId = restaurantId;
+      const data = await Model.find(query).lean();
+      if (!data || data.length === 0) continue;
+      exportDataCloned[name] = data;
     }
-
-
     if (Object.keys(exportDataRaw).length === 0)
       return res.status(404).json({ message: "No data found for this restaurant." });
 
@@ -129,7 +120,6 @@ exports.exportRestaurantData = async (req, res) => {
       rawData: exportDataRaw,
       clonedData: exportDataCloned
     });
-
   } catch (err) {
     console.error("Export error:", err);
     return res.status(500).json({ success: false, message: "Error exporting data", error: err.message });
@@ -155,6 +145,18 @@ exports.importRestaurantData = async (req, res) => {
     const oidMap = new Map();
     const insertedCollections = [];
 
+    // First pass: build oidMap for all collections
+    for (const [name, Model] of Object.entries(models)) {
+      const data = jsonData[name];
+      if (!data || data.length === 0) continue;
+      data.forEach(doc => {
+        const oldId = doc._id.toString();
+        const newId = new ObjectId().toHexString();
+        oidMap.set(oldId, newId);
+      });
+    }
+
+    // Second pass: clone docs, update _id, restaurantId, and references
     for (const [name, Model] of Object.entries(models)) {
       const data = jsonData[name];
       if (!data || data.length === 0) continue;
@@ -162,13 +164,12 @@ exports.importRestaurantData = async (req, res) => {
       const clonedData = data.map(doc => {
         const newDoc = { ...doc };
         const oldId = newDoc._id.toString();
-        const newId = new ObjectId().toHexString();
-        oidMap.set(oldId, newId);
-        newDoc._id = newId;
+        newDoc._id = oidMap.get(oldId) || oldId;
         newDoc.restaurantId = newRestaurantId;
         return newDoc;
       });
 
+      // Update all references in the doc to use new IDs
       clonedData.forEach(doc => updateOids(doc, oidMap));
 
       try {
