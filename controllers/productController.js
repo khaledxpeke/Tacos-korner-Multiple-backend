@@ -280,10 +280,11 @@ exports.getProductData = async (req, res) => {
 
     // Calculate discount information
     const discountInfo = calculateDiscountInfo(product);
+    product.price= discountInfo.price;
 
     res.status(200).json({
       ...product,
-      ...discountInfo,
+      // ...discountInfo,
       type: typesWithIngredients.filter((t) => t !== null),
     });
   } catch (error) {
