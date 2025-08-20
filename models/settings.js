@@ -109,11 +109,10 @@ const settingsSchema = new mongoose.Schema(
       ref: "Restaurant",
     },
     printMode: {
-      type: String,
-      enum: ["auto", "local"],
-      default: "auto",
+      type: Boolean,
+      default: true,
       description:
-        "auto = server triggers print, local = frontend/mobile handles print",
+        "true = server triggers print, false = frontend/mobile handles print",
     },
     printerIp: {
       type: String,

@@ -363,7 +363,7 @@ async function triggerAutoPrint(orderId) {
         printXml: formatOrderForPrint(order, restaurant, settings),
       };
 
-      if (settings.printMode === "auto") {
+      if (settings.printMode === true) {
         await sendToPrinterServer(printData);
 
         // Success - update print status
