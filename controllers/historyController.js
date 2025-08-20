@@ -16,6 +16,7 @@ const StatusHistory = require("../models/statusHistory");
 const moment = require("moment-timezone");
 const mongoose = require("mongoose");
 const Restaurant = require("../models/restaurant");
+const settings = require("../models/settings");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -251,7 +252,7 @@ function formatOrderForPrint(order, restaurant, settings) {
 <text width="2" height="2" align="left" reverse="true">${order.name}</text>
 <feed line="3"/>
 <text width="1" height="1" align="left" reverse="false"/>
-<text>Date: ${new Date(order.boughtAt).toLocaleString("fr-FR")}</text>
+<text>${new Date(order.boughtAt).toLocaleDateString("fr-FR", { weekday: "long" })}: ${new Date(order.boughtAt).toLocaleString("fr-FR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}</text>
 <feed line="2"/>
 <text em="true">Méthode de paiement: ${order.method.label}</text>
 <feed line="2"/>
@@ -349,51 +350,51 @@ async function triggerAutoPrint(orderId) {
       );
       return;
     }
-      const printData = {
-        restaurantId: order.restaurantId, // Pass restaurantId to the printer server
-        orderId: order._id,
-        commandNumber: order.commandNumber,
-        customerName: order.name,
-        source: "Auto", // You can track source (Kiosk/Mobile/Cashier) here
-        createdAt: order.boughtAt,
-        items: order.product,
-        total: order.total,
-        pack: order.pack,
-        method: order.method,
-        printXml: formatOrderForPrint(order, restaurant, settings),
-      };
+    const printData = {
+      restaurantId: order.restaurantId, // Pass restaurantId to the printer server
+      orderId: order._id,
+      commandNumber: order.commandNumber,
+      customerName: order.name,
+      source: "Auto", // You can track source (Kiosk/Mobile/Cashier) here
+      createdAt: order.boughtAt,
+      items: order.product,
+      total: order.total,
+      pack: order.pack,
+      method: order.method,
+      printXml: formatOrderForPrint(order, restaurant, settings),
+    };
 
-      if (settings.printMode === true) {
-        await sendToPrinterServer(printData);
+    if (settings.printMode === true) {
+      await sendToPrinterServer(printData);
 
-        // Success - update print status
-        await History.findByIdAndUpdate(order._id, {
-          printStatus: "printed",
-          lastPrintAttempt: new Date(),
+      // Success - update print status
+      await History.findByIdAndUpdate(order._id, {
+        printStatus: "printed",
+        lastPrintAttempt: new Date(),
+      });
+
+      // Notify via WebSocket
+      if (io) {
+        io.emit("print_success", {
+          orderId: order._id,
+          commandNumber: order.commandNumber,
+          message: "Commande imprimée avec succès",
         });
-
-        // Notify via WebSocket
-        if (io) {
-          io.emit("print_success", {
-            orderId: order._id,
-            commandNumber: order.commandNumber,
-            message: "Commande imprimée avec succès",
-          });
-        }
-      } else {
-        // Print mode is local, skip auto print
-        await History.findByIdAndUpdate(order._id, {
-          printStatus: "skipped",
-          lastPrintAttempt: new Date(),
-        });
-        if (io) {
-          io.emit("print_skipped", {
-            orderId: order._id,
-            commandNumber: order.commandNumber,
-            message: "Impression automatique désactivée (mode local)",
-          });
-        }
       }
+    } else {
+      // Print mode is local, skip auto print
+      await History.findByIdAndUpdate(order._id, {
+        printStatus: "skipped",
+        lastPrintAttempt: new Date(),
+      });
+      if (io) {
+        io.emit("print_skipped", {
+          orderId: order._id,
+          commandNumber: order.commandNumber,
+          message: "Impression automatique désactivée (mode local)",
+        });
+      }
+    }
   } catch (error) {
     console.error(`❌ Failed to print order ID ${orderId}:`, error.message);
     let order;
@@ -423,6 +424,9 @@ async function triggerAutoPrint(orderId) {
 // Queue failed print for background retry
 async function queueFailedPrint(order, errorMessage) {
   try {
+    const settings = await Settings.findOne({
+      restaurantId: order.restaurantId,
+    });
     // Update order status
     await History.findByIdAndUpdate(order._id, {
       printStatus: "failed",
@@ -431,17 +435,19 @@ async function queueFailedPrint(order, errorMessage) {
     });
 
     // Add to retry queue
-    const retryJob = {
-      orderId: order._id,
-      commandNumber: order.commandNumber,
-      restaurantId: order.restaurantId,
-      attempts: 0,
-      nextRetry: new Date(Date.now() + RETRY_INTERVAL),
-      error: errorMessage,
-      createdAt: new Date(),
-    };
+    if (settings.printMode === true) {
+      const retryJob = {
+        orderId: order._id,
+        commandNumber: order.commandNumber,
+        restaurantId: order.restaurantId,
+        attempts: 0,
+        nextRetry: new Date(Date.now() + RETRY_INTERVAL),
+        error: errorMessage,
+        createdAt: new Date(),
+      };
 
-    failedPrintQueue.push(retryJob);
+      failedPrintQueue.push(retryJob);
+    }
   } catch (error) {
     console.error("Error queuing failed print:", error);
   }
@@ -456,13 +462,18 @@ function startPrintRetryWorker() {
     );
 
     for (const job of jobsToRetry) {
+      const settings = await Settings.findOne({
+        restaurantId: job.restaurantId,
+      });
       try {
+        if (settings.printMode===true){
         await triggerAutoPrint(job.orderId);
 
         // Success - remove from queue
         const index = failedPrintQueue.indexOf(job);
         if (index > -1) {
           failedPrintQueue.splice(index, 1);
+        }
         }
       } catch (error) {
         // Failed again - update retry info

@@ -67,7 +67,7 @@ exports.getAllCategories = async (req, res) => {
       .populate({
         path: "products",
         select:
-          "name price image type choice description category outOfStock variations visible imagePreviewHash",
+          "name price image type choice description category outOfStock variations visible imagePreviewHash originalPrice discountValue discountStartDate discountEndDate",
         options: { sort: { position: 1 } },
         populate: [
           {
@@ -114,6 +114,29 @@ exports.getAllCategories = async (req, res) => {
 
                 // Just keep existing hash
                 productObj.imagePreviewHash = productObj.imagePreviewHash || null;
+
+                // Discount logic using correct model fields
+                let now = new Date();
+                let hasDiscount = false;
+                  if (
+                  typeof productObj.discountValue === 'number' &&
+                  productObj.discountValue > 0 &&
+                  productObj.discountStartDate &&
+                  productObj.discountEndDate
+                ) {
+                  const start = new Date(productObj.discountStartDate);
+                  const end = new Date(productObj.discountEndDate);
+                  if (now >= start && now <= end) {
+                    hasDiscount = true;
+                  }
+                  hasDiscount = true;
+                }
+                if (hasDiscount) {
+                  productObj.originalPrice = productObj.price;
+                  productObj.price = Number((productObj.price - productObj.discountValue).toFixed(2));
+                } else {
+                  productObj.originalPrice = null;
+                }
 
                 if (
                   productObj.typeVariations &&
