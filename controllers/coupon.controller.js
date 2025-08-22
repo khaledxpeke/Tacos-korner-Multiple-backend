@@ -420,6 +420,158 @@ exports.validateCoupon = async (req, res) => {
   }
 };
 
+// exports.validateCoupon = async (req, res) => {
+//   try {
+//     const { restaurantId } = req;
+//     const { code, orderTotal, orderItems } = req.body;
+
+//     if (!code || !orderTotal || !orderItems) {
+//       return res.status(400).json({ 
+//         message: "Code promo, total de commande et articles requis" 
+//       });
+//     }
+
+//     const coupon = await Coupon.findOne({
+//       restaurantId,
+//       code: code.toUpperCase(),
+//       isActive: true
+//     })
+//       .populate('couponCategories', '_id name')
+//       .populate('couponProducts', '_id name');
+
+//     if (!coupon) {
+//       return res.status(404).json({ message: "Code promo invalide ou inactif" });
+//     }
+
+//     const now = moment().tz(RESTAURANT_TIMEZONE);
+    
+//     // Check if coupon has started
+//     if (coupon.startDate) {
+//       const startMoment = moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
+//       if (now.isBefore(startMoment)) {
+//         return res.status(400).json({ 
+//           message: `Ce code promo sera valide à partir du ${startMoment.format('DD/MM/YYYY à HH:mm')}` 
+//         });
+//       }
+//     }
+
+//     // Check if coupon has expired
+//     if (coupon.endDate) {
+//       const endMoment = moment(coupon.endDate).tz(RESTAURANT_TIMEZONE);
+//       if (now.isAfter(endMoment)) {
+//         return res.status(400).json({ 
+//           message: `Ce code promo a expiré le ${endMoment.format('DD/MM/YYYY à HH:mm')}` 
+//         });
+//       }
+//     }
+
+//     // Check usage limit
+//     if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
+//       return res.status(400).json({ 
+//         message: "Ce code promo a atteint sa limite d'utilisation" 
+//       });
+//     }
+
+//     // Check minimum order amount
+//     if (orderTotal < coupon.minOrderAmount) {
+//       return res.status(400).json({ 
+//         message: `Commande minimum de ${coupon.minOrderAmount}€ requise pour ce code promo` 
+//       });
+//     }
+
+//     // Calculate applicable items and discount
+//     let applicableItems = [];
+//     let applicableTotal = 0;
+
+//     if (coupon.categoryType === "categories") {
+//       if (coupon.couponCategories && coupon.couponCategories.length > 0) {
+//         const categoryIds = coupon.couponCategories.map(cat => cat._id.toString());
+//         applicableItems = orderItems.filter(item => {
+//           const itemCategory = item.product?.category?.toString() || item.category?.toString();
+//           return categoryIds.includes(itemCategory);
+//         });
+//         applicableTotal = applicableItems.reduce((total, item) => {
+//           return total + (item.price * item.quantity);
+//         }, 0);
+//       }
+//     } else if (coupon.categoryType === "products") {
+//       if (coupon.couponProducts && coupon.couponProducts.length > 0) {
+//         const productIds = coupon.couponProducts.map(prod => prod._id.toString());
+//         applicableItems = orderItems.filter(item => {
+//           const itemProduct = item.product?._id?.toString() || item._id?.toString();
+//           return productIds.includes(itemProduct);
+//         });
+//         applicableTotal = applicableItems.reduce((total, item) => {
+//           return total + (item.price * item.quantity);
+//         }, 0);
+//       }
+//     } else if (coupon.categoryType === "categories_products") {
+//       let categoryIds = [], productIds = [];
+//       if (coupon.couponCategories && coupon.couponCategories.length > 0) {
+//         categoryIds = coupon.couponCategories.map(cat => cat._id.toString());
+//       }
+//       if (coupon.couponProducts && coupon.couponProducts.length > 0) {
+//         productIds = coupon.couponProducts.map(prod => prod._id.toString());
+//       }
+//       applicableItems = orderItems.filter(item => {
+//         const itemCategory = item.product?.category?.toString() || item.category?.toString();
+//         const itemProduct = item.product?._id?.toString() || item._id?.toString();
+//         return categoryIds.includes(itemCategory) || productIds.includes(itemProduct);
+//       });
+//       applicableTotal = applicableItems.reduce((total, item) => {
+//         return total + (item.price * item.quantity);
+//       }, 0);
+//     }
+
+//     if (applicableTotal === 0) {
+//       return res.status(400).json({ 
+//         message: coupon.categoryType === "categories" 
+//           ? "Aucun article de la catégorie applicable trouvé pour ce code promo"
+//           : "Aucun article applicable trouvé pour ce code promo" 
+//       });
+//     }
+
+//     // Calculate discount
+//     let discountAmount = 0;
+//     if (coupon.couponType === 'percentage') {
+//       discountAmount = (applicableTotal * coupon.couponValue) / 100;
+//     } else {
+//       discountAmount = Math.min(coupon.couponValue, applicableTotal);
+//     }
+
+//     const finalTotal = Math.max(0, orderTotal - discountAmount);
+
+//     return res.status(200).json({
+//       valid: true,
+//       coupon: {
+//         _id: coupon._id,
+//         code: coupon.code,
+//         couponType: coupon.couponType,
+//         couponValue: coupon.couponValue,
+//         categoryType: coupon.categoryType,
+//         couponCategories: ["categories", "categories_products"].includes(coupon.categoryType) ? coupon.couponCategories : [],
+//         couponProducts: ["products", "categories_products"].includes(coupon.categoryType) ? coupon.couponProducts : [],
+//         startDate: coupon.startDate,
+//         endDate: coupon.endDate,
+//         maxUsage: coupon.maxUsage,
+//         usageCount: coupon.usageCount,
+//       },
+//       originalTotal: orderTotal,
+//       applicableTotal: Math.round(applicableTotal * 100) / 100,
+//       discountAmount: Math.round(discountAmount * 100) / 100,
+//       finalTotal: Math.round(finalTotal * 100) / 100,
+//       applicableItems: applicableItems.map(item => ({
+//         id: item.product?._id || item._id,
+//         name: item.product?.name || item.name,
+//         quantity: item.quantity,
+//         price: item.price
+//       }))
+//     });
+//   } catch (error) {
+//     return res.status(500).json({ error: error.message });
+//   }
+// };
+
 exports.getCouponStatus = async (req, res) => {
   try {
     const { restaurantId } = req;
