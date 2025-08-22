@@ -47,11 +47,13 @@ exports.addCoupon = async (req, res) => {
 
     // Validate categoryType
     if (
-      !["categories", "products", "categories_products"].includes(categoryType)
+      !["categories", "products", "categories_products", "all"].includes(
+        categoryType
+      )
     ) {
       return res.status(400).json({
         message:
-          "Type de catégorie invalide. Doit être 'categories', 'products' ou 'categories_products'",
+          "Type de catégorie invalide. Doit être 'all', 'categories', 'products' ou 'categories_products'",
       });
     }
 
@@ -397,24 +399,21 @@ exports.validateCoupon = async (req, res) => {
     }
 
     return res.status(200).json({
-      valid: true,
-      coupon: {
-        _id: coupon._id,
-        couponType: coupon.couponType,
-        couponValue: coupon.couponValue,
-        minOrderAmount: coupon.minOrderAmount,
-        categoryType: coupon.categoryType,
-        couponCategories: ["categories", "categories_products"].includes(
-          coupon.categoryType
-        )
-          ? coupon.couponCategories
-          : [],
-        couponProducts: ["products", "categories_products"].includes(
-          coupon.categoryType
-        )
-          ? coupon.couponProducts
-          : [],
-      },
+      _id: coupon._id,
+      couponType: coupon.couponType,
+      couponValue: coupon.couponValue,
+      minOrderAmount: coupon.minOrderAmount,
+      categoryType: coupon.categoryType,
+      couponCategories: ["categories", "categories_products"].includes(
+        coupon.categoryType
+      )
+        ? coupon.couponCategories
+        : [],
+      couponProducts: ["products", "categories_products"].includes(
+        coupon.categoryType
+      )
+        ? coupon.couponProducts
+        : [],
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
