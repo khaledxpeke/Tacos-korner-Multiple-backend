@@ -11,12 +11,16 @@ const RESTAURANT_TIMEZONE = process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
 // Helper function to add Z to date strings if missing
 const addTimezoneZ = (dateString) => {
   if (!dateString) return null;
-  
+
   // If date doesn't have timezone info, add Z at the end
-  if (!dateString.includes('Z') && !dateString.includes('+') && !dateString.match(/-\d{2}:\d{2}$/)) {
-    return dateString + 'Z';
+  if (
+    !dateString.includes("Z") &&
+    !dateString.includes("+") &&
+    !dateString.match(/-\d{2}:\d{2}$/)
+  ) {
+    return dateString + "Z";
   }
-  
+
   return dateString;
 };
 
@@ -42,15 +46,19 @@ exports.addCoupon = async (req, res) => {
     }
 
     // Validate categoryType
-    if (!["categories", "products", "categories_products"].includes(categoryType)) {
+    if (
+      !["categories", "products", "categories_products"].includes(categoryType)
+    ) {
       return res.status(400).json({
-        message: "Type de catégorie invalide. Doit être 'categories', 'products' ou 'categories_products'",
+        message:
+          "Type de catégorie invalide. Doit être 'categories', 'products' ou 'categories_products'",
       });
     }
 
     // Validate that categories/products are provided when needed
     if (
-      (categoryType === "categories" || categoryType === "categories_products") &&
+      (categoryType === "categories" ||
+        categoryType === "categories_products") &&
       (!couponCategories || couponCategories.length === 0)
     ) {
       return res.status(400).json({
@@ -68,12 +76,17 @@ exports.addCoupon = async (req, res) => {
 
     // Validate date interval
     const now = moment().tz(RESTAURANT_TIMEZONE);
-    const start = startDate ? moment(addTimezoneZ(startDate)).tz(RESTAURANT_TIMEZONE) : now;
-    const end = endDate ? moment(addTimezoneZ(endDate)).tz(RESTAURANT_TIMEZONE) : null;
+    const start = startDate
+      ? moment(addTimezoneZ(startDate)).tz(RESTAURANT_TIMEZONE)
+      : now;
+    const end = endDate
+      ? moment(addTimezoneZ(endDate)).tz(RESTAURANT_TIMEZONE)
+      : null;
 
     if (end && start.isSameOrAfter(end)) {
       return res.status(400).json({
-        message: "La date et l'heure de fin doivent être postérieures à la date et l'heure de début",
+        message:
+          "La date et l'heure de fin doivent être postérieures à la date et l'heure de début",
       });
     }
     // Check if coupon code already exists for this restaurant
@@ -95,8 +108,14 @@ exports.addCoupon = async (req, res) => {
       startDate: start,
       endDate: end,
       categoryType: categoryType,
-      couponCategories: ["categories", "categories_products"].includes(categoryType) ? couponCategories : [],
-      couponProducts: ["products", "categories_products"].includes(categoryType) ? couponProducts : [],
+      couponCategories: ["categories", "categories_products"].includes(
+        categoryType
+      )
+        ? couponCategories
+        : [],
+      couponProducts: ["products", "categories_products"].includes(categoryType)
+        ? couponProducts
+        : [],
       restaurantId,
     });
 
@@ -120,9 +139,7 @@ exports.getCoupons = async (req, res) => {
       .populate("couponProducts", "name")
       .sort({ createdAt: -1 });
 
-    return res.status(200).json(
-      coupons,
-    );
+    return res.status(200).json(coupons);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -144,9 +161,7 @@ exports.getCoupon = async (req, res) => {
       return res.status(404).json({ message: "Code promo non trouvé" });
     }
 
-    return res.status(200).json(
-      coupon,
-    );
+    return res.status(200).json(coupon);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -192,15 +207,20 @@ exports.updateCoupon = async (req, res) => {
     }
 
     // Validate categoryType if provided
-    if (categoryType && !["categories", "products", "categories_products"].includes(categoryType)) {
+    if (
+      categoryType &&
+      !["categories", "products", "categories_products"].includes(categoryType)
+    ) {
       return res.status(400).json({
-        message: "Type de catégorie invalide. Doit être 'categories', 'products' ou 'categories_products'",
+        message:
+          "Type de catégorie invalide. Doit être 'categories', 'products' ou 'categories_products'",
       });
     }
 
     // Validate categories/products if needed
     if (
-      (categoryType === "categories" || categoryType === "categories_products") &&
+      (categoryType === "categories" ||
+        categoryType === "categories_products") &&
       (!couponCategories || couponCategories.length === 0)
     ) {
       return res.status(400).json({
@@ -216,17 +236,23 @@ exports.updateCoupon = async (req, res) => {
       });
     }
 
-     const newStartDate = startDate ? 
-      moment(addTimezoneZ(startDate)).tz(RESTAURANT_TIMEZONE) : 
-      moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
+    const newStartDate = startDate
+      ? moment(addTimezoneZ(startDate)).tz(RESTAURANT_TIMEZONE)
+      : moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
 
-    const newEndDate = endDate !== undefined ? 
-      (endDate ? moment(addTimezoneZ(endDate)).tz(RESTAURANT_TIMEZONE) : null) : 
-      (coupon.endDate ? moment(coupon.endDate).tz(RESTAURANT_TIMEZONE) : null);
+    const newEndDate =
+      endDate !== undefined
+        ? endDate
+          ? moment(addTimezoneZ(endDate)).tz(RESTAURANT_TIMEZONE)
+          : null
+        : coupon.endDate
+        ? moment(coupon.endDate).tz(RESTAURANT_TIMEZONE)
+        : null;
 
     if (newEndDate && newStartDate.isSameOrAfter(newEndDate)) {
       return res.status(400).json({
-        message: "La date et l'heure de fin doivent être postérieures à la date et l'heure de début",
+        message:
+          "La date et l'heure de fin doivent être postérieures à la date et l'heure de début",
       });
     }
 
@@ -241,10 +267,16 @@ exports.updateCoupon = async (req, res) => {
     if (endDate !== undefined) coupon.endDate = newEndDate;
     if (categoryType) {
       coupon.categoryType = categoryType;
-      coupon.couponCategories =
-        ["categories", "categories_products"].includes(categoryType) ? couponCategories || [] : [];
-      coupon.couponProducts =
-        ["products", "categories_products"].includes(categoryType) ? couponProducts || [] : [];
+      coupon.couponCategories = ["categories", "categories_products"].includes(
+        categoryType
+      )
+        ? couponCategories || []
+        : [];
+      coupon.couponProducts = ["products", "categories_products"].includes(
+        categoryType
+      )
+        ? couponProducts || []
+        : [];
     }
 
     await coupon.save();
@@ -309,34 +341,38 @@ exports.toggleCoupon = async (req, res) => {
 exports.validateCoupon = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const { code, orderTotal, orderItems } = req.body;
+    const { code } = req.body;
 
-    if (!code || !orderTotal || !orderItems) {
-      return res.status(400).json({ 
-        message: "Code promo, total de commande et articles requis" 
+    if (!code) {
+      return res.status(400).json({
+        message: "Code promo requis",
       });
     }
 
     const coupon = await Coupon.findOne({
       restaurantId,
       code: code.toUpperCase(),
-      isActive: true
+      isActive: true,
     })
-      .populate('couponCategories', '_id name')
-      .populate('couponProducts', '_id name');
+      .populate("couponCategories", "_id name")
+      .populate("couponProducts", "_id name");
 
     if (!coupon) {
-      return res.status(404).json({ message: "Code promo invalide ou inactif" });
+      return res
+        .status(404)
+        .json({ message: "Code promo invalide ou inactif" });
     }
 
     const now = moment().tz(RESTAURANT_TIMEZONE);
-    
+
     // Check if coupon has started
     if (coupon.startDate) {
       const startMoment = moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
       if (now.isBefore(startMoment)) {
-        return res.status(400).json({ 
-          message: `Ce code promo sera valide à partir du ${startMoment.format('DD/MM/YYYY à HH:mm')}` 
+        return res.status(400).json({
+          message: `Ce code promo sera valide à partir du ${startMoment.format(
+            "DD/MM/YYYY à HH:mm"
+          )}`,
         });
       }
     }
@@ -345,113 +381,40 @@ exports.validateCoupon = async (req, res) => {
     if (coupon.endDate) {
       const endMoment = moment(coupon.endDate).tz(RESTAURANT_TIMEZONE);
       if (now.isAfter(endMoment)) {
-        return res.status(400).json({ 
-          message: `Ce code promo a expiré le ${endMoment.format('DD/MM/YYYY à HH:mm')}` 
+        return res.status(400).json({
+          message: `Ce code promo a expiré le ${endMoment.format(
+            "DD/MM/YYYY à HH:mm"
+          )}`,
         });
       }
     }
 
     // Check usage limit
     if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
-      return res.status(400).json({ 
-        message: "Ce code promo a atteint sa limite d'utilisation" 
+      return res.status(400).json({
+        message: "Ce code promo a atteint sa limite d'utilisation",
       });
     }
-
-    // Check minimum order amount
-    if (orderTotal < coupon.minOrderAmount) {
-      return res.status(400).json({ 
-        message: `Commande minimum de ${coupon.minOrderAmount}€ requise pour ce code promo` 
-      });
-    }
-
-    // Calculate applicable items and discount
-    let applicableItems = [];
-    let applicableTotal = 0;
-
-    if (coupon.categoryType === "categories") {
-      if (coupon.couponCategories && coupon.couponCategories.length > 0) {
-        const categoryIds = coupon.couponCategories.map(cat => cat._id.toString());
-        applicableItems = orderItems.filter(item => {
-          const itemCategory = item.product?.category?.toString() || item.category?.toString();
-          return categoryIds.includes(itemCategory);
-        });
-        applicableTotal = applicableItems.reduce((total, item) => {
-          return total + (item.price * item.quantity);
-        }, 0);
-      }
-    } else if (coupon.categoryType === "products") {
-      if (coupon.couponProducts && coupon.couponProducts.length > 0) {
-        const productIds = coupon.couponProducts.map(prod => prod._id.toString());
-        applicableItems = orderItems.filter(item => {
-          const itemProduct = item.product?._id?.toString() || item._id?.toString();
-          return productIds.includes(itemProduct);
-        });
-        applicableTotal = applicableItems.reduce((total, item) => {
-          return total + (item.price * item.quantity);
-        }, 0);
-      }
-    } else if (coupon.categoryType === "categories_products") {
-      let categoryIds = [], productIds = [];
-      if (coupon.couponCategories && coupon.couponCategories.length > 0) {
-        categoryIds = coupon.couponCategories.map(cat => cat._id.toString());
-      }
-      if (coupon.couponProducts && coupon.couponProducts.length > 0) {
-        productIds = coupon.couponProducts.map(prod => prod._id.toString());
-      }
-      applicableItems = orderItems.filter(item => {
-        const itemCategory = item.product?.category?.toString() || item.category?.toString();
-        const itemProduct = item.product?._id?.toString() || item._id?.toString();
-        return categoryIds.includes(itemCategory) || productIds.includes(itemProduct);
-      });
-      applicableTotal = applicableItems.reduce((total, item) => {
-        return total + (item.price * item.quantity);
-      }, 0);
-    }
-
-    if (applicableTotal === 0) {
-      return res.status(400).json({ 
-        message: coupon.categoryType === "categories" 
-          ? "Aucun article de la catégorie applicable trouvé pour ce code promo"
-          : "Aucun article applicable trouvé pour ce code promo" 
-      });
-    }
-
-    // Calculate discount
-    let discountAmount = 0;
-    if (coupon.couponType === 'percentage') {
-      discountAmount = (applicableTotal * coupon.couponValue) / 100;
-    } else {
-      discountAmount = Math.min(coupon.couponValue, applicableTotal);
-    }
-
-    const finalTotal = Math.max(0, orderTotal - discountAmount);
 
     return res.status(200).json({
       valid: true,
       coupon: {
         _id: coupon._id,
-        code: coupon.code,
         couponType: coupon.couponType,
         couponValue: coupon.couponValue,
+        minOrderAmount: coupon.minOrderAmount,
         categoryType: coupon.categoryType,
-        couponCategories: ["categories", "categories_products"].includes(coupon.categoryType) ? coupon.couponCategories : [],
-        couponProducts: ["products", "categories_products"].includes(coupon.categoryType) ? coupon.couponProducts : [],
-        startDate: coupon.startDate,
-        endDate: coupon.endDate,
-        maxUsage: coupon.maxUsage,
-        usageCount: coupon.usageCount,
+        couponCategories: ["categories", "categories_products"].includes(
+          coupon.categoryType
+        )
+          ? coupon.couponCategories
+          : [],
+        couponProducts: ["products", "categories_products"].includes(
+          coupon.categoryType
+        )
+          ? coupon.couponProducts
+          : [],
       },
-      originalTotal: orderTotal,
-      applicableTotal: Math.round(applicableTotal * 100) / 100,
-      discountAmount: Math.round(discountAmount * 100) / 100,
-      finalTotal: Math.round(finalTotal * 100) / 100,
-      applicableItems: applicableItems.map(item => ({
-        id: item.product?._id || item._id,
-        name: item.product?.name || item.name,
-        quantity: item.quantity,
-        price: item.price
-      }))
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -465,32 +428,45 @@ exports.getCouponStatus = async (req, res) => {
     const now = new Date();
 
     const coupons = await Coupon.find({ restaurantId })
-      .populate('couponCategories', 'name')
+      .populate("couponCategories", "name")
       .sort({ createdAt: -1 });
 
-    const couponsWithStatus = coupons.map(coupon => {
-      let status = 'active';
-      
-        if (!coupon.isActive) {
-        status = 'inactive';
-      } else if (coupon.startDate && now.isBefore(moment(coupon.startDate).tz(RESTAURANT_TIMEZONE))) {
-        status = 'upcoming';
-      } else if (coupon.endDate && now.isAfter(moment(coupon.endDate).tz(RESTAURANT_TIMEZONE))) {
-        status = 'expired';
+    const couponsWithStatus = coupons.map((coupon) => {
+      let status = "active";
+
+      if (!coupon.isActive) {
+        status = "inactive";
+      } else if (
+        coupon.startDate &&
+        now.isBefore(moment(coupon.startDate).tz(RESTAURANT_TIMEZONE))
+      ) {
+        status = "upcoming";
+      } else if (
+        coupon.endDate &&
+        now.isAfter(moment(coupon.endDate).tz(RESTAURANT_TIMEZONE))
+      ) {
+        status = "expired";
       } else if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
-        status = 'used_up';
+        status = "used_up";
       }
 
       return {
         ...coupon.toObject(),
         status,
         // Ensure categories is empty array for "all" type
-        startDateFormatted: coupon.startDate ? 
-          moment(coupon.startDate).tz(RESTAURANT_TIMEZONE).format('DD/MM/YYYY HH:mm') : null,
-        endDateFormatted: coupon.endDate ? 
-          moment(coupon.endDate).tz(RESTAURANT_TIMEZONE).format('DD/MM/YYYY HH:mm') : null,
+        startDateFormatted: coupon.startDate
+          ? moment(coupon.startDate)
+              .tz(RESTAURANT_TIMEZONE)
+              .format("DD/MM/YYYY HH:mm")
+          : null,
+        endDateFormatted: coupon.endDate
+          ? moment(coupon.endDate)
+              .tz(RESTAURANT_TIMEZONE)
+              .format("DD/MM/YYYY HH:mm")
+          : null,
         // Ensure categories is empty array for "all" type
-        couponCategories: coupon.categoryType === "all" ? [] : coupon.couponCategories
+        couponCategories:
+          coupon.categoryType === "all" ? [] : coupon.couponCategories,
       };
     });
 

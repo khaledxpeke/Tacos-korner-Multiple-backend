@@ -11,9 +11,8 @@ const { default: mongoose } = require("mongoose");
 const path = require("path");
 
 const upload = multer({ storage: multerStorage });
-
-exports.createIngredient = async (req, res, next) => {
 const { getBlurhashFromImage } = require("../utils/blurhash");
+exports.createIngredient = async (req, res, next) => {
   req.uploadTarget = "ingrediants";
   const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
@@ -103,7 +102,6 @@ exports.getAllIngrediants = async (req, res, next) => {
   }
 };
 
-
 exports.updateIngrediant = async (req, res) => {
   const ingrediantId = req.params.ingrediantId;
   req.uploadTarget = "ingrediants";
@@ -119,7 +117,7 @@ exports.updateIngrediant = async (req, res) => {
     }
     if (err) {
       console.log(err);
-return res.status(500).json({ message: "Erreur du serveur" });
+      return res.status(500).json({ message: "Erreur du serveur" });
     }
     const ingrediant = await Ingrediant.findOne({
       _id: ingrediantId,
@@ -208,7 +206,9 @@ return res.status(500).json({ message: "Erreur du serveur" });
         );
       }
 
-      return res.status(200).json({ message: "Ingrediant modifié avec succées" });
+      return res
+        .status(200)
+        .json({ message: "Ingrediant modifié avec succées" });
     } catch (error) {
       return res.status(500).json({ message: error.message });
     }

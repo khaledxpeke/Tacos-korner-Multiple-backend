@@ -14,6 +14,7 @@ const Settings = require("../models/settings");
 const Restaurant = require("../models/restaurant");
 const moment = require("moment-timezone");
 const RESTAURANT_TIMEZONE = process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
+const { getBlurhashFromImage } = require("../utils/blurhash");
 
 // Helper function to calculate discount information
 const calculateDiscountInfo = (product) => {
@@ -46,7 +47,6 @@ const calculateDiscountInfo = (product) => {
 };
 
 exports.addProductToCategory = async (req, res, next) => {
-const { getBlurhashFromImage } = require("../utils/blurhash");
   req.uploadTarget = "product";
   const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
