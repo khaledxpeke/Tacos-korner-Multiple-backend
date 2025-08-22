@@ -356,8 +356,8 @@ exports.validateCoupon = async (req, res) => {
       code: code.toUpperCase(),
       isActive: true,
     })
-      .populate("couponCategories", "_id name")
-      .populate("couponProducts", "_id name");
+      .populate("couponCategories", "_id")
+      .populate("couponProducts", "_id");
 
     if (!coupon) {
       return res
