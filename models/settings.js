@@ -54,13 +54,13 @@ const settingsSchema = new mongoose.Schema(
       type: Number,
       default: 1,
     },
-    logo: {
-      type: String,
-      default: "uploads/default-logo.png",
-    },
     banner: {
       type: String,
       default: "uploads/default-banner.png",
+    },
+    imagePreviewHash: {
+      type: String,
+      default: null,
     },
     address: {
       type: String,

@@ -11,6 +11,7 @@ const multerStorage = require("../middleware/multerStorage");
 const upload = multer({ storage: multerStorage });
 const { default: mongoose } = require("mongoose");
 const { encrypt } = require("../middleware/crypto");
+const { getBlurhashFromImage } = require("../utils/blurhash");
 
 exports.addSettings = async (req, res) => {
   try {
@@ -56,7 +57,7 @@ exports.addSettings = async (req, res) => {
         defaultCurrency: currency.toUpperCase(),
         tva: 10,
         method: [
-           {
+          {
             _id: new mongoose.Types.ObjectId(),
             label: "Carte bancaire",
             isActive: true,
@@ -170,7 +171,7 @@ exports.getSettings = async (req, res) => {
       restaurant.settings = settings._id;
       await restaurant.save();
     }
-    
+
     const settingsObject = settings.toObject();
     settingsObject.isPasswordSet = !!settingsObject.emailPass;
     delete settingsObject.emailPass;
@@ -360,7 +361,7 @@ exports.updateSettings = async (req, res) => {
         emailSender,
         emailName,
         printMode,
-        printerIp
+        printerIp,
       } = req.body;
 
       if (oldCurrency && newCurrency) {
@@ -462,6 +463,10 @@ exports.updateSettings = async (req, res) => {
         }
 
         settings.banner = banner;
+        let imagePreviewHash = null;
+        const imagePath = path.join(__dirname, "..", banner);
+        imagePreviewHash = await getBlurhashFromImage(imagePath);
+        settings.imagePreviewHash = imagePreviewHash;
       }
 
       if (address) {
@@ -494,7 +499,8 @@ exports.updateSettings = async (req, res) => {
       }
       if (emailPass) {
         const cleanedPass = emailPass.replace(/"/g, "").replace(/'/g, "");
-        if (cleanedPass) { // Only update if a new password is provided
+        if (cleanedPass) {
+          // Only update if a new password is provided
           settings.emailPass = encrypt(cleanedPass);
         }
       }
