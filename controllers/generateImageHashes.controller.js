@@ -4,6 +4,8 @@ const Ingrediant = require('../models/ingrediant');
 const Extra = require('../models/extra');
 const Dessert = require('../models/desert');
 const Drink = require('../models/drink');
+const Restaurant = require('../models/restaurant');
+const Settings = require('../models/settings');
 const path = require('path');
 const { getBlurhashFromImage } = require('../utils/blurhash');
 
@@ -38,6 +40,8 @@ exports.generateAllImageHashes = async (req, res) => {
     const extraCount = await updateImageHashes(Extra);
     const dessertCount = await updateImageHashes(Dessert);
     const drinkCount = await updateImageHashes(Drink);
+    const restaurantCount = await updateImageHashes(Restaurant, 'logo');
+    const settingsCount = await updateImageHashes(Settings, 'banner');
     res.status(200).json({
       message: 'Image hashes generated',
       categoriesUpdated: catCount,
@@ -46,6 +50,8 @@ exports.generateAllImageHashes = async (req, res) => {
       extrasUpdated: extraCount,
       dessertsUpdated: dessertCount,
       drinksUpdated: drinkCount,
+      restaurantsUpdated: restaurantCount,
+      settingsUpdated: settingsCount,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
