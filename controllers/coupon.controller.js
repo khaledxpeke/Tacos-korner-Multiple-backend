@@ -211,11 +211,13 @@ exports.updateCoupon = async (req, res) => {
     // Validate categoryType if provided
     if (
       categoryType &&
-      !["categories", "products", "categories_products"].includes(categoryType)
+      !["all", "categories", "products", "categories_products"].includes(
+        categoryType
+      )
     ) {
       return res.status(400).json({
         message:
-          "Type de catégorie invalide. Doit être 'categories', 'products' ou 'categories_products'",
+          "Type de catégorie invalide. Doit être 'all', 'categories', 'products' ou 'categories_products'",
       });
     }
 
@@ -279,6 +281,10 @@ exports.updateCoupon = async (req, res) => {
       )
         ? couponProducts || []
         : [];
+      if (categoryType === "all") {
+        coupon.couponCategories = [];
+        coupon.couponProducts = [];
+      }
     }
 
     await coupon.save();
@@ -355,7 +361,7 @@ exports.validateCoupon = async (req, res) => {
       restaurantId,
       code: code.toUpperCase(),
       isActive: true,
-    })
+    });
 
     if (!coupon) {
       return res
@@ -424,8 +430,8 @@ exports.validateCoupon = async (req, res) => {
 //     const { code, orderTotal, orderItems } = req.body;
 
 //     if (!code || !orderTotal || !orderItems) {
-//       return res.status(400).json({ 
-//         message: "Code promo, total de commande et articles requis" 
+//       return res.status(400).json({
+//         message: "Code promo, total de commande et articles requis"
 //       });
 //     }
 
@@ -442,13 +448,13 @@ exports.validateCoupon = async (req, res) => {
 //     }
 
 //     const now = moment().tz(RESTAURANT_TIMEZONE);
-    
+
 //     // Check if coupon has started
 //     if (coupon.startDate) {
 //       const startMoment = moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
 //       if (now.isBefore(startMoment)) {
-//         return res.status(400).json({ 
-//           message: `Ce code promo sera valide à partir du ${startMoment.format('DD/MM/YYYY à HH:mm')}` 
+//         return res.status(400).json({
+//           message: `Ce code promo sera valide à partir du ${startMoment.format('DD/MM/YYYY à HH:mm')}`
 //         });
 //       }
 //     }
@@ -457,23 +463,23 @@ exports.validateCoupon = async (req, res) => {
 //     if (coupon.endDate) {
 //       const endMoment = moment(coupon.endDate).tz(RESTAURANT_TIMEZONE);
 //       if (now.isAfter(endMoment)) {
-//         return res.status(400).json({ 
-//           message: `Ce code promo a expiré le ${endMoment.format('DD/MM/YYYY à HH:mm')}` 
+//         return res.status(400).json({
+//           message: `Ce code promo a expiré le ${endMoment.format('DD/MM/YYYY à HH:mm')}`
 //         });
 //       }
 //     }
 
 //     // Check usage limit
 //     if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
-//       return res.status(400).json({ 
-//         message: "Ce code promo a atteint sa limite d'utilisation" 
+//       return res.status(400).json({
+//         message: "Ce code promo a atteint sa limite d'utilisation"
 //       });
 //     }
 
 //     // Check minimum order amount
 //     if (orderTotal < coupon.minOrderAmount) {
-//       return res.status(400).json({ 
-//         message: `Commande minimum de ${coupon.minOrderAmount}€ requise pour ce code promo` 
+//       return res.status(400).json({
+//         message: `Commande minimum de ${coupon.minOrderAmount}€ requise pour ce code promo`
 //       });
 //     }
 
@@ -522,10 +528,10 @@ exports.validateCoupon = async (req, res) => {
 //     }
 
 //     if (applicableTotal === 0) {
-//       return res.status(400).json({ 
-//         message: coupon.categoryType === "categories" 
+//       return res.status(400).json({
+//         message: coupon.categoryType === "categories"
 //           ? "Aucun article de la catégorie applicable trouvé pour ce code promo"
-//           : "Aucun article applicable trouvé pour ce code promo" 
+//           : "Aucun article applicable trouvé pour ce code promo"
 //       });
 //     }
 
