@@ -1095,20 +1095,20 @@ exports.getHistoriesRT = async (socket) => {
             matchQuery.$expr = { $and: [] };
 
             if (startDate && startDate.trim() !== "") {
-              const startDate = new Date(startDate);
-              startDate.setHours(0, 0, 0, 0);
+              const start = new Date(startDate);
+              start.setHours(0, 0, 0, 0);
               matchQuery.boughtAt = {
                 ...matchQuery.boughtAt,
-                $gte: startDate,
+                $gte: start,
               };
             }
 
             if (endDate && endDate.trim() !== "") {
-              const endDate = new Date(endDate);
-              endDate.setHours(23, 59, 59, 999);
+              const end = new Date(endDate);
+              end.setHours(23, 59, 59, 999);
               matchQuery.boughtAt = {
                 ...matchQuery.boughtAt,
-                $lte: endDate,
+                $lte: end,
               };
             }
           }
