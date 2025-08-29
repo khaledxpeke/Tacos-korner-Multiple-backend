@@ -120,7 +120,7 @@ exports.restaurantAuth = () => {
         );
 
         if (!hasAccess) {
-          return res.status(403).json({ message: req.t('errors.not_authorized_for_restaurant', { restaurantId: restaurantIdFromInput }) });
+          return res.status(403).json({ message: req.t('errors.not_authorized_for_restaurant') });
         }
 
         req.restaurantId = restaurantIdFromInput; 

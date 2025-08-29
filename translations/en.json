@@ -50,7 +50,7 @@
   "errors.token_invalid": "Invalid token.",
   "errors.user_not_found": "User from token not found.",
   "errors.restaurant_id_required_for_role": "Restaurant ID is required for this action ({{role}}).",
-  "errors.not_authorized_for_restaurant": "Not authorized for restaurant {{restaurantId}}.",
+  "errors.not_authorized_for_restaurant": "Not authorized for this restaurant.",
   "errors.image_upload_failed": "Image upload failed.",
   "errors.image_required": "Please upload an image.",
   "auth.token_missing": "Authentication token missing.",

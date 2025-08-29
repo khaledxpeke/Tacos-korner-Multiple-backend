@@ -12,7 +12,7 @@ const {
 } = require("../controllers/categoryController");
 const { USER_ROLES } = require("../enum/constants");
 
-router.get("/", restaurantAuth(),roleAuth([]),getAllCategories);
+router.get("/", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER,USER_ROLES.WAITER]),getAllCategories);
 router.post("/", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), createCategory);
 router.get("/all", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), getAllCategory);
 // router.get("/:categoryId", getCategoryById);

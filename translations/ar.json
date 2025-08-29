@@ -50,7 +50,7 @@
   "errors.token_invalid": "رمز غير صالح.",
   "errors.user_not_found": "المستخدم المرتبط بالرمز غير موجود.",
   "errors.restaurant_id_required_for_role": "مطلوب معرف المطعم لهذه العملية ({{role}}).",
-  "errors.not_authorized_for_restaurant": "غير مصرح لمطعم {{restaurantId}}.",
+  "errors.not_authorized_for_restaurant": "غير مصرح لهذا المطعم.",
   "errors.image_upload_failed": "فشل رفع الصورة.",
   "errors.image_required": "يرجى رفع صورة.",
   "auth.token_missing": "رمز المصادقة مفقود.",
