@@ -188,5 +188,7 @@
   "variation.created": "Variation créée avec succès",
   "variation.updated": "Variation mise à jour avec succès",
   "variation.deleted": "Variation supprimée avec succès",
-  "variation.not_found": "Variation non trouvée"
+  "variation.not_found": "Variation non trouvée",
+  "user.invalid_app_type": "Type d'application invalide.",
+  "user.unauthorized_for_app": "Vous n'êtes pas autorisé à accéder à cette application."
 }

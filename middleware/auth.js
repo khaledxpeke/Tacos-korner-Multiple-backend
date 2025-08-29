@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const jwtSecret = process.env.JWT_SECRET;
 const User = require("../models/user"); // Ensure User model is imported
+const { USER_ROLES, APP_TYPES } = require('../enum/constants');
 
 exports.roleAuth = (expectedRoles) => {
   // ... (roleAuth function remains unchanged)
@@ -31,11 +32,11 @@ exports.restaurantAuth = () => {
 
       // Handle /register route variations
       if (req.path === "/register") {
-        if (appType === "client" || appType === "borne") {
-          req.restaurantId = null; 
+        if (appType === APP_TYPES.MOBILE || appType === APP_TYPES.BORNE) {
+          req.restaurantId = null;
           // console.log(`Registration for ${appType}: bypassing full auth, no restaurantId.`);
           return next();
-        } else if (appType === "dashboard" || appType === "cashier" || appType === "delivery" || appType === "kitchen") {
+        } else if (appType === APP_TYPES.DASHBOARD || appType === APP_TYPES.CASHIER || appType === APP_TYPES.DELIVERY || appType === APP_TYPES.KITCHEN) {
           // Staff-facing apps (dashboard, cashier, future delivery/kitchen)
           if (!token) {
             // Case 1: Initial staff registration (e.g., first admin for a restaurant, no existing session)
@@ -94,7 +95,7 @@ exports.restaurantAuth = () => {
           }
         }
 
-    if (decoded.user.role === "admin") {
+    if (decoded.user.role === USER_ROLES.ADMIN) {
       // For admins, restaurant-id is still required for restaurant-specific operations
       if (!restaurantIdFromInput) {
         return res.status(400).json({ 
@@ -104,8 +105,8 @@ exports.restaurantAuth = () => {
       req.restaurantId = restaurantIdFromInput;
       return next();
     }
-    
-    if (decoded.user.role === "client") {
+
+    if (decoded.user.role === USER_ROLES.CLIENT) {
       req.restaurantId = restaurantIdFromInput;
       return next();
     }

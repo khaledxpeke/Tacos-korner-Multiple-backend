@@ -8,13 +8,14 @@ const {
   deleteCurrency,
   updateSettings,
 } = require("../controllers/settingsController");
+const { USER_ROLES } = require("../enum/constants");
 
-router.get("/currency", restaurantAuth(),roleAuth(["admin","manager"]), getAllCurrencies);
-router.get("/", restaurantAuth(),roleAuth(["admin","manager"]),getSettings);
-router.post("/", restaurantAuth(),roleAuth(["admin","manager"]), addSettings);
-router.delete("/currency", restaurantAuth(),roleAuth(["admin","manager"]), deleteCurrency);
-router.put("/currency", restaurantAuth(),roleAuth(["admin","manager"]), updateDefaultCurrency);
-router.put("/", restaurantAuth(),roleAuth(["admin","manager"]), updateSettings);
+router.get("/currency", restaurantAuth(),roleAuth([USER_ROLES.ADMIN,USER_ROLES.MANAGER]), getAllCurrencies);
+router.get("/", restaurantAuth(),roleAuth([USER_ROLES.ADMIN,USER_ROLES.MANAGER]),getSettings);
+router.post("/", restaurantAuth(),roleAuth([USER_ROLES.ADMIN,USER_ROLES.MANAGER]), addSettings);
+router.delete("/currency", restaurantAuth(),roleAuth([USER_ROLES.ADMIN,USER_ROLES.MANAGER]), deleteCurrency);
+router.put("/currency", restaurantAuth(),roleAuth([USER_ROLES.ADMIN,USER_ROLES.MANAGER]), updateDefaultCurrency);
+router.put("/", restaurantAuth(),roleAuth([USER_ROLES.ADMIN,USER_ROLES.MANAGER]), updateSettings);
 
 
 module.exports = router;

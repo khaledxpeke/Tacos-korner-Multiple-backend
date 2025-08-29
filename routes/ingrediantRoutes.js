@@ -10,11 +10,12 @@ const {
   getAllIngrediants,
   getAllIngrediantsByType,
 } = require("../controllers/ingrediantController");
+const { USER_ROLES } = require("../enum/constants");
 
 router.post(
   "/",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   createIngredient
 );
 // router.post("/add/:productId", roleAuth(["admin","manager"]), addIngrediantToProduct);
@@ -22,7 +23,7 @@ router.post(
 router.get(
   "/",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   getAllIngrediants
 );
 // router.get("/ingrediants", getAllIngrediantsByType);
@@ -30,13 +31,13 @@ router.get(
 router.put(
   "/update/:ingrediantId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   updateIngrediant
 );
 router.delete(
   "/:ingrediantId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   deleteIngredient
 );
 

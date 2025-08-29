@@ -10,41 +10,42 @@ const {
   setProductDiscount,
   removeProductDiscount,
 } = require("../controllers/productController");
+const { USER_ROLES } = require("../enum/constants");
 
 router.post(
   "/:categoryId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   addProductToCategory
 );
 router.get(
   "/:categoryId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   getProductsByCategory
 );
 router.get(
   "/:productId/:variationId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   getProductData
 );
 router.get(
   "/",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   getAllProducts
 );
 router.put(
   "/update/:productId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   updateProduct
 );
 router.delete(
   "/:productId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   deleteProduct
 );
 
@@ -52,13 +53,13 @@ router.delete(
 router.put(
   "/discount/:productId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   setProductDiscount
 );
 router.delete(
   "/discount/:productId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   removeProductDiscount
 );
 

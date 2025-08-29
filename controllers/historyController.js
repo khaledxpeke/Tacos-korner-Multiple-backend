@@ -1046,7 +1046,7 @@ exports.getHistoriesRT = async (socket) => {
   try {
     socket.on("fetch-histories", async (data) => {
       try {
-        const { page = 1, search = "", dateDebut, dateFin, filter = "" } = data;
+        const { page = 1, search = "", startDate, endDate, filter = "" } = data;
         const limit = 30;
         const skip = (page - 1) * limit;
         const { restaurantId } = data;
@@ -1089,13 +1089,13 @@ exports.getHistoriesRT = async (socket) => {
           matchQuery.boughtAt = { $gte: startOfMonth, $lte: endOfMonth };
         } else {
           if (
-            (dateDebut && dateDebut.trim() !== "") ||
-            (dateFin && dateFin.trim() !== "")
+            (startDate && startDate.trim() !== "") ||
+            (endDate && endDate.trim() !== "")
           ) {
             matchQuery.$expr = { $and: [] };
 
-            if (dateDebut && dateDebut.trim() !== "") {
-              const startDate = new Date(dateDebut);
+            if (startDate && startDate.trim() !== "") {
+              const startDate = new Date(startDate);
               startDate.setHours(0, 0, 0, 0);
               matchQuery.boughtAt = {
                 ...matchQuery.boughtAt,
@@ -1103,8 +1103,8 @@ exports.getHistoriesRT = async (socket) => {
               };
             }
 
-            if (dateFin && dateFin.trim() !== "") {
-              const endDate = new Date(dateFin);
+            if (endDate && endDate.trim() !== "") {
+              const endDate = new Date(endDate);
               endDate.setHours(23, 59, 59, 999);
               matchQuery.boughtAt = {
                 ...matchQuery.boughtAt,
@@ -1364,7 +1364,7 @@ const checkAndUpdateDelayedOrders = async (restaurantId) => {
 exports.getStatistics = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const { filter = "today", dateDebut, dateFin } = req.query;
+    const { filter = "today", startDate, endDate } = req.query;
     const currentDate = new Date();
     let matchQuery = {
       restaurantId: new mongoose.Types.ObjectId(restaurantId),
@@ -1379,13 +1379,13 @@ exports.getStatistics = async (req, res) => {
     const emporterPackId = settings.pack[1]._id.toString();
 
     if (
-      (dateDebut && dateDebut.trim() !== "") ||
-      (dateFin && dateFin.trim() !== "")
+      (startDate && startDate.trim() !== "") ||
+      (endDate && endDate.trim() !== "")
     ) {
       matchQuery.boughtAt = {};
 
-      if (dateDebut && dateDebut.trim() !== "") {
-        const startDate = new Date(dateDebut);
+      if (startDate && startDate.trim() !== "") {
+        const startDate = new Date(startDate);
         startDate.setHours(0, 0, 0, 0);
         matchQuery.boughtAt = {
           ...matchQuery.boughtAt,
@@ -1393,8 +1393,8 @@ exports.getStatistics = async (req, res) => {
         };
       }
 
-      if (dateFin && dateFin.trim() !== "") {
-        const endDate = new Date(dateFin);
+      if (endDate && endDate.trim() !== "") {
+        const endDate = new Date(endDate);
         endDate.setHours(23, 59, 59, 999);
         matchQuery.boughtAt = {
           ...matchQuery.boughtAt,
@@ -1627,7 +1627,7 @@ exports.getStatistics = async (req, res) => {
           let: { productId: { $toObjectId: "$product.plat._id" } },
           pipeline: [
             { $match: { $expr: { $eq: ["$_id", "$$productId"] } } },
-            { $project: { image: 1, name: 1 } },
+            { $project: { image: 1, name: 1, imagePreviewHash: 1 } },
           ],
           as: "productDetails",
         },
@@ -1644,6 +1644,7 @@ exports.getStatistics = async (req, res) => {
             id: "$product.plat._id",
             name: "$product.plat.name",
             image: "$productDetails.image",
+            imagePreviewHash: "$productDetails.imagePreviewHash",
           },
           totalCount: { $sum: "$product.plat.count" },
           totalRevenue: {
@@ -1658,6 +1659,7 @@ exports.getStatistics = async (req, res) => {
           _id: "$_id.id",
           name: "$_id.name",
           image: "$_id.image",
+          imagePreviewHash: "$_id.imagePreviewHash",
           totalCount: 1,
           totalRevenue: { $round: ["$totalRevenue", 2] },
         },
@@ -1715,14 +1717,14 @@ exports.getStatistics = async (req, res) => {
     }
 
     let timeRangeLabel = filter;
-    if (dateDebut || dateFin) {
+    if (startDate || endDate) {
       timeRangeLabel = "custom";
-      if (dateDebut && dateFin) {
-        timeRangeLabel = `${dateDebut} to ${dateFin}`;
-      } else if (dateDebut) {
-        timeRangeLabel = `From ${dateDebut}`;
-      } else if (dateFin) {
-        timeRangeLabel = `Until ${dateFin}`;
+      if (startDate && endDate) {
+        timeRangeLabel = `${startDate} to ${endDate}`;
+      } else if (startDate) {
+        timeRangeLabel = `From ${startDate}`;
+      } else if (endDate) {
+        timeRangeLabel = `Until ${endDate}`;
       }
     }
 

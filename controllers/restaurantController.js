@@ -18,6 +18,7 @@ const Desert = require("../models/desert");
 const Extra = require("../models/extra");
 const Drink = require("../models/drink");
 const { getBlurhashFromImage } = require("../utils/blurhash");
+const { USER_ROLES } = require("../enum/constants");
 
 const upload = multer({ storage: multerStorage });
 
@@ -111,7 +112,7 @@ exports.createRestaurant = async (req, res) => {
         $push: {
           restaurants: {
             restaurantId: restaurant._id,
-            role: "admin",
+            role: USER_ROLES.ADMIN,
           },
         },
       });
@@ -130,7 +131,7 @@ exports.getRestaurants = async (req, res) => {
   try {
     let restaurants;
 
-    if (req.user.user.role === "admin" || req.user.user.role === "client") {
+    if (req.user.user.role === USER_ROLES.ADMIN || req.user.user.role === USER_ROLES.CLIENT) {
       restaurants = await Restaurant.find()
         .select("name description active createdAt address logo")
         .populate("settings");
@@ -160,7 +161,7 @@ exports.getMobileRestaurants = async (req, res) => {
   try {
     let restaurants;
 
-    if (req.user.user.role === "admin" || req.user.user.role === "client") {
+    if (req.user.user.role === USER_ROLES.ADMIN || req.user.user.role === USER_ROLES.CLIENT) {
       restaurants = await Restaurant.find({ active: true })
         .select("name description active createdAt address logo")
         .populate("settings");
@@ -406,7 +407,7 @@ exports.assignUserToRestaurant = async (req, res) => {
         }
 
         // Handle role-specific logic
-        if (role === "waiter") {
+        if (role === USER_ROLES.WAITER) {
           // For waiters, check if they're already assigned to any restaurant
           if (user.restaurants && user.restaurants.length > 0) {
             // If the waiter is already assigned to this restaurant, just update the role
@@ -444,7 +445,7 @@ exports.assignUserToRestaurant = async (req, res) => {
           await User.findByIdAndUpdate(userId, {
             $set: { restaurants: [{ restaurantId, role }] },
           });
-        } else if (role === "manager") {
+        } else if (role === USER_ROLES.MANAGER) {
           // Managers can be assigned to multiple restaurants
           // Check if already assigned to this restaurant
           const hasRestaurant =
@@ -475,7 +476,7 @@ exports.assignUserToRestaurant = async (req, res) => {
               },
             });
           }
-        } else if (role === "admin") {
+        } else if (role === USER_ROLES.ADMIN) {
           // Admins have access to all restaurants by default
           // We can add this specific restaurant to their list for clarity
           const hasRestaurant =
@@ -489,12 +490,12 @@ exports.assignUserToRestaurant = async (req, res) => {
               $push: {
                 restaurants: {
                   restaurantId,
-                  role: "admin",
+                  role: USER_ROLES.ADMIN,
                 },
               },
             });
           }
-        } else if (role === "client") {
+        } else if (role === USER_ROLES.CLIENT) {
           // Clients don't need restaurant assignments
           results.failed.push({
             userId,

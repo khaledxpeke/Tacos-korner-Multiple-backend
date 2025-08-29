@@ -188,5 +188,7 @@
   "variation.created": "تم إنشاء الاختيار بنجاح",
   "variation.updated": "تم تحديث الاختيار بنجاح",
   "variation.deleted": "تم حذف الاختيار بنجاح",
-  "variation.not_found": "الاختيار غير موجود"
+  "variation.not_found": "الاختيار غير موجود",
+  "user.invalid_app_type": "نوع التطبيق غير صالح.",
+  "user.unauthorized_for_app": "غير مصرح لك بالوصول إلى هذا التطبيق."
 }

@@ -6,29 +6,30 @@ const {
   updateTypeVariation,
   deleteTypeVariation,
 } = require("../controllers/typeVariationController");
+const { USER_ROLES } = require("../enum/constants");
 
 router.post(
   "/",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   addTypeVariation
 );
 router.get(
   "/",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   getTypeVariations
 );
 router.put(
   "/:typeVariationId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   updateTypeVariation
 );
 router.delete(
   "/:typeVariationId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   deleteTypeVariation
 );
 

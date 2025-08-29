@@ -11,6 +11,7 @@ const i18nextMiddleware = require('i18next-http-middleware');
 const FsBackend = require('i18next-fs-backend');
 const { setIO, getHistoriesRT } = require("./controllers/historyController");
 const http = require("http");
+const { USER_ROLES } = require("./enum/constants");
 const PORT = process.env.PORT;
 app.timeout = 300000;
 const server = http.createServer(app);
@@ -102,16 +103,16 @@ app.use(
   "/api/uploads/carousel",
   express.static(path.join(__dirname, "uploads", "carousel"))
 );
-app.get("/adminRoute", roleAuth("admin"), (req, res) => {
+app.get("/adminRoute", roleAuth([USER_ROLES.ADMIN]), (req, res) => {
   res.send(req.t('routes.authenticated.admin'));
 });
-app.get("/managerRoute", roleAuth("manager"), (req, res) => {
+app.get("/managerRoute", roleAuth([USER_ROLES.MANAGER]), (req, res) => {
   res.send(req.t('routes.authenticated.manager'));
 });
-app.get("/waiterRoute", roleAuth(["waiter"]), (req, res) => {
+app.get("/waiterRoute", roleAuth([USER_ROLES.WAITER]), (req, res) => {
   res.send(req.t('routes.authenticated.waiter'));
 });
-app.get("/clientRoute", roleAuth("client"), (req, res) => {
+app.get("/clientRoute", roleAuth([USER_ROLES.CLIENT]), (req, res) => {
   res.send(req.t('routes.authenticated.client'));
 });
 

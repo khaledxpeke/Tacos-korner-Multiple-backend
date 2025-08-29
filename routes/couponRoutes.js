@@ -10,38 +10,39 @@ const {
   toggleCoupon,
   validateCoupon,
 } = require("../controllers/coupon.controller");
+const { USER_ROLES } = require("../enum/constants");
 
 // Coupon CRUD operations
-router.get("/", restaurantAuth(), roleAuth(["admin", "manager"]), getCoupons);
+router.get("/", restaurantAuth(), roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), getCoupons);
 router.get(
   "/categories",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   getCategoriesForCoupons
 );
 router.get(
   "/:couponId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   getCoupon
 );
-router.post("/", restaurantAuth(), roleAuth(["admin", "manager"]), addCoupon);
+router.post("/", restaurantAuth(), roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), addCoupon);
 router.put(
   "/:couponId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   updateCoupon
 );
 router.delete(
   "/:couponId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   deleteCoupon
 );
 router.put(
   "/:couponId/toggle",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   toggleCoupon
 );
 
@@ -49,7 +50,7 @@ router.put(
 router.post(
   "/validate",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   validateCoupon
 );
 

@@ -10,14 +10,15 @@ const {
   updateCategoryPositions,
   deleteCategory,
 } = require("../controllers/categoryController");
+const { USER_ROLES } = require("../enum/constants");
 
-router.get("/", restaurantAuth(),roleAuth(["admin","manager"]),getAllCategories);
-router.post("/", restaurantAuth(),roleAuth(["admin","manager"]), createCategory);
-router.get("/all", restaurantAuth(),roleAuth(["admin","manager"]), getAllCategory);
+router.get("/", restaurantAuth(),roleAuth([]),getAllCategories);
+router.post("/", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), createCategory);
+router.get("/all", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), getAllCategory);
 // router.get("/:categoryId", getCategoryById);
-router.put("/position", restaurantAuth(),roleAuth(["admin","manager"]), updateCategoryPositions);
-router.put("/update/:categoryId", restaurantAuth(),roleAuth(["admin","manager"]), updateCategory);
-router.put("/position/:categoryId", restaurantAuth(),roleAuth(["admin","manager"]), updatePositions);
-router.delete("/:categoryId",restaurantAuth(), roleAuth(["admin","manager"]), deleteCategory);
+router.put("/position", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), updateCategoryPositions);
+router.put("/update/:categoryId", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), updateCategory);
+router.put("/position/:categoryId", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), updatePositions);
+router.delete("/:categoryId",restaurantAuth(), roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), deleteCategory);
 
 module.exports = router;

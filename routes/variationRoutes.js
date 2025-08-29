@@ -6,29 +6,30 @@ const {
   updateVariation,
   deleteVariation,
 } = require("../controllers/variationController");
+const { USER_ROLES } = require("../enum/constants");
 
 router.post(
   "/",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   addVariation
 );
 router.get(
   "/",
   restaurantAuth(),
-  roleAuth(["admin", "manager", "client"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER, USER_ROLES.CLIENT]),
   getVariations
 );
 router.put(
   "/:variationId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   updateVariation
 );
 router.delete(
   "/:variationId",
   restaurantAuth(),
-  roleAuth(["admin", "manager"]),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   deleteVariation
 );
 
