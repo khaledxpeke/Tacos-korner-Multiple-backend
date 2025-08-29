@@ -40,7 +40,7 @@ const upload = multer({
 // Add new media
 exports.addMedia = async (req, res) => {
   upload(req, res, async (err) => {
-    if (err) return res.status(400).json({ error: err.message });
+  if (err) return res.status(400).json({ message: req.t('errors.image_upload_failed'), error: err.message });
 
     try {
       const { restaurantId } = req;
@@ -89,7 +89,7 @@ exports.updateOrder = async (req, res) => {
       )
     );
 
-res.status(200).json({ message: "Ordre mis à jour avec succès" });
+res.status(200).json({ message: req.t('carousel.order_updated') });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -138,13 +138,13 @@ exports.deleteMedia = async (req, res) => {
       restaurantId,
     });
     if (!media) {
-      return res.status(404).json({ message: "Média non trouvé" });
+      return res.status(404).json({ message: req.t('carousel.not_found') });
     }
 
     fs.unlinkSync(path.join(__dirname, "..", media.fileUrl));
     await CarouselMedia.findOneAndDelete({ _id: req.params.id, restaurantId });
 
-res.status(200).json({ message: "Média supprimé avec succès" });
+res.status(200).json({ message: req.t('carousel.deleted') });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

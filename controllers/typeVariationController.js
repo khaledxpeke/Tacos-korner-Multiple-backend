@@ -14,7 +14,7 @@ exports.addTypeVariation = async (req, res) => {
       restaurantId,
     });
     if (typeVariationExist) {
-return res.status(400).json({ message: "Type de variation déjà existante" });
+      return res.status(400).json({ message: req.t('type_variation.exists') });
     }
     const typeVariation = new TypeVariation({
       name,
@@ -26,10 +26,10 @@ return res.status(400).json({ message: "Type de variation déjà existante" });
     await typeVariation.save();
     res.status(201).json({
       typeVariation,
-      message: "Type de Variation ajouté avec succées",
+      message: req.t('type_variation.created'),
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('type_variation.fetch_error') });
   }
 };
 
@@ -41,7 +41,7 @@ exports.getTypeVariations = async (req, res) => {
     );
     res.status(200).json(typeVariations);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('type_variation.fetch_error') });
   }
 };
 
@@ -56,17 +56,17 @@ exports.updateTypeVariation = async (req, res) => {
       restaurantId,
     });
     if (!typeVariation) {
-return res.status(404).json({ message: "Type de variation non trouvée" });
+      return res.status(404).json({ message: req.t('type_variation.not_found') });
     }
 
-    typeVariation.name = name;
-    typeVariation.label = label;
-    typeVariation.description = description;
-    typeVariation.variations = variations;
-    await typeVariation.save();
-res.status(200).json({ message: "Type de variation modifiée avec succès" });
+  typeVariation.name = name;
+  typeVariation.label = label;
+  typeVariation.description = description;
+  typeVariation.variations = variations;
+  await typeVariation.save();
+  res.status(200).json({ message: req.t('type_variation.updated') });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('type_variation.fetch_error') });
   }
 };
 
@@ -88,8 +88,8 @@ exports.deleteTypeVariation = async (req, res) => {
     );
     res
       .status(200)
-.json({ message: "Type de variation supprimée avec succès" });
+      .json({ message: req.t('type_variation.deleted') });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('type_variation.fetch_error') });
   }
 };

@@ -18,14 +18,14 @@ exports.createIngredient = async (req, res, next) => {
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: "Le téléchargement de l'image a échoué",
+        message: req.t('errors.image_upload_failed'),
         error: err.message,
       });
     }
     if (!req.file) {
       return res.status(400).json({
-        message: "Ajouter une image",
-        error: "Veuillez télécharger une image",
+        message: req.t('product.add_image'),
+        error: req.t('errors.image_required'),
       });
     }
 
@@ -39,7 +39,7 @@ exports.createIngredient = async (req, res, next) => {
         restaurantId,
       });
       if (nameAlreadyExist) {
-        return res.status(400).json({ message: "Ingrediant déja existant" });
+        return res.status(400).json({ message: req.t('ingrediant.exists') });
       }
       let typesArray = [];
       if (typeIds) {
@@ -77,10 +77,10 @@ exports.createIngredient = async (req, res, next) => {
       await ingredient.save();
       res
         .status(201)
-        .json({ ingredient, message: "ingrediant créer avec succées" });
+        .json({ ingredient, message: req.t('ingrediant.created') });
     } catch (error) {
       return res.status(400).json({
-        message: "Une erreur s'est produite",
+        message: req.t('product.error'),
         error: error.message,
       });
     }
@@ -93,10 +93,10 @@ exports.getAllIngrediants = async (req, res, next) => {
     const ingrediants = await Ingrediant.find({ restaurantId }).populate(
       "types"
     );
-    return res.status(200).json(ingrediants);
+  return res.status(200).json(ingrediants);
   } catch (error) {
     return res.status(400).json({
-      message: "Aucun ingrediant trouvé",
+      message: req.t('ingrediant.not_found'),
       error: error.message,
     });
   }
@@ -117,14 +117,14 @@ exports.updateIngrediant = async (req, res) => {
     }
     if (err) {
       console.log(err);
-      return res.status(500).json({ message: "Erreur du serveur" });
+      return res.status(500).json({ message: req.t('product.error') });
     }
     const ingrediant = await Ingrediant.findOne({
       _id: ingrediantId,
       restaurantId,
     });
     if (!ingrediant) {
-      return res.status(404).json({ message: "aucun Ingrediant trouvée" });
+      return res.status(404).json({ message: req.t('ingrediant.not_found') });
     }
     if (
       ingrediant.image &&
@@ -208,9 +208,9 @@ exports.updateIngrediant = async (req, res) => {
 
       return res
         .status(200)
-        .json({ message: "Ingrediant modifié avec succées" });
+        .json({ message: req.t('ingrediant.updated') });
     } catch (error) {
-      return res.status(500).json({ message: error.message });
+      return res.status(500).json({ message: req.t('product.error'), error: error.message });
     }
   });
 };
@@ -226,7 +226,7 @@ exports.deleteIngredient = async (req, res, next) => {
 
     if (!ingrediant) {
       return res.status(404).json({
-        message: "Aucun ingrediant trouvé",
+        message: req.t('ingrediant.not_found'),
       });
     }
     if (ingrediant.image) {
@@ -246,11 +246,11 @@ exports.deleteIngredient = async (req, res, next) => {
     );
 
     return res.status(200).json({
-      message: "Ingredient supprimer avec succées",
+      message: req.t('ingrediant.deleted'),
     });
   } catch (error) {
     return res.status(500).json({
-      message: "Une erreur s'est produite",
+      message: req.t('product.error'),
       error: error.message,
     });
   }

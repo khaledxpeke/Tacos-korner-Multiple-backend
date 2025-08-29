@@ -22,12 +22,12 @@ exports.addSettings = async (req, res) => {
     );
 
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant non trouvée" });
+      return res.status(404).json({ message: req.t('restaurant.not_found') });
     }
 
     const { currency } = req.body;
     if (!currency) {
-      return res.status(400).json({ message: "La devise est requise" });
+      return res.status(400).json({ message: req.t('settings.currency_required') });
     }
     let existing = null;
     if (restaurant.settings) {
@@ -38,7 +38,7 @@ exports.addSettings = async (req, res) => {
     }
     if (existing) {
       if (existing.currencies.includes(currency.toUpperCase())) {
-        return res.status(400).json({ message: "La devise existe déjà" });
+        return res.status(400).json({ message: req.t('settings.currency_exists') });
       }
 
       existing.currencies.push(currency.toUpperCase());
@@ -46,10 +46,10 @@ exports.addSettings = async (req, res) => {
       await existing.save();
       return res
         .status(200)
-        .json({ existing, message: "La devise ajoutée avec succées" });
+        .json({ existing, message: req.t('settings.currency_added') });
     } else {
       if (currency === undefined) {
-        return res.status(400).json({ message: "La devise est requise" });
+        return res.status(400).json({ message: req.t('settings.currency_required') });
       }
       const newSettings = new Settings({
         restaurantId: restaurantId,
@@ -114,7 +114,7 @@ exports.getSettings = async (req, res) => {
     );
 
     if (!restaurant) {
-      return res.status(404).json({ message: "Restaurant non trouvée" });
+      return res.status(404).json({ message: req.t('restaurant.not_found') });
     }
     let settings = null;
     if (restaurant.settings) {
@@ -193,14 +193,14 @@ exports.getAllCurrencies = async (req, res) => {
     if (!restaurant || !restaurant.settings) {
       return res
         .status(404)
-        .json({ message: "Paramètre non trouvée pour cette restaurant" });
+        .json({ message: req.t('settings.param_not_found') });
     }
     const currencies = await Settings.findOne({
       _id: restaurant.settings,
       restaurantId: restaurantId,
     });
     if (!currencies) {
-      return res.status(404).json({ message: "Aucune devise trouvée" });
+      return res.status(404).json({ message: req.t('settings.currency_not_found') });
     }
 
     return res.status(200).json({
@@ -223,14 +223,14 @@ exports.updateDefaultCurrency = async (req, res) => {
     if (!restaurant || !restaurant.settings) {
       return res
         .status(404)
-        .json({ message: "Paramètre non trouvée pour cette restaurant" });
+        .json({ message: req.t('settings.param_not_found') });
     }
 
     const { defaultCurrency } = req.body;
     if (!defaultCurrency) {
       return res
         .status(400)
-        .json({ message: "La devise par défaut est requise" });
+        .json({ message: req.t('settings.currency_default_required') });
     }
     const currencyDoc = await Settings.findOne({
       _id: restaurant.settings,
@@ -240,14 +240,14 @@ exports.updateDefaultCurrency = async (req, res) => {
       !currencyDoc ||
       !currencyDoc.currencies.includes(defaultCurrency.toUpperCase())
     ) {
-      return res.status(400).json({ message: "Devise invalide" });
+      return res.status(400).json({ message: req.t('settings.currency_invalid') });
     }
 
     currencyDoc.defaultCurrency = defaultCurrency.toUpperCase();
     await currencyDoc.save();
 
     return res.status(200).json({
-      message: "Devise par défaut mise à jour",
+      message: req.t('settings.currency_default_updated'),
       defaultCurrency: currencyDoc.defaultCurrency,
     });
   } catch (error) {
@@ -266,12 +266,12 @@ exports.deleteCurrency = async (req, res) => {
     if (!restaurant || !restaurant.settings) {
       return res
         .status(404)
-        .json({ message: "Paramètre non trouvée pour cette restaurant" });
+        .json({ message: req.t('settings.param_not_found') });
     }
 
     const { currency } = req.body;
     if (!currency) {
-      return res.status(400).json({ message: "La devise est requise" });
+      return res.status(400).json({ message: req.t('settings.currency_required') });
     }
 
     const currencyDoc = await Settings.findOne({
@@ -282,13 +282,12 @@ exports.deleteCurrency = async (req, res) => {
       !currencyDoc ||
       !currencyDoc.currencies.includes(currency.toUpperCase())
     ) {
-      return res.status(400).json({ message: "Devise non trouvée" });
+      return res.status(400).json({ message: req.t('settings.currency_not_found') });
     }
 
     if (currencyDoc.currencies.length <= 1) {
       return res.status(400).json({
-        message:
-          "Impossible de supprimer la dernière devise. Ajoutez-en une autre d'abord.",
+        message: req.t('settings.currency_last_delete_error'),
       });
     }
     currencyDoc.currencies = currencyDoc.currencies.filter(
@@ -300,7 +299,7 @@ exports.deleteCurrency = async (req, res) => {
 
     await currencyDoc.save();
     return res.status(200).json({
-      message: "Devise supprimée avec succès",
+      message: req.t('settings.currency_deleted'),
       currencies: currencyDoc.currencies,
       defaultCurrency: currencyDoc.defaultCurrency,
     });
@@ -313,7 +312,7 @@ exports.updateSettings = async (req, res) => {
   upload.single("banner")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: "Le téléchargement de l'image a échoué",
+        message: req.t('settings.image_upload_failed'),
         error: err.message,
       });
     }
@@ -324,7 +323,7 @@ exports.updateSettings = async (req, res) => {
       const restaurant = await Restaurant.findOne({ _id: restaurantId });
 
       if (!restaurant) {
-        return res.status(404).json({ message: "Restaurant non trouvée" });
+        return res.status(404).json({ message: req.t('restaurant.not_found') });
       }
 
       // Find or create settings
@@ -339,7 +338,7 @@ exports.updateSettings = async (req, res) => {
       if (!settings) {
         return res
           .status(404)
-          .json({ message: "Paramètre non trouvée pour cette restaurant" });
+          .json({ message: req.t('settings.param_not_found') });
       }
       const {
         oldCurrency,
@@ -371,7 +370,7 @@ exports.updateSettings = async (req, res) => {
         if (!settings.currencies.includes(oldCurrencyUpper)) {
           return res
             .status(400)
-            .json({ message: "Ancienne devise non trouvée" });
+            .json({ message: req.t('settings.old_currency_not_found') });
         }
         if (
           settings.currencies.includes(newCurrencyUpper) &&
@@ -379,7 +378,7 @@ exports.updateSettings = async (req, res) => {
         ) {
           return res
             .status(400)
-            .json({ message: "la nouvelle devise déjà existe " });
+            .json({ message: req.t('settings.new_currency_exists') });
         }
 
         settings.currencies = settings.currencies.map((c) =>
@@ -392,7 +391,7 @@ exports.updateSettings = async (req, res) => {
 
       if (tva !== undefined) {
         if (tva < 0) {
-          return res.status(400).json({ message: "La TVA doit être positive" });
+          return res.status(400).json({ message: req.t('settings.tva_positive') });
         }
         settings.tva = tva;
         settings.maxExtras = maxExtras || settings.maxExtras;
@@ -519,7 +518,7 @@ exports.updateSettings = async (req, res) => {
 
       await settings.save();
       return res.status(200).json({
-        message: "Paramètres mis à jour avec succès",
+        message: req.t('settings.updated_success'),
         settings,
       });
     } catch (error) {

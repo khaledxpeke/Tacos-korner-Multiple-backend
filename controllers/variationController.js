@@ -12,7 +12,10 @@ exports.addVariation = async (req, res) => {
   try {
     const variation = new Variation({ name: name, restaurantId });
     await variation.save();
-    res.status(201).json(variation);
+    res.status(201).json({
+      variation,
+      message: req.t('variation.created')
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -39,13 +42,12 @@ exports.updateVariation = async (req, res) => {
       restaurantId,
     });
     if (!variation) {
-return res.status(404).json({ message: "Variation non trouvée" });
+      return res.status(404).json({ message: req.t('variation.not_found') });
     }
 
-    variation.name = name;
-    await variation.save();
-
-res.status(200).json({ message: "Variation mise à jour avec succès" });
+  variation.name = name;
+  await variation.save();
+  res.status(200).json({ message: req.t('variation.updated') });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -68,7 +70,7 @@ exports.deleteVariation = async (req, res) => {
       { variations: variationId, restaurantId },
       { $pull: { variations: variationId } }
     );
-res.status(200).json({ message: "Variation supprimée avec succès" });
+    res.status(200).json({ message: req.t('variation.deleted') });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

@@ -525,10 +525,10 @@ exports.addHistory = async (req, res) => {
     );
     const packExists = settings.pack.find((p) => p._id.toString() === pack);
     if (!packExists || !packExists.isActive) {
-      return res.status(404).json({ message: "Mode de livraison non trouvé" });
+      return res.status(404).json({ message: req.t('history.delivery_mode_not_found') });
     }
     if (!methodExists || !methodExists.isActive) {
-      return res.status(404).json({ message: "Mode de paiement non trouvé" });
+      return res.status(404).json({ message: req.t('history.payment_method_not_found') });
     }
     const tva = settings?.tva || 0;
     const history = await new History({
@@ -632,17 +632,17 @@ exports.addHistory = async (req, res) => {
       })
       .catch((err) => {
         console.error(
-          "Une erreur s'est produite lors de l'enregistrement de l'historique:",
+          req.t('history.save_error_log'),
           err
         );
         res.status(500).json({
-          message: "Une erreur s'est produite",
+          message: req.t('history.save_error'),
           error: err,
         });
       });
   } catch (error) {
-    console.error("Error saving history:", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error(req.t('history.save_error_log'), error);
+    res.status(500).json({ error: req.t('history.internal_server_error') });
   }
 };
 
@@ -658,8 +658,8 @@ const notifyWaiters = async (history) => {
 
     const payload = {
       notification: {
-        title: "Nouvelle commande",
-        body: `${history.name} à commander une nouvelle commande N°${history.commandNumber}`,
+        title: req.t('history.new_order_title'),
+        body: req.t('history.new_order_body', { name: history.name, commandNumber: history.commandNumber }),
       },
     };
 
@@ -671,13 +671,13 @@ const notifyWaiters = async (history) => {
         });
       } catch (error) {
         console.error(
-          `Erreur d'envoyer les notifications au jetons: ${token}`,
+          req.t('history.notification_token_error', { token }),
           error
         );
       }
     }
   } catch (error) {
-    console.error("Erreur d'envoyer les notifications:", error);
+  console.error(req.t('history.notification_send_error'), error);
   }
 };
 exports.getHistory = async (req, res) => {
@@ -738,10 +738,9 @@ exports.getHistory = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error fetching history:", error);
+    console.error(req.t('history.fetch_error_log'), error);
     res.status(500).json({
-      message:
-        "Une erreur s'est produite lors de la récupération de l'historique",
+      message: req.t('history.fetch_error'),
       error: error.message,
     });
   }
@@ -757,7 +756,7 @@ exports.getLast10Orders = async (req, res) => {
 
     res.status(200).json(orders);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: req.t('history.last10orders_error', { error: error.message }) });
     throw error;
   }
 };
@@ -766,7 +765,7 @@ const generatePDF = async (orderData) => {
   const { restaurantId } = orderData;
 
   if (!restaurantId) {
-    throw new Error("ID Restaurant n'est pas trouvée dans l'historique.");
+    throw new Error(req.t('history.restaurant_id_not_found'));
   }
   const html = fs.readFileSync(
     path.join(__dirname, "../template/pdf.handlebars"),
@@ -862,7 +861,7 @@ const generatePDF = async (orderData) => {
     await pdf.create(document, options);
     return document.path;
   } catch (error) {
-    console.error("Erreur de génération de PDF:", error);
+    console.error(req.t('history.pdf_generation_error'), error);
     throw error;
   }
 };
@@ -878,7 +877,7 @@ exports.addEmail = async (req, res) => {
       boughtAt: -1,
     });
     if (!history) {
-      return res.status(404).json({ message: "Ordre non trouvée" });
+      return res.status(404).json({ message: req.t('history.order_not_found') });
     }
     let formattedDate = moment(history.boughtAt)
       .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
@@ -892,8 +891,7 @@ exports.addEmail = async (req, res) => {
     const today = new Date().setHours(0, 0, 0, 0);
     if (orderDate < today) {
       return res.status(400).json({
-        message:
-          "Impossible d'envoyer un e-mail pour les commandes des jours précédents",
+        message: req.t('history.email_past_order_error'),
       });
     }
     const logoUrl = `${process.env.BASE_URL}/api/${restaurant.logo.replace(
@@ -963,10 +961,10 @@ exports.addEmail = async (req, res) => {
     };
     await transporter.sendMail(mailOptions);
     fs.unlinkSync(pdfPath);
-    res.status(200).json({ message: "E-mail envoyé avec succès" });
+  res.status(200).json({ message: req.t('history.email_sent_success') });
   } catch (error) {
-    console.error("Error saving history:", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error(req.t('history.save_error_log'), error);
+    res.status(500).json({ error: req.t('history.internal_server_error') });
   }
 };
 
@@ -1000,8 +998,8 @@ exports.getCommandNumber = async (req, res) => {
     // No previous commands
     return res.status(200).json(1);
   } catch (error) {
-    console.error("Error getting command number:", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error(req.t('history.command_number_error_log'), error);
+    res.status(500).json({ error: req.t('history.internal_server_error') });
   }
 };
 
@@ -1017,7 +1015,7 @@ exports.updateStatus = async (req, res) => {
       { new: true }
     );
     if (!history) {
-      return res.status(404).json({ message: "Historique non trouvé" });
+      return res.status(404).json({ message: req.t('history.history_not_found') });
     }
     const statusHistory = new StatusHistory({
       historyId: id,
@@ -1037,10 +1035,10 @@ exports.updateStatus = async (req, res) => {
     res.status(200).json(history);
   } catch (error) {
     console.error(
-      "Erreur lors de la mise à jour du statut de l'historique:",
+      req.t('history.status_update_error_log'),
       error
     );
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    res.status(500).json({ error: req.t('history.internal_server_error') });
   }
 };
 
@@ -1317,12 +1315,12 @@ exports.getHistoriesRT = async (socket) => {
 
         socket.emit("histories-update", response);
       } catch (error) {
-        console.error("Error in fetch-histories:", error);
-        socket.emit("error", error.message);
+        console.error('Error in fetch-histories:', error);
+        socket.emit("error", socket.request.t('history.fetch_histories_error', { error: error.message }));
       }
     });
   } catch (error) {
-    socket.emit("error", error.message);
+    socket.emit("error", socket.request.t('history.fetch_histories_error', { error: error.message }));
   }
 };
 const checkAndUpdateDelayedOrders = async (restaurantId) => {
@@ -1359,7 +1357,7 @@ const checkAndUpdateDelayedOrders = async (restaurantId) => {
       }
     }
   } catch (error) {
-    console.error("Error checking delayed orders:", error);
+    console.error('Error checking delayed orders:', error);
   }
 };
 
@@ -1765,7 +1763,7 @@ exports.getStatistics = async (req, res) => {
     console.error("Error fetching statistics:", error);
     res.status(500).json({
       success: false,
-      message: "Erreur lors de la récupération des statistiques",
+      message: req.t('history.statistics_error'),
       error: error.message,
     });
   }
@@ -1783,7 +1781,7 @@ exports.getLatestPrintJob = async (req, res) => {
     });
 
     if (!printJob) {
-      return res.status(204).send("No pending print job");
+      return res.status(204).send(req.t('history.no_pending_print_job'));
     }
 
     // Marquer la commande comme "enAttente" (inProgress) pour éviter de l'imprimer à nouveau
@@ -1792,8 +1790,8 @@ exports.getLatestPrintJob = async (req, res) => {
 
     res.status(200).json(printJob);
   } catch (error) {
-    console.error("Error fetching print job:", error);
-    res.status(500).json({ message: "Erreur interne du serveur" });
+    console.error(req.t('history.latest_print_job_error_log'), error);
+    res.status(500).json({ message: req.t('history.internal_server_error') });
   }
 };
 
@@ -1806,13 +1804,13 @@ exports.manualPrint = async (req, res) => {
     const order = await History.findOne({ _id: id, restaurantId });
 
     if (!order) {
-      return res.status(404).json({ message: "Commande non trouvée" });
+      return res.status(404).json({ message: req.t('history.order_not_found') });
     }
 
     // Immediate response to cashier
     res.status(200).json({
       success: true,
-      message: "Demande d'impression envoyée",
+      message: req.t('history.manual_print_request_sent'),
       orderId: id,
       commandNumber: order.commandNumber,
     });
@@ -1820,8 +1818,8 @@ exports.manualPrint = async (req, res) => {
     // Trigger print (non-blocking)
     setImmediate(() => triggerAutoPrint(id));
   } catch (error) {
-    console.error("Error triggering manual print:", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error(req.t('history.manual_print_error_log'), error);
+    res.status(500).json({ error: req.t('history.internal_server_error') });
   }
 };
 
@@ -1864,10 +1862,11 @@ exports.getFailedPrints = async (req, res) => {
       queuedRetries: queuedJobs,
       totalFailed: failedOrders.length,
       totalQueued: queuedJobs.length,
+      message: req.t('history.failed_prints_success'),
     });
   } catch (error) {
-    console.error("Error fetching failed prints:", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error(req.t('history.failed_prints_error_log'), error);
+    res.status(500).json({ error: req.t('history.internal_server_error') });
   }
 };
 
@@ -1880,7 +1879,7 @@ exports.retryPrint = async (req, res) => {
     const order = await History.findOne({ _id: id, restaurantId });
 
     if (!order) {
-      return res.status(404).json({ message: "Commande non trouvée" });
+      return res.status(404).json({ message: req.t('history.order_not_found') });
     }
 
     // Reset print status
@@ -1901,7 +1900,7 @@ exports.retryPrint = async (req, res) => {
     // Immediate response
     res.status(200).json({
       success: true,
-      message: "Impression relancée",
+      message: req.t('history.print_retried'),
       orderId: id,
       commandNumber: order.commandNumber,
     });
@@ -1909,8 +1908,8 @@ exports.retryPrint = async (req, res) => {
     // Trigger print
     setImmediate(() => triggerAutoPrint(id));
   } catch (error) {
-    console.error("Error retrying print:", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error(req.t('history.retry_print_error_log'), error);
+    res.status(500).json({ error: req.t('history.internal_server_error') });
   }
 };
 
@@ -1945,7 +1944,7 @@ exports.retryAllFailedPrints = async (req, res) => {
     // Immediate response
     res.status(200).json({
       success: true,
-      message: `${failedOrders.length} impressions relancées`,
+      message: req.t('history.all_prints_retried', { count: failedOrders.length }),
       retriedCount: failedOrders.length,
     });
 
@@ -1954,8 +1953,8 @@ exports.retryAllFailedPrints = async (req, res) => {
       setImmediate(() => triggerAutoPrint(order._id));
     });
   } catch (error) {
-    console.error("Error retrying all failed prints:", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error(req.t('history.retry_all_failed_prints_error_log'), error);
+    res.status(500).json({ error: req.t('history.internal_server_error') });
   }
 };
 
@@ -2016,9 +2015,10 @@ exports.getPrintStats = async (req, res) => {
       activeRetries: failedPrintQueue.filter(
         (job) => job.order.restaurantId.toString() === restaurantId
       ).length,
+      message: req.t('history.print_stats_success'),
     });
   } catch (error) {
-    console.error("Error fetching print stats:", error);
-    res.status(500).json({ error: "Erreur interne du serveur" });
+    console.error(req.t('history.print_stats_error_log'), error);
+    res.status(500).json({ error: req.t('history.internal_server_error') });
   }
 };

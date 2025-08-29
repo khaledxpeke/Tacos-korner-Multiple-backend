@@ -41,7 +41,7 @@ exports.addCoupon = async (req, res) => {
 
     if (!code || !couponType || !couponValue) {
       return res.status(400).json({
-        message: "Code, type de remise et valeur de remise sont requis",
+        message: req.t('coupon.required_fields'),
       });
     }
 
@@ -52,8 +52,7 @@ exports.addCoupon = async (req, res) => {
       )
     ) {
       return res.status(400).json({
-        message:
-          "Type de catégorie invalide. Doit être 'all', 'categories', 'products' ou 'categories_products'",
+        message: req.t('coupon.invalid_category_type'),
       });
     }
 
@@ -64,7 +63,7 @@ exports.addCoupon = async (req, res) => {
       (!couponCategories || couponCategories.length === 0)
     ) {
       return res.status(400).json({
-        message: "Veuillez sélectionner au moins une catégorie",
+        message: req.t('coupon.select_category'),
       });
     }
     if (
@@ -72,7 +71,7 @@ exports.addCoupon = async (req, res) => {
       (!couponProducts || couponProducts.length === 0)
     ) {
       return res.status(400).json({
-        message: "Veuillez sélectionner au moins un produit",
+        message: req.t('coupon.select_product'),
       });
     }
 
@@ -87,8 +86,7 @@ exports.addCoupon = async (req, res) => {
 
     if (end && start.isSameOrAfter(end)) {
       return res.status(400).json({
-        message:
-          "La date et l'heure de fin doivent être postérieures à la date et l'heure de début",
+        message: req.t('coupon.end_after_start'),
       });
     }
     // Check if coupon code already exists for this restaurant
@@ -98,7 +96,7 @@ exports.addCoupon = async (req, res) => {
     });
 
     if (existingCoupon) {
-      return res.status(400).json({ message: "Ce code promo existe déjà" });
+      return res.status(400).json({ message: req.t('coupon.exists') });
     }
 
     const newCoupon = new Coupon({
@@ -124,7 +122,7 @@ exports.addCoupon = async (req, res) => {
     await newCoupon.save();
 
     return res.status(201).json({
-      message: "Code promo ajouté avec succès",
+      message: req.t('coupon.created'),
       coupon: newCoupon,
     });
   } catch (error) {
@@ -160,7 +158,7 @@ exports.getCoupon = async (req, res) => {
       .populate("couponProducts", "name");
 
     if (!coupon) {
-      return res.status(404).json({ message: "Code promo non trouvé" });
+      return res.status(404).json({ message: req.t('coupon.not_found') });
     }
 
     return res.status(200).json(coupon);
@@ -192,7 +190,7 @@ exports.updateCoupon = async (req, res) => {
     });
 
     if (!coupon) {
-      return res.status(404).json({ message: "Code promo non trouvé" });
+      return res.status(404).json({ message: req.t('coupon.not_found') });
     }
 
     // Check if new code already exists (excluding current coupon)
@@ -204,7 +202,7 @@ exports.updateCoupon = async (req, res) => {
       });
 
       if (existingCoupon) {
-        return res.status(400).json({ message: "Ce code promo existe déjà" });
+        return res.status(400).json({ message: req.t('coupon.exists') });
       }
     }
 
@@ -216,8 +214,7 @@ exports.updateCoupon = async (req, res) => {
       )
     ) {
       return res.status(400).json({
-        message:
-          "Type de catégorie invalide. Doit être 'all', 'categories', 'products' ou 'categories_products'",
+        message: req.t('coupon.invalid_category_type'),
       });
     }
 
@@ -228,7 +225,7 @@ exports.updateCoupon = async (req, res) => {
       (!couponCategories || couponCategories.length === 0)
     ) {
       return res.status(400).json({
-        message: "Veuillez sélectionner au moins une catégorie",
+        message: req.t('coupon.select_category'),
       });
     }
     if (
@@ -236,7 +233,7 @@ exports.updateCoupon = async (req, res) => {
       (!couponProducts || couponProducts.length === 0)
     ) {
       return res.status(400).json({
-        message: "Veuillez sélectionner au moins un produit",
+        message: req.t('coupon.select_product'),
       });
     }
 
@@ -255,8 +252,7 @@ exports.updateCoupon = async (req, res) => {
 
     if (newEndDate && newStartDate.isSameOrAfter(newEndDate)) {
       return res.status(400).json({
-        message:
-          "La date et l'heure de fin doivent être postérieures à la date et l'heure de début",
+        message: req.t('coupon.end_after_start'),
       });
     }
 
@@ -290,7 +286,7 @@ exports.updateCoupon = async (req, res) => {
     await coupon.save();
 
     return res.status(200).json({
-      message: "Code promo mis à jour avec succès",
+      message: req.t('coupon.updated'),
       coupon,
     });
   } catch (error) {
@@ -309,11 +305,11 @@ exports.deleteCoupon = async (req, res) => {
     });
 
     if (!coupon) {
-      return res.status(404).json({ message: "Code promo non trouvé" });
+      return res.status(404).json({ message: req.t('coupon.not_found') });
     }
 
     return res.status(200).json({
-      message: "Code promo supprimé avec succès",
+      message: req.t('coupon.deleted'),
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -331,14 +327,14 @@ exports.toggleCoupon = async (req, res) => {
     });
 
     if (!coupon) {
-      return res.status(404).json({ message: "Code promo non trouvé" });
+      return res.status(404).json({ message: req.t('coupon.not_found') });
     }
 
     coupon.isActive = !coupon.isActive;
     await coupon.save();
 
     return res.status(200).json({
-      message: `Code promo ${coupon.isActive ? "activé" : "désactivé"}`,
+      message: coupon.isActive ? req.t('coupon.activated') : req.t('coupon.deactivated'),
       coupon,
     });
   } catch (error) {
@@ -353,7 +349,7 @@ exports.validateCoupon = async (req, res) => {
 
     if (!code) {
       return res.status(400).json({
-        message: "Code promo requis",
+        message: req.t('coupon.code_required'),
       });
     }
 
@@ -366,7 +362,7 @@ exports.validateCoupon = async (req, res) => {
     if (!coupon) {
       return res
         .status(404)
-        .json({ message: "Code promo invalide ou inactif" });
+        .json({ message: req.t('coupon.invalid_or_inactive') });
     }
 
     const now = moment().tz(RESTAURANT_TIMEZONE);
