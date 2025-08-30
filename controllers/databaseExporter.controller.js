@@ -166,7 +166,7 @@ const imageCollections = {
   CarouselMedia: "carousel",
 };
 
-function copyImageIfExists(imagePath, collectionName, newRestaurantId) {
+function copyImageIfExists(imagePath, collectionName, newRestaurantId, uniqueId) {
   if (!imagePath || typeof imagePath !== "string") return null;
   const baseUploadDir = path.join(__dirname, "..", "uploads");
   const subDir = imageCollections[collectionName];
@@ -177,7 +177,7 @@ function copyImageIfExists(imagePath, collectionName, newRestaurantId) {
 
   // Create new unique filename
   const ext = path.extname(imagePath);
-  const newFileName = `${newRestaurantId}_${Date.now()}${ext}`;
+  const newFileName = `${newRestaurantId}_${uniqueId}${ext}`;
   const newImageRelPath = path.join("uploads", subDir, newFileName);
   const newImageFullPath = path.join(baseUploadDir, subDir, newFileName);
 
@@ -227,11 +227,11 @@ exports.importRestaurantData = async (req, res) => {
         newDoc._id = oidMap.get(oldId) || oldId;
         newDoc.restaurantId = newRestaurantId;
         if (newDoc.image) {
-          newDoc.image = copyImageIfExists(newDoc.image, name, newRestaurantId);
+          newDoc.image = copyImageIfExists(newDoc.image, name, newRestaurantId,newDoc._id);
         }
         // For CarouselMedia, Restaurant, etc. you may have other image fields (e.g., logo, banner)
         if (name === "CarouselMedia" && newDoc.media) {
-          newDoc.media = copyImageIfExists(newDoc.media, name, newRestaurantId);
+          newDoc.media = copyImageIfExists(newDoc.media, name, newRestaurantId, newDoc._id);
         }
         return newDoc;
       });

@@ -299,91 +299,48 @@ exports.deleteRestaurant = async (req, res) => {
       return res.status(404).json({ message: req.t("restaurant.not_found") });
     }
 
+    // Gather all image paths to delete later
+    const imagePaths = [];
+
     if (restaurant.logo) {
-      const imagePath = path.join(__dirname, "..", restaurant.logo);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
+      imagePaths.push(path.join(__dirname, "..", restaurant.logo));
     }
 
-    // Delete all product images
     const products = await Product.find({ restaurantId: restaurant._id });
-    for (const product of products) {
-      if (product.image) {
-        const imagePath = path.join(__dirname, "..", product.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-    }
-
-    // Delete all category images
-    const categories = await Category.find({ restaurantId: restaurant._id });
-    for (const category of categories) {
-      if (category.image) {
-        const imagePath = path.join(__dirname, "..", category.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-    }
-
-    // Delete all carousel images
-    const carousels = await carouselMedia.find({
-      restaurantId: restaurant._id,
+    products.forEach(product => {
+      if (product.image) imagePaths.push(path.join(__dirname, "..", product.image));
     });
-    for (const carousel of carousels) {
-      if (carousel.media) {
-        const imagePath = path.join(__dirname, "..", carousel.media);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-    }
 
-    // Delete all ingredient images
+    const categories = await Category.find({ restaurantId: restaurant._id });
+    categories.forEach(category => {
+      if (category.image) imagePaths.push(path.join(__dirname, "..", category.image));
+    });
+
+    const carousels = await carouselMedia.find({ restaurantId: restaurant._id });
+    carousels.forEach(carousel => {
+      if (carousel.media) imagePaths.push(path.join(__dirname, "..", carousel.media));
+    });
+
     const ingrediants = await Ingrediant.find({ restaurantId: restaurant._id });
-    for (const ingrediant of ingrediants) {
-      if (ingrediant.image) {
-        const imagePath = path.join(__dirname, "..", ingrediant.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-    }
+    ingrediants.forEach(ingrediant => {
+      if (ingrediant.image) imagePaths.push(path.join(__dirname, "..", ingrediant.image));
+    });
 
-    // Delete all extra images
     const extras = await Extra.find({ restaurantId: restaurant._id });
-    for (const extra of extras) {
-      if (extra.image) {
-        const imagePath = path.join(__dirname, "..", extra.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-    }
+    extras.forEach(extra => {
+      if (extra.image) imagePaths.push(path.join(__dirname, "..", extra.image));
+    });
 
-    // Delete all dessert images
     const desserts = await Desert.find({ restaurantId: restaurant._id });
-    for (const dessert of desserts) {
-      if (dessert.image) {
-        const imagePath = path.join(__dirname, "..", dessert.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-    }
+    desserts.forEach(dessert => {
+      if (dessert.image) imagePaths.push(path.join(__dirname, "..", dessert.image));
+    });
 
-    // Delete all drink images
     const drinks = await Drink.find({ restaurantId: restaurant._id });
-    for (const drink of drinks) {
-      if (drink.image) {
-        const imagePath = path.join(__dirname, "..", drink.image);
-        if (fs.existsSync(imagePath)) {
-          fs.unlinkSync(imagePath);
-        }
-      }
-    }
+    drinks.forEach(drink => {
+      if (drink.image) imagePaths.push(path.join(__dirname, "..", drink.image));
+    });
+
     // Remove restaurant from all users
     await User.updateMany(
       { "restaurants.restaurantId": restaurant._id },
@@ -396,43 +353,37 @@ exports.deleteRestaurant = async (req, res) => {
       await Settings.findByIdAndDelete(restaurant.settings).session(session);
     }
     await Product.deleteMany({ restaurantId: restaurant._id }).session(session);
-
-    // Delete all orders associated with the restaurant
     await History.deleteMany({ restaurantId: restaurant._id }).session(session);
-
-    await Category.deleteMany({ restaurantId: restaurant._id }).session(
-      session
-    );
-
-    await Ingrediant.deleteMany({ restaurantId: restaurant._id }).session(
-      session
-    );
-    await Variation.deleteMany({ restaurantId: restaurant._id }).session(
-      session
-    );
-    await TypeVariation.deleteMany({ restaurantId: restaurant._id }).session(
-      session
-    );
+    await Category.deleteMany({ restaurantId: restaurant._id }).session(session);
+    await Ingrediant.deleteMany({ restaurantId: restaurant._id }).session(session);
+    await Variation.deleteMany({ restaurantId: restaurant._id }).session(session);
+    await TypeVariation.deleteMany({ restaurantId: restaurant._id }).session(session);
     await Type.deleteMany({ restaurantId: restaurant._id }).session(session);
     await Desert.deleteMany({ restaurantId: restaurant._id }).session(session);
     await Drink.deleteMany({ restaurantId: restaurant._id }).session(session);
     await Extra.deleteMany({ restaurantId: restaurant._id }).session(session);
-    await carouselMedia
-      .deleteMany({ restaurantId: restaurant._id })
-      .session(session);
+    await carouselMedia.deleteMany({ restaurantId: restaurant._id }).session(session);
     await User.updateMany(
       { "restaurants.restaurantId": restaurant._id },
       { $pull: { restaurants: { restaurantId: restaurant._id } } },
       { session }
     );
 
-    // Delete restaurant
-    await Restaurant.findByIdAndDelete(req.params.restaurantId).session(
-      session
-    );
+    await Restaurant.findByIdAndDelete(req.params.restaurantId).session(session);
 
     await session.commitTransaction();
     session.endSession();
+
+    // Delete images after transaction
+    imagePaths.forEach(imagePath => {
+      try {
+        if (fs.existsSync(imagePath)) {
+          fs.unlinkSync(imagePath);
+        }
+      } catch (err) {
+        console.error("Failed to delete image:", imagePath, err.message);
+      }
+    });
 
     res.status(200).json({ message: req.t("restaurant.deleted") });
   } catch (error) {
