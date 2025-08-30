@@ -74,7 +74,10 @@ function updateOids(obj, oidMap) {
 // EXPORT function producing two files
 exports.exportRestaurantData = async (req, res) => {
   const { restaurantId } = req;
-  if (!restaurantId) return res.status(400).json({ message: "Restaurant ID missing from middleware." });
+  if (!restaurantId)
+    return res
+      .status(400)
+      .json({ message: "Restaurant ID missing from middleware." });
 
   try {
     const exportDataRaw = {};
@@ -89,7 +92,7 @@ exports.exportRestaurantData = async (req, res) => {
     }
     // For cloned, export all except History
     for (const [name, Model] of Object.entries(models)) {
-      if (name === 'History') continue;
+      if (name === "History") continue;
       let query = {};
       if (Model.schema.paths.restaurantId) query.restaurantId = restaurantId;
       const data = await Model.find(query).lean();
@@ -97,20 +100,41 @@ exports.exportRestaurantData = async (req, res) => {
       exportDataCloned[name] = data;
     }
     if (Object.keys(exportDataRaw).length === 0)
-      return res.status(404).json({ message: "No data found for this restaurant." });
+      return res
+        .status(404)
+        .json({ message: "No data found for this restaurant." });
 
     // Save files
     const exportFolder = path.join(__dirname, "../data/exports");
-    if (!fs.existsSync(exportFolder)) fs.mkdirSync(exportFolder, { recursive: true });
+    if (!fs.existsSync(exportFolder))
+      fs.mkdirSync(exportFolder, { recursive: true });
 
     const now = new Date();
-    const timestamp = `${now.getDate().toString().padStart(2,'0')}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getFullYear()}`;
+    const timestamp = `${now.getDate().toString().padStart(2, "0")}-${(
+      now.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}-${now.getFullYear()}`;
 
-    const rawFilePath = path.join(exportFolder, `restaurant_${restaurantId}_raw_${timestamp}.json`);
-    const clonedFilePath = path.join(exportFolder, `restaurant_${restaurantId}_cloned_${timestamp}.json`);
+    const rawFilePath = path.join(
+      exportFolder,
+      `restaurant_${restaurantId}_raw_${timestamp}.json`
+    );
+    const clonedFilePath = path.join(
+      exportFolder,
+      `restaurant_${restaurantId}_cloned_${timestamp}.json`
+    );
 
-    fs.writeFileSync(rawFilePath, JSON.stringify(exportDataRaw, null, 2), "utf-8");
-    fs.writeFileSync(clonedFilePath, JSON.stringify(exportDataCloned, null, 2), "utf-8");
+    fs.writeFileSync(
+      rawFilePath,
+      JSON.stringify(exportDataRaw, null, 2),
+      "utf-8"
+    );
+    fs.writeFileSync(
+      clonedFilePath,
+      JSON.stringify(exportDataCloned, null, 2),
+      "utf-8"
+    );
 
     return res.json({
       success: true,
@@ -118,14 +142,50 @@ exports.exportRestaurantData = async (req, res) => {
       rawFile: rawFilePath,
       clonedFile: clonedFilePath,
       rawData: exportDataRaw,
-      clonedData: exportDataCloned
+      clonedData: exportDataCloned,
     });
   } catch (err) {
     console.error("Export error:", err);
-    return res.status(500).json({ success: false, message: "Error exporting data", error: err.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error exporting data",
+        error: err.message,
+      });
   }
 };
 
+const imageCollections = {
+  Category: "category",
+  Product: "product",
+  Ingrediant: "ingrediants",
+  Extra: "extras",
+  Desert: "dessert",
+  Drink: "boisson",
+  CarouselMedia: "carousel",
+};
+
+function copyImageIfExists(imagePath, collectionName, newRestaurantId) {
+  if (!imagePath || typeof imagePath !== "string") return null;
+  const baseUploadDir = path.join(__dirname, "..", "uploads");
+  const subDir = imageCollections[collectionName];
+  if (!subDir) return imagePath; // If not mapped, keep original
+
+  const oldImageFullPath = path.join(__dirname, "..", imagePath);
+  if (!fs.existsSync(oldImageFullPath)) return imagePath; // If file doesn't exist, keep original
+
+  // Create new unique filename
+  const ext = path.extname(imagePath);
+  const newFileName = `${newRestaurantId}_${Date.now()}${ext}`;
+  const newImageRelPath = path.join("uploads", subDir, newFileName);
+  const newImageFullPath = path.join(baseUploadDir, subDir, newFileName);
+
+  // Copy file
+  fs.copyFileSync(oldImageFullPath, newImageFullPath);
+
+  return newImageRelPath.replace(/\\/g, "/");
+}
 // Configure Multer for temporary upload
 const upload = multer({ dest: path.join(__dirname, "../data/") });
 
@@ -149,7 +209,7 @@ exports.importRestaurantData = async (req, res) => {
     for (const [name, Model] of Object.entries(models)) {
       const data = jsonData[name];
       if (!data || data.length === 0) continue;
-      data.forEach(doc => {
+      data.forEach((doc) => {
         const oldId = doc._id.toString();
         const newId = new ObjectId().toHexString();
         oidMap.set(oldId, newId);
@@ -161,16 +221,23 @@ exports.importRestaurantData = async (req, res) => {
       const data = jsonData[name];
       if (!data || data.length === 0) continue;
 
-      const clonedData = data.map(doc => {
+      const clonedData = data.map((doc) => {
         const newDoc = { ...doc };
         const oldId = newDoc._id.toString();
         newDoc._id = oidMap.get(oldId) || oldId;
         newDoc.restaurantId = newRestaurantId;
+        if (newDoc.image) {
+          newDoc.image = copyImageIfExists(newDoc.image, name, newRestaurantId);
+        }
+        // For CarouselMedia, Restaurant, etc. you may have other image fields (e.g., logo, banner)
+        if (name === "CarouselMedia" && newDoc.media) {
+          newDoc.media = copyImageIfExists(newDoc.media, name, newRestaurantId);
+        }
         return newDoc;
       });
 
       // Update all references in the doc to use new IDs
-      clonedData.forEach(doc => updateOids(doc, oidMap));
+      clonedData.forEach((doc) => updateOids(doc, oidMap));
 
       try {
         await Model.insertMany(clonedData, { ordered: false });
@@ -190,11 +257,17 @@ exports.importRestaurantData = async (req, res) => {
     return res.json({
       success: true,
       message: "Import complete",
-      insertedCollections
+      insertedCollections,
     });
   } catch (err) {
     console.error("Import error:", err);
-    return res.status(500).json({ success: false, message: "Error importing data", error: err.message });
+    return res
+      .status(500)
+      .json({
+        success: false,
+        message: "Error importing data",
+        error: err.message,
+      });
   }
 };
 

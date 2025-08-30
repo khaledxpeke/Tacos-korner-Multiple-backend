@@ -1,0 +1,1586 @@
+{
+  "CarouselMedia": [
+    {
+      "_id": "6817cef314961a88cdd0f2ec",
+      "mediaType": "image",
+      "fileUrl": "uploads/carousel/1746390771797-STUDENT CARD.jpg",
+      "duration": 5,
+      "order": 2,
+      "isActive": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "6833be11b1574091a345e091",
+      "mediaType": "image",
+      "fileUrl": "uploads/carousel/1748221456895-1315631.png",
+      "duration": 5,
+      "order": 1,
+      "isActive": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "Category": [
+    {
+      "_id": "6833636e3eafac769359f350",
+      "name": "burgers",
+      "image": "uploads/category/1755881691247.jpg",
+      "products": [
+        "683363893eafac769359f38d",
+        "683363a43eafac769359f3e2",
+        "689ca305c09e2a7709f2527e"
+      ],
+      "position": 3,
+      "createdBy": "67fa922b0e419f7da2b19e2c",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "imagePreviewHash": "UDEd-K^i0N9u}9xCAGJA9cwKt4I;9^n%w]sn"
+    },
+    {
+      "_id": "6845aa02d8ce264b3f54d29f",
+      "name": "aaabb",
+      "image": "uploads/category/1749395970401.png",
+      "products": [],
+      "position": 4,
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "imagePreviewHash": "U66u01of00Rj~qkC4nof?bWBD%of-;j[D%WB"
+    },
+    {
+      "_id": "689caba4e0a1c8437271a5a8",
+      "name": "Tacos",
+      "image": "uploads/category/1755881666537.png",
+      "products": [
+        "68a87da2d5bd83cdc9f7d97f"
+      ],
+      "position": 1,
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "imagePreviewHash": "U8F#s=Br004Tm,xV0fEQ00;d?byXXSkX~Vwb"
+    },
+    {
+      "_id": "68a87baa8c955a67e8858b3c",
+      "name": "pizza",
+      "image": "uploads/category/1755872168774.jpg",
+      "imagePreviewHash": "U3En#2I=00}qxao}xu$LE2=xTdEMx@rraPI?",
+      "products": [
+        "68a87bfc8c955a67e8858b8d",
+        "68a8aefefc4ce7f09c43756a"
+      ],
+      "position": 2,
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "Desert": [
+    {
+      "_id": "6814e4386d7a278f8dc73d70",
+      "name": "cake",
+      "price": 2,
+      "image": "uploads/dessert/1755872788850.jpg",
+      "outOfStock": false,
+      "visible": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "imagePreviewHash": "UfJR5m9Gu6I_-.WUWqxWyER.xDs:WrWBWBWE"
+    }
+  ],
+  "Drink": [
+    {
+      "_id": "6814e5a65a9b6156fc731913",
+      "name": "water",
+      "price": 2,
+      "image": "uploads/boisson/1755872765163.jpg",
+      "outOfStock": false,
+      "visible": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "imagePreviewHash": "ULRyyxxu~WIT-pxtM|Io^*RjD*xuE1NG%2%2"
+    },
+    {
+      "_id": "681776911c58ba52a52cfdad",
+      "name": "boga",
+      "price": 3,
+      "image": "uploads/boisson/1755872734883.png",
+      "outOfStock": false,
+      "visible": true,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "imagePreviewHash": "U8DTj]IW00-.l8k9ZiV{TQobMpS5}=V|5Txm"
+    }
+  ],
+  "Extra": [
+    {
+      "_id": "6814e2d4d68ccf74fd35e18e",
+      "name": "frites",
+      "image": "uploads/extras/1755872708355.jpeg",
+      "price": 5,
+      "outOfStock": false,
+      "visible": true,
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "imagePreviewHash": "UqMYp2RlTKt6~VofNxX8E,%1wcjuOFR+adnh"
+    }
+  ],
+  "Ingrediant": [
+    {
+      "_id": "6814e02b7e9dd31c8bca126d",
+      "name": "Oignons frits",
+      "image": "uploads/ingrediants/1755872577718.jpg",
+      "product": [],
+      "types": [
+        "680e37a548022a251b5f2c75"
+      ],
+      "suppPrice": 0.5,
+      "outOfStock": false,
+      "visible": true,
+      "variations": [
+        {
+          "_id": "6814dd30fba834b995cf5599",
+          "price": 0
+        },
+        {
+          "_id": "6814da3002837836c7406969",
+          "price": 1.5
+        }
+      ],
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "price": 1,
+      "imagePreviewHash": "UDIz-W={YR9a-557OENH7%E2=XslBXtRaeoc"
+    },
+    {
+      "_id": "68a87c2e8c955a67e8858be5",
+      "name": "mayonnaise",
+      "image": "uploads/ingrediants/1755872301817.jpg",
+      "imagePreviewHash": "UUSFw+xu.ANG-nRiNLt7p0j[ngayS*ofi^j[",
+      "product": [],
+      "types": [
+        "680e37a548022a251b5f2c75"
+      ],
+      "suppPrice": 0,
+      "outOfStock": false,
+      "visible": true,
+      "variations": [],
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "price": 2
+    },
+    {
+      "_id": "68a87c9f8c955a67e8858c34",
+      "name": "viande hachée",
+      "image": "uploads/ingrediants/1755872413920.png",
+      "imagePreviewHash": "U]Q]A^ozx]V@V@aeogfk.maeRij]ozozR%e.",
+      "product": [],
+      "types": [
+        "68a87c5e8c955a67e8858c03"
+      ],
+      "suppPrice": 0,
+      "outOfStock": false,
+      "visible": true,
+      "variations": [],
+      "createdBy": "67fa83088376b70b5e453170",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "price": 5
+    }
+  ],
+  "Product": [
+    {
+      "_id": "683363893eafac769359f38d",
+      "name": "Burger",
+      "description": "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.",
+      "price": 100,
+      "image": "uploads/product/1748198281210.png",
+      "category": "6833636e3eafac769359f350",
+      "type": [],
+      "createdBy": "67fa922b0e419f7da2b19e2c",
+      "choice": "seul",
+      "outOfStock": false,
+      "visible": true,
+      "position": 0,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "discountEndDate": "2025-08-23T00:00:00.000Z",
+      "discountStartDate": "2025-08-07T00:00:00.000Z",
+      "discountValue": 20,
+      "originalPrice": 100,
+      "imagePreviewHash": "UXLE7|4S00@ZRjniWBfR4Tv#J7#8WBjZa#bH"
+    },
+    {
+      "_id": "683363a43eafac769359f3e2",
+      "name": "burger 2",
+      "description": "test",
+      "price": 30.01,
+      "image": "uploads/product/1748198308460.png",
+      "category": "6833636e3eafac769359f350",
+      "type": [
+        "680e37a548022a251b5f2c75"
+      ],
+      "createdBy": "67fa922b0e419f7da2b19e2c",
+      "choice": "multiple",
+      "outOfStock": false,
+      "visible": true,
+      "position": 0,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0,
+      "imagePreviewHash": "UXKBaT~W4T+s56My%LkVD5R%o~oeD,S}r?r?",
+      "discountValue": 0
+    },
+    {
+      "_id": "689ca305c09e2a7709f2527e",
+      "name": "test ",
+      "description": "zaeazeazeaze",
+      "price": 10,
+      "image": "uploads/product/1755095813903.jpg",
+      "category": "6833636e3eafac769359f350",
+      "typeVariations": {
+        "typeVariation": "6814dd44fba834b995cf55a3",
+        "variations": [
+          {
+            "_id": "6814da3002837836c7406969",
+            "price": 1
+          },
+          {
+            "_id": "6814dd30fba834b995cf5599",
+            "price": 1.5
+          }
+        ]
+      },
+      "type": [
+        "680e37a548022a251b5f2c75"
+      ],
+      "createdBy": "67fa83088376b70b5e453170",
+      "choice": "multiple",
+      "outOfStock": false,
+      "visible": true,
+      "position": 0,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "discountValue": 2,
+      "originalPrice": 10,
+      "discountStartDate": "2025-08-20T00:00:00.000Z",
+      "discountEndDate": "2025-08-30T00:00:00.000Z",
+      "__v": 0,
+      "imagePreviewHash": "UDM5:+~A7#_N4TIpDiDi13WYVt-pWUV=OagN"
+    },
+    {
+      "_id": "68a87bfc8c955a67e8858b8d",
+      "name": "pizza 4 seasons",
+      "description": "mamma mia",
+      "price": 20,
+      "image": "uploads/product/1755872251094.jpg",
+      "imagePreviewHash": "U3En#2I=00}qxao}xu$LE2=xTdEMx@rraPI?",
+      "category": "68a87baa8c955a67e8858b3c",
+      "typeVariations": {
+        "typeVariation": "6814dd44fba834b995cf55a3",
+        "variations": [
+          {
+            "_id": "6814da3002837836c7406969",
+            "price": 25
+          },
+          {
+            "_id": "6814dd30fba834b995cf5599",
+            "price": 20
+          }
+        ]
+      },
+      "type": [
+        "680e37a548022a251b5f2c75"
+      ],
+      "createdBy": "67fa83088376b70b5e453170",
+      "choice": "multiple",
+      "outOfStock": false,
+      "visible": true,
+      "position": 2,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "discountValue": 0,
+      "originalPrice": null,
+      "discountStartDate": null,
+      "discountEndDate": null,
+      "__v": 0
+    },
+    {
+      "_id": "68a87da2d5bd83cdc9f7d97f",
+      "name": "Tacos simple",
+      "description": "Tacos délecieux",
+      "price": 10,
+      "image": "uploads/product/1755872673211.png",
+      "imagePreviewHash": "U8F#s=Br004Tm,xV0fEQ00;d?byXXSkX~Vwb",
+      "category": "689caba4e0a1c8437271a5a8",
+      "typeVariations": null,
+      "type": [
+        "680e37a548022a251b5f2c75",
+        "68a87c5e8c955a67e8858c03",
+        "68a87cd78c955a67e8858c52"
+      ],
+      "createdBy": "67fa83088376b70b5e453170",
+      "choice": "multiple",
+      "outOfStock": false,
+      "visible": true,
+      "position": 0,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "discountValue": 0,
+      "originalPrice": null,
+      "discountStartDate": null,
+      "discountEndDate": null,
+      "__v": 0
+    },
+    {
+      "_id": "68a8aefefc4ce7f09c43756a",
+      "name": "pizza vegetarian",
+      "description": "pizza vegetarian",
+      "price": 20,
+      "image": "uploads/product/1755885310298.jpg",
+      "imagePreviewHash": "U3En#2I=00}qxao}xu$LE2=xTdEMx@rraPI?",
+      "category": "68a87baa8c955a67e8858b3c",
+      "typeVariations": {
+        "typeVariation": "6814dd44fba834b995cf55a3",
+        "variations": [
+          {
+            "_id": "6814da3002837836c7406969",
+            "price": 2
+          },
+          {
+            "_id": "6814dd30fba834b995cf5599",
+            "price": 5
+          }
+        ]
+      },
+      "type": [
+        "680e37a548022a251b5f2c75",
+        "68a87c5e8c955a67e8858c03",
+        "68a87cd78c955a67e8858c52"
+      ],
+      "createdBy": "67fa83088376b70b5e453170",
+      "choice": "multiple",
+      "outOfStock": false,
+      "visible": true,
+      "position": 1,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "discountValue": 0,
+      "originalPrice": null,
+      "discountStartDate": null,
+      "discountEndDate": null,
+      "__v": 0
+    }
+  ],
+  "Settings": [
+    {
+      "_id": "67fa851dd299c52f0945b02e",
+      "currencies": [
+        "€",
+        "$",
+        "DT"
+      ],
+      "defaultCurrency": "$",
+      "tva": 10,
+      "maxExtras": 10,
+      "maxDessert": 12,
+      "maxDrink": 15,
+      "logo": "uploads\\1744476796401-hfbatiment_phone.png",
+      "banner": "uploads\\1748186230233.jpg",
+      "address": "Votre adresse",
+      "carouselDuration": 5,
+      "carouselTiming": 120,
+      "method": [
+        {
+          "label": "Card",
+          "isActive": true,
+          "_id": "676d58944efe8ef061d856be"
+        },
+        {
+          "label": "Cash",
+          "isActive": true,
+          "_id": "676d58944efe8ef061d856bd"
+        }
+      ],
+      "pack": [
+        {
+          "label": "Sur Place",
+          "isActive": true,
+          "_id": "677fbce4bf0d2c57a78d7c78"
+        },
+        {
+          "label": "À Emporter",
+          "isActive": true,
+          "_id": "677fbce4bf0d2c57a78d7c79"
+        }
+      ],
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 12,
+      "qrCode": "https://www.google.com",
+      "emailName": "Tacos Korner",
+      "emailPass": "409786e1463bbdd8ca9e3838dc86e877:93da1ad72fc77ee51122d07d6689d934cc31847965744574443364eeb2799a37",
+      "emailSender": "contact@tacos-korner.fr",
+      "emailUser": "khaledbouajila5481@gmail.com",
+      "host": "smtp.gmail.com",
+      "port": 587,
+      "printMode": true,
+      "printerIp": "192.168.100.75",
+      "updatedAt": "2025-08-29T20:15:45.929Z",
+      "imagePreviewHash": "UvNBMh~XD%xu~DR*I.xHSdR%xIozsqspofR%"
+    }
+  ],
+  "StatusHistory": [
+    {
+      "_id": "681f50c2f4c8f78fa89b433f",
+      "historyId": "681f50c2f4c8f78fa89b4334",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-10T13:12:34.725Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103c05762e01e6913f7e3",
+      "historyId": "682103bf5762e01e6913f7d8",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:31.968Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103c55762e01e6913f802",
+      "historyId": "682103c55762e01e6913f7f7",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:37.658Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103c95762e01e6913f821",
+      "historyId": "682103c95762e01e6913f816",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:41.208Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103cb5762e01e6913f840",
+      "historyId": "682103cb5762e01e6913f835",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:43.404Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103cd5762e01e6913f85f",
+      "historyId": "682103cd5762e01e6913f854",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:45.255Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103cf5762e01e6913f87e",
+      "historyId": "682103cf5762e01e6913f873",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:47.129Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103d15762e01e6913f89d",
+      "historyId": "682103d15762e01e6913f892",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:49.479Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103d45762e01e6913f8bc",
+      "historyId": "682103d45762e01e6913f8b1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:52.139Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103da5762e01e6913f8db",
+      "historyId": "682103da5762e01e6913f8d0",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:08:58.679Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682103e35762e01e6913f8fa",
+      "historyId": "682103e35762e01e6913f8ef",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-11T20:09:07.716Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "682ccc649efad3f650fbe074",
+      "historyId": "682103e35762e01e6913f8ef",
+      "status": "enAttente",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-05-20T18:39:32.326Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "683365ab3eafac769359f47f",
+      "historyId": "683365ab3eafac769359f47a",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-25T18:47:07.735Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "683365e83eafac769359f4ae",
+      "historyId": "683365e83eafac769359f4ab",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-25T18:48:08.296Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "683365f83eafac769359f4ca",
+      "historyId": "683365f73eafac769359f4c7",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-25T18:48:23.972Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "683366543eafac769359f4f7",
+      "historyId": "683366543eafac769359f4f4",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-25T18:49:56.632Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "6833cc13a605359eac342052",
+      "historyId": "6833cc13a605359eac34204f",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-26T02:04:03.086Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "6833cda4e63dc8f14723de1c",
+      "historyId": "6833cda4e63dc8f14723de19",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-05-26T02:10:44.640Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "6845b7fc2da420c77570baf4",
+      "historyId": "6845b7fc2da420c77570baf1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-08T16:19:08.862Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "6845b81b2da420c77570bb16",
+      "historyId": "6845b81b2da420c77570bb13",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-08T16:19:39.771Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68584c28cbdc502f49b0e1e8",
+      "historyId": "68584c28cbdc502f49b0e1e0",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:32:08.725Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68584e0fa716e416262e4d2b",
+      "historyId": "68584e0fa716e416262e4d1e",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:40:15.735Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68584f87d5650c08da634cb0",
+      "historyId": "68584f87d5650c08da634ca9",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:46:31.848Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "685850786e97bb8dbb94d2f9",
+      "historyId": "685850786e97bb8dbb94d2f2",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:50:32.002Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "685850b39819fbfd549a663c",
+      "historyId": "685850b39819fbfd549a6636",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:51:31.570Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "6858510f8763f78ae464ad3e",
+      "historyId": "6858510f8763f78ae464ad37",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-06-22T18:53:03.110Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "687947984eb20dc4c2d60361",
+      "historyId": "687947984eb20dc4c2d6035e",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T18:57:28.179Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "687948284eb20dc4c2d603c7",
+      "historyId": "687948284eb20dc4c2d603c1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T18:59:52.357Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "687949fb8247c5ba950c9776",
+      "historyId": "687949fb8247c5ba950c9773",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:07:39.639Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68794a9c7b2987b4d7505647",
+      "historyId": "68794a9c7b2987b4d7505644",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:10:20.776Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68794abb7b2987b4d7505685",
+      "historyId": "68794abb7b2987b4d7505681",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:10:51.090Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68794b3371985c84038dd509",
+      "historyId": "68794b3371985c84038dd506",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:12:51.716Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68794beef025d5354c787091",
+      "historyId": "68794beef025d5354c78708e",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:15:58.581Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "687953812b844da2ce1749f0",
+      "historyId": "687953812b844da2ce1749ed",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:48:17.329Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "687953bd47a879ad6f9ecfaf",
+      "historyId": "687953bd47a879ad6f9ecfac",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T19:49:17.269Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "6879739e4729bd8f4558a6ce",
+      "historyId": "6879739e4729bd8f4558a6cb",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T22:05:18.483Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "687975a07e359b808e15c6c8",
+      "historyId": "687975a07e359b808e15c6c5",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T22:13:52.208Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "687976ba22de5eb4e1669122",
+      "historyId": "687976ba22de5eb4e166911f",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-07-17T22:18:34.233Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "689fa7d1f53e929889fe6be0",
+      "historyId": "689fa7d1f53e929889fe6bdc",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-15T21:34:09.760Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5c58ffeeed56fa408bcb4",
+      "historyId": "68a5c58ffeeed56fa408bcb1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T12:54:39.211Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d100c343516a666cc53b",
+      "historyId": "68a5d100c343516a666cc534",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T13:43:28.488Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d14792fe0984583e117e",
+      "historyId": "68a5d14792fe0984583e117b",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T13:44:39.469Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d1b292fe0984583e129b",
+      "historyId": "68a5d1b292fe0984583e1298",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T13:46:26.320Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d49692fe0984583e12ef",
+      "historyId": "68a5d49692fe0984583e12ec",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T13:58:46.426Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d51492fe0984583e13f5",
+      "historyId": "68a5d51492fe0984583e13ef",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:00:52.518Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d54592fe0984583e1477",
+      "historyId": "68a5d54592fe0984583e1474",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:01:41.108Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d65d60f02b3c8e9438d0",
+      "historyId": "68a5d65d60f02b3c8e9438cd",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:06:21.727Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d6b5d0cfd23316afd2ea",
+      "historyId": "68a5d6b5d0cfd23316afd2e7",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:07:49.343Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d737f5942967f5ab12d4",
+      "historyId": "68a5d737f5942967f5ab12d1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:09:59.624Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d9a5614d8ea3c636e0ee",
+      "historyId": "68a5d9a5614d8ea3c636e0eb",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:20:21.813Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5d9be614d8ea3c636e13e",
+      "historyId": "68a5d9be614d8ea3c636e13b",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:20:46.594Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5da19614d8ea3c636e1a6",
+      "historyId": "68a5da19614d8ea3c636e19b",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:22:17.393Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5da42d76b805f47f0ff2d",
+      "historyId": "68a5da42d76b805f47f0ff22",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:22:58.002Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5da63d76b805f47f0ffac",
+      "historyId": "68a5da63d76b805f47f0ffa1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:23:31.012Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5dc0dd76b805f47f1000d",
+      "historyId": "68a5dc0dd76b805f47f10002",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:30:37.340Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5de545a705ab688b198e5",
+      "historyId": "68a5de545a705ab688b198da",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:40:20.563Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5de805a705ab688b19946",
+      "historyId": "68a5de805a705ab688b1993b",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:41:04.309Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5de975a705ab688b199a7",
+      "historyId": "68a5de975a705ab688b1999c",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:41:27.625Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5ded15a705ab688b19a15",
+      "historyId": "68a5ded15a705ab688b19a12",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:42:25.121Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5def95a705ab688b19a8e",
+      "historyId": "68a5def95a705ab688b19a8b",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:43:05.306Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5df0c5a705ab688b19acb",
+      "historyId": "68a5df0c5a705ab688b19ac8",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:43:24.413Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5df2b5a705ab688b19b44",
+      "historyId": "68a5df2b5a705ab688b19b41",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:43:55.869Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5e09f5d5afdf6ee0ddcc0",
+      "historyId": "68a5e09f5d5afdf6ee0ddcb5",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:50:07.536Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5e0d71b12dbd29a1026a1",
+      "historyId": "68a5e0d71b12dbd29a102696",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:51:03.719Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5e13a6ea297c6cc9e6016",
+      "historyId": "68a5e13a6ea297c6cc9e600b",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T14:52:42.197Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5e837993b892bcc744fac",
+      "historyId": "68a5e837993b892bcc744f9f",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T15:22:31.837Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5e866993b892bcc745082",
+      "historyId": "68a5e866993b892bcc745075",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T15:23:18.120Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5e9b4993b892bcc745162",
+      "historyId": "68a5e9b4993b892bcc745155",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T15:28:52.823Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5eabf993b892bcc745213",
+      "historyId": "68a5eabf993b892bcc745206",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T15:33:19.867Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5ed731f7a7f51b870e485",
+      "historyId": "68a5ed721f7a7f51b870e478",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T15:44:50.950Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5ef691f7a7f51b870e4d4",
+      "historyId": "68a5ef691f7a7f51b870e4d1",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T15:53:13.405Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a5f2611f7a7f51b870e721",
+      "historyId": "68a5f2611f7a7f51b870e714",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T16:05:53.759Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a624731f7a7f51b870e850",
+      "historyId": "68a624731f7a7f51b870e843",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T19:39:31.103Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a629ae1f7a7f51b870e99b",
+      "historyId": "68a629ae1f7a7f51b870e98e",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-20T20:01:50.665Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b0505af9df6394b3b7b56d",
+      "historyId": "68a629ae1f7a7f51b870e98e",
+      "status": "terminee",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-28T12:49:30.452Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b05061f9df6394b3b7b57e",
+      "historyId": "68a629ae1f7a7f51b870e98e",
+      "status": "enCours",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-28T12:49:37.463Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b08a9f8c548d6e14484cb5",
+      "historyId": "68b08a9f8c548d6e14484cb2",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-28T16:58:07.879Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b08b008c548d6e14484cf1",
+      "historyId": "68b08b008c548d6e14484cee",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-28T16:59:44.313Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b093de8c548d6e14484d82",
+      "historyId": "68b093de8c548d6e14484d7f",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-28T17:37:34.172Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b093e98c548d6e14484dab",
+      "historyId": "68b093e98c548d6e14484da8",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-28T17:37:45.695Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b094038c548d6e14484dd5",
+      "historyId": "68b094038c548d6e14484dd2",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-28T17:38:11.509Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b094128c548d6e14484dfe",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "enCours",
+      "updatedBy": "Système",
+      "updatedAt": "2025-08-28T17:38:26.551Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9d814e46a61fdbb6bcd",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "enCours",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:04:56.908Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9db14e46a61fdbb6bd4",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "annulee",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:04:59.806Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9dd14e46a61fdbb6bdb",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "echouee",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:05:01.463Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9de14e46a61fdbb6be2",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "enRetard",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:05:02.967Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9e014e46a61fdbb6be9",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "remboursee",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:05:04.325Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9e214e46a61fdbb6bf0",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "enAttente",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:05:06.326Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9e414e46a61fdbb6bf7",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "echouee",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:05:08.208Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9e714e46a61fdbb6bfe",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "remboursee",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:05:11.124Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9e814e46a61fdbb6c05",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "terminee",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:05:12.752Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9ea14e46a61fdbb6c0c",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "enCours",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:05:14.208Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b1f9eb14e46a61fdbb6c13",
+      "historyId": "68b094128c548d6e14484dfb",
+      "status": "annulee",
+      "updatedBy": "helmi ben romdhane",
+      "updatedAt": "2025-08-29T19:05:15.963Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b20a0aeeb2b173d18700f7",
+      "historyId": "68b094038c548d6e14484dd2",
+      "status": "enCours",
+      "updatedBy": "khaled bouajila",
+      "updatedAt": "2025-08-29T20:14:02.298Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b20a0ceeb2b173d1870100",
+      "historyId": "68b094038c548d6e14484dd2",
+      "status": "annulee",
+      "updatedBy": "khaled bouajila",
+      "updatedAt": "2025-08-29T20:14:04.876Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b20a0eeeb2b173d1870109",
+      "historyId": "68b094038c548d6e14484dd2",
+      "status": "enAttente",
+      "updatedBy": "khaled bouajila",
+      "updatedAt": "2025-08-29T20:14:06.441Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b20a10eeb2b173d1870112",
+      "historyId": "68b094038c548d6e14484dd2",
+      "status": "remboursee",
+      "updatedBy": "khaled bouajila",
+      "updatedAt": "2025-08-29T20:14:08.444Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b20a14eeb2b173d187011b",
+      "historyId": "68b094038c548d6e14484dd2",
+      "status": "enRetard",
+      "updatedBy": "khaled bouajila",
+      "updatedAt": "2025-08-29T20:14:12.389Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b20a16eeb2b173d1870124",
+      "historyId": "68b094038c548d6e14484dd2",
+      "status": "echouee",
+      "updatedBy": "khaled bouajila",
+      "updatedAt": "2025-08-29T20:14:14.408Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68b20a18eeb2b173d187012d",
+      "historyId": "68b094038c548d6e14484dd2",
+      "status": "enRetard",
+      "updatedBy": "khaled bouajila",
+      "updatedAt": "2025-08-29T20:14:16.170Z",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "Type": [
+    {
+      "_id": "680e37a548022a251b5f2c75",
+      "name": "sauce",
+      "label": "sauce burger",
+      "message": "selectionner 2 sauce",
+      "min": 0,
+      "payment": false,
+      "selection": false,
+      "max": 2,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a87c5e8c955a67e8858c03",
+      "name": "viande",
+      "label": "Vidandes",
+      "message": "sélection les viandes",
+      "min": 1,
+      "payment": false,
+      "selection": false,
+      "max": 1,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "68a87cd78c955a67e8858c52",
+      "name": "supplements",
+      "label": "Supplements",
+      "message": "choisissez tes supplements",
+      "min": 0,
+      "payment": false,
+      "selection": true,
+      "max": 10,
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "TypeVariation": [
+    {
+      "_id": "6814dd44fba834b995cf55a3",
+      "name": "Taille",
+      "label": "Taille",
+      "description": "Taille",
+      "variations": [
+        "6814da3002837836c7406969",
+        "6814dd30fba834b995cf5599"
+      ],
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ],
+  "User": [
+    {
+      "_id": "67fa83088376b70b5e453170",
+      "email": "khaledbouajila5481@gmail.com",
+      "role": "admin",
+      "password": "$2a$10$wfjnLIIP38BQFTkZLqC1Q.81KgmqHMVP65Ly2lHJ1rOIyaNtcmTx2",
+      "fullName": "khaled bouajila",
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "manager",
+          "_id": "67fa851dd299c52f0945b035"
+        },
+        {
+          "restaurantId": "67fa9a991f0491306bf3ef47",
+          "role": "admin",
+          "_id": "67fa9a991f0491306bf3ef54"
+        },
+        {
+          "restaurantId": "6845aa20d8ce264b3f54d387",
+          "role": "admin",
+          "_id": "6845aa20d8ce264b3f54d394"
+        },
+        {
+          "restaurantId": "68af319314e300751bd70ea7",
+          "role": "admin",
+          "_id": "68af319414e300751bd70eb4"
+        }
+      ],
+      "__v": 0,
+      "fcmToken": "deu_NAqzSLCtJIsn4kol7c:APA91bGHD75iQyJcochOLYU3YfRoKALR1HbIobOVNeLkL4hDYP64aJe5HrkyscB4OrPwTN96G0vWsSlwmV-UaXRoPq9Alv4GglJbBaG5UkA9y-VENg-pRc0",
+      "isBlocked": false
+    },
+    {
+      "_id": "67fa922b0e419f7da2b19e2c",
+      "email": "helmi.br1999@gmail.com",
+      "role": "admin",
+      "password": "$2a$10$J8rBWCFFw/X5EGlwjqxM4uZ/2nX6az8wd9M2nUqGYK8ZXZaJsLPeO",
+      "fullName": "helmi ben romdhane",
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "waiter",
+          "_id": "67fa93910e419f7da2b19e3e"
+        },
+        {
+          "restaurantId": "6820aa358ffb952b9b1fb3c2",
+          "role": "admin",
+          "_id": "6820aa358ffb952b9b1fb3cf"
+        }
+      ],
+      "__v": 0,
+      "fcmToken": "dQao3F8VS-G5o0lV3h29V8:APA91bH0n4QuSnjpNqKlE81rMurxwWRYJ3tu36F6fm7jJShPwIL2FHOlA0E0ejMtg3InV7-RTDOHRyoBnngSVgboUbFS_vFje6leuTmkC7_388SNmqnqLeA",
+      "isBlocked": false
+    },
+    {
+      "_id": "681cd2b035ac87214b9dfc8f",
+      "email": "khaled@gmail.com",
+      "role": "manager",
+      "password": "$2a$10$PhbmiNgO0l/ZtHVJNdMAHeBqlJPC6FwPRmG9N.6GPfD/0ZiCpANI6",
+      "fullName": "khaled bouajila",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "67fa9a991f0491306bf3ef47",
+          "role": "waiter",
+          "_id": "681dfd6f3eb2b84eab790261"
+        },
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "manager",
+          "_id": "6820f13f0cfe4f577a7bd374"
+        }
+      ],
+      "__v": 31,
+      "fcmToken": ""
+    },
+    {
+      "_id": "681cfc6e7e94b10bfab535a0",
+      "email": "helmi@gmail.com",
+      "role": "manager",
+      "password": "$2a$10$n6kRLZQ9p7B70qD9g7x42uCx6MYDIYmdgF/UkcVgAssmj8grGGQR.",
+      "fullName": "helmi ben",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "67fa9a991f0491306bf3ef47",
+          "role": "manager",
+          "_id": "6820ab138ffb952b9b1fb716"
+        }
+      ],
+      "__v": 20
+    },
+    {
+      "_id": "6820f27b0cfe4f577a7bd47d",
+      "email": "helmi.benromdhane@esprit.tn",
+      "role": "waiter",
+      "password": "$2a$10$hpgIuKKFwbfmOtEaiYSaV.sLDwIXW6soWUmKVobhBs8PyA0hf4w.q",
+      "fullName": "ahmed ahmed",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "waiter",
+          "_id": "6820f27b0cfe4f577a7bd47e"
+        },
+        {
+          "restaurantId": "67fa9a991f0491306bf3ef47",
+          "role": "waiter",
+          "_id": "682491898d66aeb2287435a4"
+        }
+      ],
+      "__v": 1,
+      "fcmToken": ""
+    },
+    {
+      "_id": "683b1f0fb89fca96fce4754e",
+      "email": "helmi.br@gmail.com",
+      "role": "client",
+      "password": "$2a$10$vMCLY7aIc/W6i3DJ6q/TLuTYUt4vJuWPOrCSYxMbp7.I7jhETVAZO",
+      "fullName": "helmi ben romdhane",
+      "isBlocked": false,
+      "restaurants": [],
+      "__v": 0,
+      "fcmToken": "diZMY3CFSziJ95exz0FLT2:APA91bH4mUmsiI-4UJJG_HCTSjYq1LGzwgOjjstUDXH2gKSoxE8zuSOOk45YDU6PSb5oqsgj5pK7lz0EotHVeU8qF6Rmp4dU4Z5f2BBmeSH-NHTCP9nhWnQ"
+    },
+    {
+      "_id": "683ef08dd7022fad1f215345",
+      "email": "helmi.1@gmail.com",
+      "role": "waiter",
+      "password": "$2a$10$OKjMYMWM1caFmmfFboq0HeidiNfOQKdOAUf4i8g9hTVMtit2PAv8.",
+      "fullName": "helmi ben romdhane",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "waiter",
+          "_id": "683ef08dd7022fad1f215346"
+        }
+      ],
+      "__v": 0,
+      "fcmToken": ""
+    },
+    {
+      "_id": "683ef0a9d7022fad1f21534b",
+      "email": "helmi1@gmail.com",
+      "role": "client",
+      "password": "$2a$10$1ZGeOCsysLvFEw78SQ7s7.3C6ylYI6uj4IeTCXUeU2E.2/4gkqHwi",
+      "fullName": "helmi ben romdhane",
+      "isBlocked": false,
+      "restaurants": [],
+      "__v": 0
+    },
+    {
+      "_id": "683ef140d7022fad1f215420",
+      "email": "khaled123@gmail.com",
+      "role": "client",
+      "password": "$2a$10$rso0OZW9J41sdZ3uTQZgoudSqPPPlUWzXU9xsf5nbuWpZN1bSh4XG",
+      "fullName": "khaled bouajila",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "67fa851dd299c52f0945b028",
+          "role": "waiter",
+          "_id": "683ef140d7022fad1f215421"
+        }
+      ],
+      "__v": 0,
+      "fcmToken": "dQao3F8VS-G5o0lV3h29V8:APA91bH0n4QuSnjpNqKlE81rMurxwWRYJ3tu36F6fm7jJShPwIL2FHOlA0E0ejMtg3InV7-RTDOHRyoBnngSVgboUbFS_vFje6leuTmkC7_388SNmqnqLeA"
+    },
+    {
+      "_id": "6845ab51d8ce264b3f54d73a",
+      "email": "test@gmail.com",
+      "role": "manager",
+      "password": "$2a$10$B4BzzXEHqLF48QL02I0d8eQEBerBmzyXHtIkPyDI4bJJ.zHNQ9bJO",
+      "fullName": "test test",
+      "isBlocked": false,
+      "restaurants": [
+        {
+          "restaurantId": "6845aa20d8ce264b3f54d387",
+          "role": "manager",
+          "_id": "6845ab51d8ce264b3f54d73b"
+        }
+      ],
+      "__v": 0
+    }
+  ],
+  "Variation": [
+    {
+      "_id": "6814da3002837836c7406969",
+      "name": "Méga",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    },
+    {
+      "_id": "6814dd30fba834b995cf5599",
+      "name": "Sénior",
+      "restaurantId": "67fa851dd299c52f0945b028",
+      "__v": 0
+    }
+  ]
+}
