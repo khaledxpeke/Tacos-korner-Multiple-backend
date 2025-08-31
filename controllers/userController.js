@@ -302,6 +302,10 @@ exports.getUserbyId = async (req, res, next) => {
       userId
       // restaurants: { $elemMatch: { restaurantId } },
     ).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: req.t('user.not_found') });
+    }
+    
     res.status(200).json(user);
   }
 };
