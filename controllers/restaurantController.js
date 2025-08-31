@@ -17,7 +17,6 @@ const Type = require("../models/type");
 const Desert = require("../models/desert");
 const Extra = require("../models/extra");
 const Drink = require("../models/drink");
-const { getBlurhashFromImage } = require("../utils/blurhash");
 const { USER_ROLES } = require("../enum/constants");
 
 const upload = multer({ storage: multerStorage });
@@ -39,8 +38,6 @@ exports.createRestaurant = async (req, res) => {
     }
 
     const logo = `uploads/restaurant/${req.file?.filename}` || "";
-    const imagePath = path.join(__dirname, "..", logo);
-    const imagePreviewHash = await getBlurhashFromImage(imagePath);
 
     try {
       const { name, description, address } = req.body;
@@ -55,7 +52,6 @@ exports.createRestaurant = async (req, res) => {
         description,
         address,
         logo,
-        imagePreviewHash,
       });
 
       await restaurant.save();
@@ -264,9 +260,6 @@ exports.updateRestaurant = async (req, res) => {
         }
 
         existedRestaurant.logo = logo;
-        const imagePath = path.join(__dirname, "..", logo);
-        const imagePreviewHash = await getBlurhashFromImage(imagePath);
-        existedRestaurant.imagePreviewHash = imagePreviewHash;
       }
 
       if (name) existedRestaurant.name = name;

@@ -11,7 +11,6 @@ const multerStorage = require("../middleware/multerStorage");
 const upload = multer({ storage: multerStorage });
 const { default: mongoose } = require("mongoose");
 const { encrypt } = require("../middleware/crypto");
-const { getBlurhashFromImage } = require("../utils/blurhash");
 
 exports.addSettings = async (req, res) => {
   try {
@@ -462,10 +461,6 @@ exports.updateSettings = async (req, res) => {
         }
 
         settings.banner = banner;
-        let imagePreviewHash = null;
-        const imagePath = path.join(__dirname, "..", banner);
-        imagePreviewHash = await getBlurhashFromImage(imagePath);
-        settings.imagePreviewHash = imagePreviewHash;
       }
 
       if (address) {

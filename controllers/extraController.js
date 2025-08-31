@@ -7,7 +7,6 @@ const multer = require("multer");
 const multerStorage = require("../middleware/multerStorage");
 const fs = require("fs");
 const path = require("path");
-const { getBlurhashFromImage } = require("../utils/blurhash");
 const upload = multer({ storage: multerStorage });
 
 exports.addExtra = async (req, res, next) => {
@@ -29,17 +28,12 @@ exports.addExtra = async (req, res, next) => {
     const { name, price, outOfStock, visible } = req.body;
     const userId = req.user.user._id;
     const image = `uploads/extras\\${req.file?.filename}` || "";
-     let imagePreviewHash = null;
-      if (image) {
-        const imagePath = path.join(__dirname, "..", image);
-        imagePreviewHash = await getBlurhashFromImage(imagePath);
-      }
+
     try {
       const extra = await Extra.create({
         name,
         image,
         price,
-        imagePreviewHash,
         outOfStock,
         visible,
         createdBy: userId,
@@ -134,8 +128,6 @@ exports.updateExtra = async (req, res) => {
       }
 
       extra.image = image;
-      const imagePath = path.join(__dirname, "..", image);
-      extra.imagePreviewHash = await getBlurhashFromImage(imagePath);
     }
     try {
       const updatedextra = await Extra.findOneAndUpdate(
@@ -144,7 +136,6 @@ exports.updateExtra = async (req, res) => {
           name: name || extra.name,
           price: price || extra.price,
           image: extra.image,
-          imagePreviewHash: extra.imagePreviewHash,
           outOfStock: outOfStock || extra.outOfStock,
           visible: visible || extra.visible,
         },

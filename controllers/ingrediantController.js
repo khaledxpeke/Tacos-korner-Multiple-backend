@@ -11,21 +11,20 @@ const { default: mongoose } = require("mongoose");
 const path = require("path");
 
 const upload = multer({ storage: multerStorage });
-const { getBlurhashFromImage } = require("../utils/blurhash");
 exports.createIngredient = async (req, res, next) => {
   req.uploadTarget = "ingrediants";
   const { restaurantId } = req;
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: req.t('errors.image_upload_failed'),
+        message: req.t("errors.image_upload_failed"),
         error: err.message,
       });
     }
     if (!req.file) {
       return res.status(400).json({
-        message: req.t('product.add_image'),
-        error: req.t('errors.image_required'),
+        message: req.t("product.add_image"),
+        error: req.t("errors.image_required"),
       });
     }
 
@@ -39,7 +38,7 @@ exports.createIngredient = async (req, res, next) => {
         restaurantId,
       });
       if (nameAlreadyExist) {
-        return res.status(400).json({ message: req.t('ingrediant.exists') });
+        return res.status(400).json({ message: req.t("ingrediant.exists") });
       }
       let typesArray = [];
       if (typeIds) {
@@ -54,15 +53,10 @@ exports.createIngredient = async (req, res, next) => {
           ? variations
           : JSON.parse(variations);
       }
-      let imagePreviewHash = null;
-      if (image) {
-        const imagePath = path.join(__dirname, "..", image);
-        imagePreviewHash = await getBlurhashFromImage(imagePath);
-      }
+
       const ingredient = await Ingrediant.create({
         name,
         image,
-        imagePreviewHash,
         types: typesArray,
         variations: variationsArray || [],
         outOfStock,
@@ -77,10 +71,10 @@ exports.createIngredient = async (req, res, next) => {
       await ingredient.save();
       res
         .status(201)
-        .json({ ingredient, message: req.t('ingrediant.created') });
+        .json({ ingredient, message: req.t("ingrediant.created") });
     } catch (error) {
       return res.status(400).json({
-        message: req.t('product.error'),
+        message: req.t("product.error"),
         error: error.message,
       });
     }
@@ -93,10 +87,10 @@ exports.getAllIngrediants = async (req, res, next) => {
     const ingrediants = await Ingrediant.find({ restaurantId }).populate(
       "types"
     );
-  return res.status(200).json(ingrediants);
+    return res.status(200).json(ingrediants);
   } catch (error) {
     return res.status(400).json({
-      message: req.t('ingrediant.not_found'),
+      message: req.t("ingrediant.not_found"),
       error: error.message,
     });
   }
@@ -117,14 +111,14 @@ exports.updateIngrediant = async (req, res) => {
     }
     if (err) {
       console.log(err);
-      return res.status(500).json({ message: req.t('product.error') });
+      return res.status(500).json({ message: req.t("product.error") });
     }
     const ingrediant = await Ingrediant.findOne({
       _id: ingrediantId,
       restaurantId,
     });
     if (!ingrediant) {
-      return res.status(404).json({ message: req.t('ingrediant.not_found') });
+      return res.status(404).json({ message: req.t("ingrediant.not_found") });
     }
     if (
       ingrediant.image &&
@@ -156,14 +150,8 @@ exports.updateIngrediant = async (req, res) => {
       }
 
       ingrediant.image = image;
-      // Generate new hash for updated image
-      const imagePath = path.join(__dirname, "..", image);
-      ingrediant.imagePreviewHash = await getBlurhashFromImage(imagePath);
     } else if (req.body.image && req.body.image !== ingrediant.image) {
-      // If image is updated via body (not file upload), update hash
       ingrediant.image = req.body.image;
-      const imagePath = path.join(__dirname, "..", req.body.image);
-      ingrediant.imagePreviewHash = await getBlurhashFromImage(imagePath);
     }
     try {
       ingrediant.name = name || ingrediant.name;
@@ -206,11 +194,11 @@ exports.updateIngrediant = async (req, res) => {
         );
       }
 
-      return res
-        .status(200)
-        .json({ message: req.t('ingrediant.updated') });
+      return res.status(200).json({ message: req.t("ingrediant.updated") });
     } catch (error) {
-      return res.status(500).json({ message: req.t('product.error'), error: error.message });
+      return res
+        .status(500)
+        .json({ message: req.t("product.error"), error: error.message });
     }
   });
 };
@@ -226,7 +214,7 @@ exports.deleteIngredient = async (req, res, next) => {
 
     if (!ingrediant) {
       return res.status(404).json({
-        message: req.t('ingrediant.not_found'),
+        message: req.t("ingrediant.not_found"),
       });
     }
     if (ingrediant.image) {
@@ -246,11 +234,11 @@ exports.deleteIngredient = async (req, res, next) => {
     );
 
     return res.status(200).json({
-      message: req.t('ingrediant.deleted'),
+      message: req.t("ingrediant.deleted"),
     });
   } catch (error) {
     return res.status(500).json({
-      message: req.t('product.error'),
+      message: req.t("product.error"),
       error: error.message,
     });
   }

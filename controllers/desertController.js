@@ -7,7 +7,6 @@ const multer = require("multer");
 const multerStorage = require("../middleware/multerStorage");
 const fs = require("fs");
 const path = require("path");
-const { getBlurhashFromImage } = require("../utils/blurhash");
 
 const upload = multer({ storage: multerStorage });
 
@@ -30,17 +29,12 @@ exports.addDesert = async (req, res, next) => {
 
     const { name, price, outOfStock, visible } = req.body;
     const image = `uploads/dessert/${req.file?.filename}` || "";
-     let imagePreviewHash = null;
-      if (image) {
-        const imagePath = path.join(__dirname, "..", image);
-        imagePreviewHash = await getBlurhashFromImage(imagePath);
-      }
+
     try {
       const deserts = await Desert.create({
         name,
         price,
         image,
-        imagePreviewHash,
         outOfStock,
         visible,
         restaurantId,
@@ -160,8 +154,6 @@ exports.updateDesert = async (req, res) => {
       }
 
       desert.image = image;
-      const imagePath = path.join(__dirname, "..", image);
-      desert.imagePreviewHash = await getBlurhashFromImage(imagePath);
     }
     try {
       const updatedDesert = await Desert.findOneAndUpdate(
@@ -170,7 +162,6 @@ exports.updateDesert = async (req, res) => {
           name: name || desert.name,
           price: price || desert.price,
           image: desert.image,
-          imagePreviewHash: desert.imagePreviewHash,
           outOfStock: outOfStock || desert.outOfStock,
           visible: visible || desert.visible,
         },

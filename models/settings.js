@@ -58,10 +58,6 @@ const settingsSchema = new mongoose.Schema(
       type: String,
       default: "uploads/default-banner.png",
     },
-    imagePreviewHash: {
-      type: String,
-      default: null,
-    },
     address: {
       type: String,
       default: "Votre adresse",

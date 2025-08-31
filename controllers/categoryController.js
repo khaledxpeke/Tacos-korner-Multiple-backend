@@ -9,7 +9,6 @@ const fs = require("fs");
 const Ingrediant = require("../models/ingrediant");
 const path = require("path");
 const Product = require("../models/product");
-const { getBlurhashFromImage } = require("../utils/blurhash");
 
 const upload = multer({ storage: multerStorage });
 exports.createCategory = async (req, res) => {
@@ -32,17 +31,10 @@ exports.createCategory = async (req, res) => {
     const userId = req.user.user._id;
     const image = `uploads/category/${req.file?.filename}` || "";
     try {
-      // Generate blurhash for image
-      let imagePreviewHash = null;
-      if (image) {
-        const imagePath = path.join(__dirname, "..", image);
-        imagePreviewHash = await getBlurhashFromImage(imagePath);
-      }
       const category = await Category.create({
         createdBy: userId,
         name: req.body.name,
         image,
-        imagePreviewHash,
         restaurantId,
       });
 
@@ -67,7 +59,7 @@ exports.getAllCategories = async (req, res) => {
       .populate({
         path: "products",
         select:
-          "name price image type choice description category outOfStock variations visible imagePreviewHash originalPrice discountValue discountStartDate discountEndDate",
+          "name price image type choice description category outOfStock variations visible originalPrice discountValue discountStartDate discountEndDate",
         options: { sort: { position: 1 } },
         populate: [
           {
@@ -103,17 +95,12 @@ exports.getAllCategories = async (req, res) => {
         .map(async (category) => {
           const categoryObj = category.toObject();
 
-          // Just keep existing hash
-          categoryObj.imagePreviewHash = categoryObj.imagePreviewHash || null;
 
           categoryObj.products = await Promise.all(
             category.products
               .filter((product) => product.visible !== false)
               .map(async (product) => {
                 const productObj = product.toObject();
-
-                // Just keep existing hash
-                productObj.imagePreviewHash = productObj.imagePreviewHash || null;
 
                 // Discount logic using correct model fields
                 let now = new Date();
@@ -174,7 +161,7 @@ exports.getAllCategories = async (req, res) => {
                     const typeIngredients = await Ingrediant.find({
                       types: type._id,
                       visible: true,
-                    }).select("name image price suppPrice outOfStock visible imagePreviewHash");
+                    }).select("name image price suppPrice outOfStock visible ");
 
                     if (typeIngredients.length > 0) {
                       typeObj.ingrediants = typeIngredients.map((ing) => {
@@ -187,7 +174,6 @@ exports.getAllCategories = async (req, res) => {
                           _id: ing._id,
                           name: ing.name,
                           image: ing.image,
-                          imagePreviewHash: ing.imagePreviewHash || null,
                           price: priceWithTVA,
                           outOfStock: ing.outOfStock,
                           visible: ing.visible,
@@ -283,9 +269,6 @@ exports.updateCategory = async (req, res) => {
       }
 
       category.image = image;
-      // Generate new hash for updated image
-      const imagePath = path.join(__dirname, "..", image);
-      category.imagePreviewHash = await getBlurhashFromImage(imagePath);
     }
     try {
       const updatedcategory = await Category.findOneAndUpdate(
@@ -293,7 +276,6 @@ exports.updateCategory = async (req, res) => {
         {
           name: req.body.name || category.name,
           image: category.image,
-          imagePreviewHash: category.imagePreviewHash,
         },
         { new: true }
       );

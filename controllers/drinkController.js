@@ -7,7 +7,6 @@ const multer = require("multer");
 const multerStorage = require("../middleware/multerStorage");
 const fs = require("fs");
 const path = require("path");
-const { getBlurhashFromImage } = require("../utils/blurhash");
 
 const upload = multer({ storage: multerStorage });
 exports.addDrink = async (req, res, next) => {
@@ -29,17 +28,12 @@ exports.addDrink = async (req, res, next) => {
 
     const { name, price, outOfStock, visible } = req.body;
     const image = `uploads/boisson/${req.file?.filename}` || "";
-     let imagePreviewHash = null;
-      if (image) {
-        const imagePath = path.join(__dirname, "..", image);
-        imagePreviewHash = await getBlurhashFromImage(imagePath);
-      }
+
     try {
       const drinks = await Drink.create({
         name,
         price,
         image,
-        imagePreviewHash,
         outOfStock,
         visible,
         restaurantId,
@@ -159,8 +153,6 @@ exports.updateDrink = async (req, res) => {
       }
 
       drink.image = image;
-      const imagePath = path.join(__dirname, "..", image);
-      drink.imagePreviewHash = await getBlurhashFromImage(imagePath);
     }
     try {
       const updatedDrink = await Drink.findOneAndUpdate(
@@ -169,7 +161,6 @@ exports.updateDrink = async (req, res) => {
           name: name || drink.name,
           price: price || drink.price,
           image: drink.image,
-          imagePreviewHash: drink.imagePreviewHash,
           outOfStock: outOfStock || drink.outOfStock,
           visible: visible || drink.visible,
         },
