@@ -456,12 +456,19 @@ exports.updateProduct = async (req, res) => {
 
 // Helper function to add Z to date strings if missing (same as coupon controller)
 const addTimezoneZ = (dateString) => {
-  if (!dateString) return null;
-  
-  if (!dateString.includes('Z') && !dateString.includes('+') && !dateString.match(/-\d{2}:\d{2}$/)) {
-    return dateString + 'Z';
+   if (!dateString) return null;
+  // If only YYYY-MM-DD, add time and Z
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString + 'T00:00:00Z';
   }
-  
+  // If ends with Z or has timezone, return as is
+  if (dateString.includes('T') && (dateString.includes('Z') || dateString.includes('+') || dateString.match(/-\d{2}:\d{2}$/))) {
+    return dateString;
+  }
+  // If only date with Z (e.g., 2025-08-01Z), fix to ISO
+  if (/^\d{4}-\d{2}-\d{2}Z$/.test(dateString)) {
+    return dateString.replace('Z', 'T00:00:00Z');
+  }
   return dateString;
 };
 
