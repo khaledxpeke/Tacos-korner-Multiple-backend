@@ -7,7 +7,7 @@ exports.USER_ROLES = {
 
 exports.APP_TYPES = {
   MOBILE: "mobile",
-  BORN: "borne",
+  BORNE: "borne",
   DASHBOARD: "dashboard",
   CASHIER: "cashier",
   DELIVERY: "delivery",

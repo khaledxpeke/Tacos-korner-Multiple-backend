@@ -41,7 +41,7 @@ exports.addCoupon = async (req, res) => {
 
     if (!code || !couponType || !couponValue) {
       return res.status(400).json({
-        message: req.t('coupon.required_fields'),
+        message: req.t("coupon.required_fields"),
       });
     }
 
@@ -52,7 +52,7 @@ exports.addCoupon = async (req, res) => {
       )
     ) {
       return res.status(400).json({
-        message: req.t('coupon.invalid_category_type'),
+        message: req.t("coupon.invalid_category_type"),
       });
     }
 
@@ -63,7 +63,7 @@ exports.addCoupon = async (req, res) => {
       (!couponCategories || couponCategories.length === 0)
     ) {
       return res.status(400).json({
-        message: req.t('coupon.select_category'),
+        message: req.t("coupon.select_category"),
       });
     }
     if (
@@ -71,22 +71,18 @@ exports.addCoupon = async (req, res) => {
       (!couponProducts || couponProducts.length === 0)
     ) {
       return res.status(400).json({
-        message: req.t('coupon.select_product'),
+        message: req.t("coupon.select_product"),
       });
     }
 
     // Validate date interval
     const now = moment().tz(RESTAURANT_TIMEZONE);
-    const start = startDate
-      ? moment(addTimezoneZ(startDate)).tz(RESTAURANT_TIMEZONE)
-      : now;
-    const end = endDate
-      ? moment(addTimezoneZ(endDate)).tz(RESTAURANT_TIMEZONE)
-      : null;
+    const start = startDate ? moment.tz(startDate, RESTAURANT_TIMEZONE) : now;
+    const end = endDate ? moment.tz(endDate, RESTAURANT_TIMEZONE) : null;
 
     if (end && start.isSameOrAfter(end)) {
       return res.status(400).json({
-        message: req.t('coupon.end_after_start'),
+        message: req.t("coupon.end_after_start"),
       });
     }
     // Check if coupon code already exists for this restaurant
@@ -96,7 +92,7 @@ exports.addCoupon = async (req, res) => {
     });
 
     if (existingCoupon) {
-      return res.status(400).json({ message: req.t('coupon.exists') });
+      return res.status(400).json({ message: req.t("coupon.exists") });
     }
 
     const newCoupon = new Coupon({
@@ -105,8 +101,8 @@ exports.addCoupon = async (req, res) => {
       couponValue: Number(couponValue),
       minOrderAmount: Number(minOrderAmount) || 0,
       isActive: true,
-      startDate: start,
-      endDate: end,
+      startDate: start.toDate(),
+      endDate: end ? end.toDate() : null,
       categoryType: categoryType,
       couponCategories: ["categories", "categories_products"].includes(
         categoryType
@@ -122,7 +118,7 @@ exports.addCoupon = async (req, res) => {
     await newCoupon.save();
 
     return res.status(201).json({
-      message: req.t('coupon.created'),
+      message: req.t("coupon.created"),
       coupon: newCoupon,
     });
   } catch (error) {
@@ -158,7 +154,7 @@ exports.getCoupon = async (req, res) => {
       .populate("couponProducts", "name");
 
     if (!coupon) {
-      return res.status(404).json({ message: req.t('coupon.not_found') });
+      return res.status(404).json({ message: req.t("coupon.not_found") });
     }
 
     return res.status(200).json(coupon);
@@ -190,7 +186,7 @@ exports.updateCoupon = async (req, res) => {
     });
 
     if (!coupon) {
-      return res.status(404).json({ message: req.t('coupon.not_found') });
+      return res.status(404).json({ message: req.t("coupon.not_found") });
     }
 
     // Check if new code already exists (excluding current coupon)
@@ -202,7 +198,7 @@ exports.updateCoupon = async (req, res) => {
       });
 
       if (existingCoupon) {
-        return res.status(400).json({ message: req.t('coupon.exists') });
+        return res.status(400).json({ message: req.t("coupon.exists") });
       }
     }
 
@@ -214,7 +210,7 @@ exports.updateCoupon = async (req, res) => {
       )
     ) {
       return res.status(400).json({
-        message: req.t('coupon.invalid_category_type'),
+        message: req.t("coupon.invalid_category_type"),
       });
     }
 
@@ -225,7 +221,7 @@ exports.updateCoupon = async (req, res) => {
       (!couponCategories || couponCategories.length === 0)
     ) {
       return res.status(400).json({
-        message: req.t('coupon.select_category'),
+        message: req.t("coupon.select_category"),
       });
     }
     if (
@@ -233,7 +229,7 @@ exports.updateCoupon = async (req, res) => {
       (!couponProducts || couponProducts.length === 0)
     ) {
       return res.status(400).json({
-        message: req.t('coupon.select_product'),
+        message: req.t("coupon.select_product"),
       });
     }
 
@@ -252,7 +248,7 @@ exports.updateCoupon = async (req, res) => {
 
     if (newEndDate && newStartDate.isSameOrAfter(newEndDate)) {
       return res.status(400).json({
-        message: req.t('coupon.end_after_start'),
+        message: req.t("coupon.end_after_start"),
       });
     }
 
@@ -286,7 +282,7 @@ exports.updateCoupon = async (req, res) => {
     await coupon.save();
 
     return res.status(200).json({
-      message: req.t('coupon.updated'),
+      message: req.t("coupon.updated"),
       coupon,
     });
   } catch (error) {
@@ -305,11 +301,11 @@ exports.deleteCoupon = async (req, res) => {
     });
 
     if (!coupon) {
-      return res.status(404).json({ message: req.t('coupon.not_found') });
+      return res.status(404).json({ message: req.t("coupon.not_found") });
     }
 
     return res.status(200).json({
-      message: req.t('coupon.deleted'),
+      message: req.t("coupon.deleted"),
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
@@ -327,19 +323,34 @@ exports.toggleCoupon = async (req, res) => {
     });
 
     if (!coupon) {
-      return res.status(404).json({ message: req.t('coupon.not_found') });
+      return res.status(404).json({ message: req.t("coupon.not_found") });
     }
 
     coupon.isActive = !coupon.isActive;
     await coupon.save();
 
     return res.status(200).json({
-      message: coupon.isActive ? req.t('coupon.activated') : req.t('coupon.deactivated'),
+      message: coupon.isActive
+        ? req.t("coupon.activated")
+        : req.t("coupon.deactivated"),
       coupon,
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
+};
+
+const normalizeDateString = (dateString) => {
+  if (!dateString) return null;
+  // If only YYYY-MM-DD or YYYY-MM-DDTHH:mm, add Z for UTC
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
+    return dateString + "T00:00:00Z";
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateString)) {
+    return dateString + ":00Z";
+  }
+  // If ends with Z or has timezone, return as is
+  return dateString;
 };
 
 exports.validateCoupon = async (req, res) => {
@@ -349,7 +360,7 @@ exports.validateCoupon = async (req, res) => {
 
     if (!code) {
       return res.status(400).json({
-        message: req.t('coupon.code_required'),
+        message: req.t("coupon.code_required"),
       });
     }
 
@@ -362,7 +373,7 @@ exports.validateCoupon = async (req, res) => {
     if (!coupon) {
       return res
         .status(404)
-        .json({ message: req.t('coupon.invalid_or_inactive') });
+        .json({ message: req.t("coupon.invalid_or_inactive") });
     }
 
     const now = moment().tz(RESTAURANT_TIMEZONE);

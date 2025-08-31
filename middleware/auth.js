@@ -26,7 +26,7 @@ exports.restaurantAuth = () => {
   return async (req, res, next) => {
     try {
       const restaurantIdFromInput = req.params.restaurantId || req.headers["restaurant-id"];
-      const appType = req.headers["x-app-type"]; // Read the new header
+      const appType = req.headers["app-type"]; // Read the new header
       const authorizationHeader = req.headers["authorization"];
       const token = authorizationHeader && authorizationHeader.split(" ")[1];
 

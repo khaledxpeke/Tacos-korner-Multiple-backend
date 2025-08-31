@@ -98,7 +98,7 @@ exports.register = async (req, res, next) => {
 
 exports.login = async (req, res, next) => {
   const { email, password, fcmToken } = req.body;
-  const appType = req.headers['app-type'] || req.headers['x-app-type'] || req.body.appType;
+  const appType = req.headers['app-type'] || req.body.appType;
 
   if (!email || !password) {
     return res.status(400).json({

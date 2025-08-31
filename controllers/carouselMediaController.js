@@ -141,7 +141,11 @@ exports.deleteMedia = async (req, res) => {
       return res.status(404).json({ message: req.t('carousel.not_found') });
     }
 
-    fs.unlinkSync(path.join(__dirname, "..", media.fileUrl));
+     try {
+      fs.unlinkSync(path.join(__dirname, "..", media.fileUrl));
+    } catch (err) {
+      console.error("Failed to delete carousel file:", media.fileUrl, err.message);
+    }
     await CarouselMedia.findOneAndDelete({ _id: req.params.id, restaurantId });
 
 res.status(200).json({ message: req.t('carousel.deleted') });
