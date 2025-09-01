@@ -50,6 +50,6 @@ const historySchema = mongoose.Schema({
   status: { type: String, default: "enCours", enum: ["enCours", "terminee", "annulee", "echouee","enAttente","remboursee","enRetard"] },
   boughtAt: { type: Date, default: Date.now },
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant", required: true },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("History", historySchema);

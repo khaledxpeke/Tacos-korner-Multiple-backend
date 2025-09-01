@@ -10,6 +10,6 @@ const variationSchema = mongoose.Schema({
       required: true
     }
     
-  });
+  }, { timestamps: true });
   
   module.exports = mongoose.model("Variation", variationSchema);

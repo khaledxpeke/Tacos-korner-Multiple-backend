@@ -17,14 +17,14 @@ exports.createCategory = async (req, res) => {
   upload.single("image")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: req.t('errors.image_upload_failed'),
+        message: req.t("errors.image_upload_failed"),
         error: err.message,
       });
     }
     if (!req.file) {
       return res.status(400).json({
-        message: req.t('product.add_image'),
-        error: req.t('errors.image_required'),
+        message: req.t("product.add_image"),
+        error: req.t("errors.image_required"),
       });
     }
 
@@ -39,12 +39,10 @@ exports.createCategory = async (req, res) => {
       });
 
       const newCategory = await category.save();
-      res
-        .status(201)
-        .json({ newCategory, message: req.t('category.created') });
+      res.status(201).json({ newCategory, message: req.t("category.created") });
     } catch (error) {
       res.status(400).json({
-        message: req.t('errors.unknown'),
+        message: req.t("errors.unknown"),
         error: error.message,
       });
     }
@@ -87,14 +85,13 @@ exports.getAllCategories = async (req, res) => {
           },
         ],
       });
-      const populatedCategories = await Promise.all(
+    const populatedCategories = await Promise.all(
       categories
         .filter((category) =>
           category.products.some((product) => product.visible)
         )
         .map(async (category) => {
           const categoryObj = category.toObject();
-
 
           categoryObj.products = await Promise.all(
             category.products
@@ -105,22 +102,26 @@ exports.getAllCategories = async (req, res) => {
                 // Discount logic using correct model fields
                 let now = new Date();
                 let hasDiscount = false;
-                  if (
-                  typeof productObj.discountValue === 'number' &&
-                  productObj.discountValue > 0 &&
-                  productObj.discountStartDate &&
-                  productObj.discountEndDate
+                if (
+                  typeof productObj.discountValue === "number" &&
+                  productObj.discountValue > 0 
                 ) {
-                  const start = new Date(productObj.discountStartDate);
-                  const end = new Date(productObj.discountEndDate);
-                  if (now >= start && now <= end) {
+                  const start = productObj.discountStartDate
+                    ? new Date(productObj.discountStartDate)
+                    : null;
+                  // If no end date, discount never expires
+                  const end = productObj.discountEndDate
+                    ? new Date(productObj.discountEndDate)
+                    : null;
+                  if ((!start || now >= start) && (!end || now <= end)) {
                     hasDiscount = true;
                   }
-                  hasDiscount = true;
                 }
                 if (hasDiscount) {
                   productObj.originalPrice = productObj.price;
-                  productObj.price = Number((productObj.price - productObj.discountValue).toFixed(2));
+                  productObj.price = Number(
+                    (productObj.price - productObj.discountValue).toFixed(2)
+                  );
                 } else {
                   productObj.originalPrice = null;
                 }
@@ -238,11 +239,13 @@ exports.updateCategory = async (req, res) => {
   upload.single("image")(req, res, async (err) => {
     if (err) {
       console.log(err);
-      return res.status(500).json({ message: req.t('errors.image_upload_failed') });
+      return res
+        .status(500)
+        .json({ message: req.t("errors.image_upload_failed") });
     }
     const category = await Category.findOne({ _id: categoryId, restaurantId });
     if (!category) {
-      return res.status(404).json({ message: req.t('category.not_found') });
+      return res.status(404).json({ message: req.t("category.not_found") });
     }
     if (category.image && !category.image.startsWith("uploads/category/")) {
       const oldImagePath = path.join(__dirname, "..", category.image);
@@ -282,9 +285,9 @@ exports.updateCategory = async (req, res) => {
 
       res
         .status(200)
-        .json({ updatedcategory, message: req.t('category.updated') });
+        .json({ updatedcategory, message: req.t("category.updated") });
     } catch (error) {
-      res.status(500).json({ message: req.t('errors.unknown') });
+      res.status(500).json({ message: req.t("errors.unknown") });
     }
   });
 };
@@ -305,10 +308,10 @@ exports.updatePositions = async (req, res) => {
       })
     );
 
-res.status(200).json({ message: req.t('category.positions_updated') });
+    res.status(200).json({ message: req.t("category.positions_updated") });
   } catch (error) {
     res.status(400).json({
-      message: req.t('errors.unknown'),
+      message: req.t("errors.unknown"),
       error: error.message,
     });
   }
@@ -327,10 +330,10 @@ exports.updateCategoryPositions = async (req, res) => {
       );
     }
 
-    res.status(200).json({ message: req.t('category.positions_updated') });
+    res.status(200).json({ message: req.t("category.positions_updated") });
   } catch (error) {
     res.status(400).json({
-      message: req.t('errors.unknown'),
+      message: req.t("errors.unknown"),
       error: error.message,
     });
   }
@@ -342,7 +345,7 @@ exports.deleteCategory = async (req, res) => {
   try {
     let category = await Category.findOne({ _id: categoryId, restaurantId });
     if (!category) {
-      return res.status(404).json({ message: req.t('category.not_found') });
+      return res.status(404).json({ message: req.t("category.not_found") });
     }
 
     await Product.deleteMany({ category: categoryId, restaurantId });
@@ -359,8 +362,8 @@ exports.deleteCategory = async (req, res) => {
     }
     await Category.findOneAndDelete({ _id: categoryId, restaurantId });
 
-    res.status(200).json({ message: req.t('category.deleted') });
+    res.status(200).json({ message: req.t("category.deleted") });
   } catch (error) {
-    res.status(500).json({ message: req.t('errors.unknown') });
+    res.status(500).json({ message: req.t("errors.unknown") });
   }
 };

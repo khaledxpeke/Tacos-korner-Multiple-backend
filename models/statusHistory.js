@@ -17,14 +17,10 @@ const statusHistorySchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  },
   restaurantId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Restaurant'
   }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('StatusHistory', statusHistorySchema);

@@ -32,6 +32,6 @@ const typeSchema = mongoose.Schema({
     ref: "Restaurant",
     required: true
   }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Type", typeSchema);

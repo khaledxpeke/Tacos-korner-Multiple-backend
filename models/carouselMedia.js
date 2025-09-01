@@ -27,6 +27,6 @@ const carouselMediaSchema = new mongoose.Schema({
     ref: "Restaurant",
     required: true
   }
-}, { timestamps: false });
+}, { timestamps: true });
 
 module.exports = mongoose.model('CarouselMedia', carouselMediaSchema);

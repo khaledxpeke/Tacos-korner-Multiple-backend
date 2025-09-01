@@ -28,6 +28,6 @@ const desertSchema = mongoose.Schema({
     ref: "Restaurant",
     required: true
   }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Desert", desertSchema);

@@ -252,7 +252,15 @@ function formatOrderForPrint(order, restaurant, settings) {
 <text width="2" height="2" align="left" reverse="true">${order.name}</text>
 <feed line="3"/>
 <text width="1" height="1" align="left" reverse="false"/>
-<text>${new Date(order.boughtAt).toLocaleDateString("fr-FR", { weekday: "long" })}: ${new Date(order.boughtAt).toLocaleString("fr-FR", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })}</text>
+<text>${new Date(order.boughtAt).toLocaleDateString("fr-FR", {
+    weekday: "long",
+  })}: ${new Date(order.boughtAt).toLocaleString("fr-FR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  })}</text>
 <feed line="2"/>
 <text em="true">Méthode de paiement: ${order.method.label}</text>
 <feed line="2"/>
@@ -466,14 +474,14 @@ function startPrintRetryWorker() {
         restaurantId: job.restaurantId,
       });
       try {
-        if (settings.printMode===true){
-        await triggerAutoPrint(job.orderId);
+        if (settings.printMode === true) {
+          await triggerAutoPrint(job.orderId);
 
-        // Success - remove from queue
-        const index = failedPrintQueue.indexOf(job);
-        if (index > -1) {
-          failedPrintQueue.splice(index, 1);
-        }
+          // Success - remove from queue
+          const index = failedPrintQueue.indexOf(job);
+          if (index > -1) {
+            failedPrintQueue.splice(index, 1);
+          }
         }
       } catch (error) {
         // Failed again - update retry info
@@ -525,10 +533,14 @@ exports.addHistory = async (req, res) => {
     );
     const packExists = settings.pack.find((p) => p._id.toString() === pack);
     if (!packExists || !packExists.isActive) {
-      return res.status(404).json({ message: req.t('history.delivery_mode_not_found') });
+      return res
+        .status(404)
+        .json({ message: req.t("history.delivery_mode_not_found") });
     }
     if (!methodExists || !methodExists.isActive) {
-      return res.status(404).json({ message: req.t('history.payment_method_not_found') });
+      return res
+        .status(404)
+        .json({ message: req.t("history.payment_method_not_found") });
     }
     const tva = settings?.tva || 0;
     const history = await new History({
@@ -597,7 +609,7 @@ exports.addHistory = async (req, res) => {
             updatedAt: franceDatetime,
           });
           io.emit("new-history", response);
-          await notifyWaiters(history);
+          await notifyWaiters(history,req);
         }
 
         // 🚀 AUTO-PRINT: Trigger printing immediately after order is saved (non-blocking)
@@ -631,22 +643,19 @@ exports.addHistory = async (req, res) => {
         res.status(201).json(response);
       })
       .catch((err) => {
-        console.error(
-          req.t('history.save_error_log'),
-          err
-        );
+        console.error(req.t("history.save_error_log"), err);
         res.status(500).json({
-          message: req.t('history.save_error'),
+          message: req.t("history.save_error"),
           error: err,
         });
       });
   } catch (error) {
-    console.error(req.t('history.save_error_log'), error);
-    res.status(500).json({ error: req.t('history.internal_server_error') });
+    console.error(req.t("history.save_error_log"), error);
+    res.status(500).json({ error: req.t("history.internal_server_error") });
   }
 };
 
-const notifyWaiters = async (history) => {
+const notifyWaiters = async (history,req) => {
   try {
     const { restaurantId } = history;
     const users = await User.find({
@@ -658,8 +667,11 @@ const notifyWaiters = async (history) => {
 
     const payload = {
       notification: {
-        title: req.t('history.new_order_title'),
-        body: req.t('history.new_order_body', { name: history.name, commandNumber: history.commandNumber }),
+        title: req.t("history.new_order_title"),
+        body: req.t("history.new_order_body", {
+          name: history.name,
+          commandNumber: history.commandNumber,
+        }),
       },
     };
 
@@ -671,13 +683,13 @@ const notifyWaiters = async (history) => {
         });
       } catch (error) {
         console.error(
-          req.t('history.notification_token_error', { token }),
+          req.t("history.notification_token_error", { token }),
           error
         );
       }
     }
   } catch (error) {
-  console.error(req.t('history.notification_send_error'), error);
+    console.error(req.t("history.notification_send_error"), error);
   }
 };
 exports.getHistory = async (req, res) => {
@@ -738,9 +750,9 @@ exports.getHistory = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(req.t('history.fetch_error_log'), error);
+    console.error(req.t("history.fetch_error_log"), error);
     res.status(500).json({
-      message: req.t('history.fetch_error'),
+      message: req.t("history.fetch_error"),
       error: error.message,
     });
   }
@@ -756,7 +768,9 @@ exports.getLast10Orders = async (req, res) => {
 
     res.status(200).json(orders);
   } catch (error) {
-    res.status(500).json({ message: req.t('history.last10orders_error', { error: error.message }) });
+    res.status(500).json({
+      message: req.t("history.last10orders_error", { error: error.message }),
+    });
     throw error;
   }
 };
@@ -765,7 +779,7 @@ const generatePDF = async (orderData) => {
   const { restaurantId } = orderData;
 
   if (!restaurantId) {
-    throw new Error(req.t('history.restaurant_id_not_found'));
+    throw new Error(req.t("history.restaurant_id_not_found"));
   }
   const html = fs.readFileSync(
     path.join(__dirname, "../template/pdf.handlebars"),
@@ -861,7 +875,7 @@ const generatePDF = async (orderData) => {
     await pdf.create(document, options);
     return document.path;
   } catch (error) {
-    console.error(req.t('history.pdf_generation_error'), error);
+    console.error(req.t("history.pdf_generation_error"), error);
     throw error;
   }
 };
@@ -877,7 +891,9 @@ exports.addEmail = async (req, res) => {
       boughtAt: -1,
     });
     if (!history) {
-      return res.status(404).json({ message: req.t('history.order_not_found') });
+      return res
+        .status(404)
+        .json({ message: req.t("history.order_not_found") });
     }
     let formattedDate = moment(history.boughtAt)
       .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
@@ -891,7 +907,7 @@ exports.addEmail = async (req, res) => {
     const today = new Date().setHours(0, 0, 0, 0);
     if (orderDate < today) {
       return res.status(400).json({
-        message: req.t('history.email_past_order_error'),
+        message: req.t("history.email_past_order_error"),
       });
     }
     const logoUrl = `${process.env.BASE_URL}/api/${restaurant.logo.replace(
@@ -961,10 +977,10 @@ exports.addEmail = async (req, res) => {
     };
     await transporter.sendMail(mailOptions);
     fs.unlinkSync(pdfPath);
-  res.status(200).json({ message: req.t('history.email_sent_success') });
+    res.status(200).json({ message: req.t("history.email_sent_success") });
   } catch (error) {
-    console.error(req.t('history.save_error_log'), error);
-    res.status(500).json({ error: req.t('history.internal_server_error') });
+    console.error(req.t("history.save_error_log"), error);
+    res.status(500).json({ error: req.t("history.internal_server_error") });
   }
 };
 
@@ -998,8 +1014,8 @@ exports.getCommandNumber = async (req, res) => {
     // No previous commands
     return res.status(200).json(1);
   } catch (error) {
-    console.error(req.t('history.command_number_error_log'), error);
-    res.status(500).json({ error: req.t('history.internal_server_error') });
+    console.error(req.t("history.command_number_error_log"), error);
+    res.status(500).json({ error: req.t("history.internal_server_error") });
   }
 };
 
@@ -1015,7 +1031,9 @@ exports.updateStatus = async (req, res) => {
       { new: true }
     );
     if (!history) {
-      return res.status(404).json({ message: req.t('history.history_not_found') });
+      return res
+        .status(404)
+        .json({ message: req.t("history.history_not_found") });
     }
     const statusHistory = new StatusHistory({
       historyId: id,
@@ -1034,11 +1052,8 @@ exports.updateStatus = async (req, res) => {
     });
     res.status(200).json(history);
   } catch (error) {
-    console.error(
-      req.t('history.status_update_error_log'),
-      error
-    );
-    res.status(500).json({ error: req.t('history.internal_server_error') });
+    console.error(req.t("history.status_update_error_log"), error);
+    res.status(500).json({ error: req.t("history.internal_server_error") });
   }
 };
 
@@ -1315,12 +1330,22 @@ exports.getHistoriesRT = async (socket) => {
 
         socket.emit("histories-update", response);
       } catch (error) {
-        console.error('Error in fetch-histories:', error);
-        socket.emit("error", socket.request.t('history.fetch_histories_error', { error: error.message }));
+        console.error("Error in fetch-histories:", error);
+        socket.emit(
+          "error",
+          socket.request.t("history.fetch_histories_error", {
+            error: error.message,
+          })
+        );
       }
     });
   } catch (error) {
-    socket.emit("error", socket.request.t('history.fetch_histories_error', { error: error.message }));
+    socket.emit(
+      "error",
+      socket.request.t("history.fetch_histories_error", {
+        error: error.message,
+      })
+    );
   }
 };
 const checkAndUpdateDelayedOrders = async (restaurantId) => {
@@ -1357,7 +1382,7 @@ const checkAndUpdateDelayedOrders = async (restaurantId) => {
       }
     }
   } catch (error) {
-    console.error('Error checking delayed orders:', error);
+    console.error("Error checking delayed orders:", error);
   }
 };
 
@@ -1579,6 +1604,24 @@ exports.getStatistics = async (req, res) => {
               ],
             },
           },
+          surPlaceCount: {
+            $sum: {
+              $cond: [
+                { $eq: [{ $toString: "$pack._id" }, surPlacePackId] },
+                1,
+                0,
+              ],
+            },
+          },
+          emporterCount: {
+            $sum: {
+              $cond: [
+                { $eq: [{ $toString: "$pack._id" }, emporterPackId] },
+                1,
+                0,
+              ],
+            },
+          },
           surPlaceTotal: {
             $sum: {
               $cond: [
@@ -1612,6 +1655,8 @@ exports.getStatistics = async (req, res) => {
             cb: { $round: ["$cbTotal", 2] },
           },
           deliveryTypes: {
+            surPlaceCount: "$surPlaceCount",
+            emporterCount: "$emporterCount",
             surPlace: { $round: ["$surPlaceTotal", 2] },
             emporter: { $round: ["$emporterTotal", 2] },
           },
@@ -1733,7 +1778,7 @@ exports.getStatistics = async (req, res) => {
         moyenRevenue: 0,
         totalRevenue: 0,
         paymentMethodsTotalRevenue: { espece: 0, cb: 0 },
-        deliveryTypes: { surPlace: 0, emporter: 0 },
+        deliveryTypes: { surPlace: 0, emporter: 0 ,surPlaceCount:0,emporterCount:0},
       }),
       totalOrders: statusCounts[0]?.totalOrders || 0,
       totalPlat: totalPlatStats[0]?.totalPlat || 0,
@@ -1765,7 +1810,7 @@ exports.getStatistics = async (req, res) => {
     console.error("Error fetching statistics:", error);
     res.status(500).json({
       success: false,
-      message: req.t('history.statistics_error'),
+      message: req.t("history.statistics_error"),
       error: error.message,
     });
   }
@@ -1783,7 +1828,7 @@ exports.getLatestPrintJob = async (req, res) => {
     });
 
     if (!printJob) {
-      return res.status(204).send(req.t('history.no_pending_print_job'));
+      return res.status(204).send(req.t("history.no_pending_print_job"));
     }
 
     // Marquer la commande comme "enAttente" (inProgress) pour éviter de l'imprimer à nouveau
@@ -1792,8 +1837,8 @@ exports.getLatestPrintJob = async (req, res) => {
 
     res.status(200).json(printJob);
   } catch (error) {
-    console.error(req.t('history.latest_print_job_error_log'), error);
-    res.status(500).json({ message: req.t('history.internal_server_error') });
+    console.error(req.t("history.latest_print_job_error_log"), error);
+    res.status(500).json({ message: req.t("history.internal_server_error") });
   }
 };
 
@@ -1806,13 +1851,15 @@ exports.manualPrint = async (req, res) => {
     const order = await History.findOne({ _id: id, restaurantId });
 
     if (!order) {
-      return res.status(404).json({ message: req.t('history.order_not_found') });
+      return res
+        .status(404)
+        .json({ message: req.t("history.order_not_found") });
     }
 
     // Immediate response to cashier
     res.status(200).json({
       success: true,
-      message: req.t('history.manual_print_request_sent'),
+      message: req.t("history.manual_print_request_sent"),
       orderId: id,
       commandNumber: order.commandNumber,
     });
@@ -1820,8 +1867,8 @@ exports.manualPrint = async (req, res) => {
     // Trigger print (non-blocking)
     setImmediate(() => triggerAutoPrint(id));
   } catch (error) {
-    console.error(req.t('history.manual_print_error_log'), error);
-    res.status(500).json({ error: req.t('history.internal_server_error') });
+    console.error(req.t("history.manual_print_error_log"), error);
+    res.status(500).json({ error: req.t("history.internal_server_error") });
   }
 };
 
@@ -1864,11 +1911,11 @@ exports.getFailedPrints = async (req, res) => {
       queuedRetries: queuedJobs,
       totalFailed: failedOrders.length,
       totalQueued: queuedJobs.length,
-      message: req.t('history.failed_prints_success'),
+      message: req.t("history.failed_prints_success"),
     });
   } catch (error) {
-    console.error(req.t('history.failed_prints_error_log'), error);
-    res.status(500).json({ error: req.t('history.internal_server_error') });
+    console.error(req.t("history.failed_prints_error_log"), error);
+    res.status(500).json({ error: req.t("history.internal_server_error") });
   }
 };
 
@@ -1881,7 +1928,9 @@ exports.retryPrint = async (req, res) => {
     const order = await History.findOne({ _id: id, restaurantId });
 
     if (!order) {
-      return res.status(404).json({ message: req.t('history.order_not_found') });
+      return res
+        .status(404)
+        .json({ message: req.t("history.order_not_found") });
     }
 
     // Reset print status
@@ -1902,7 +1951,7 @@ exports.retryPrint = async (req, res) => {
     // Immediate response
     res.status(200).json({
       success: true,
-      message: req.t('history.print_retried'),
+      message: req.t("history.print_retried"),
       orderId: id,
       commandNumber: order.commandNumber,
     });
@@ -1910,8 +1959,8 @@ exports.retryPrint = async (req, res) => {
     // Trigger print
     setImmediate(() => triggerAutoPrint(id));
   } catch (error) {
-    console.error(req.t('history.retry_print_error_log'), error);
-    res.status(500).json({ error: req.t('history.internal_server_error') });
+    console.error(req.t("history.retry_print_error_log"), error);
+    res.status(500).json({ error: req.t("history.internal_server_error") });
   }
 };
 
@@ -1946,7 +1995,9 @@ exports.retryAllFailedPrints = async (req, res) => {
     // Immediate response
     res.status(200).json({
       success: true,
-      message: req.t('history.all_prints_retried', { count: failedOrders.length }),
+      message: req.t("history.all_prints_retried", {
+        count: failedOrders.length,
+      }),
       retriedCount: failedOrders.length,
     });
 
@@ -1955,8 +2006,8 @@ exports.retryAllFailedPrints = async (req, res) => {
       setImmediate(() => triggerAutoPrint(order._id));
     });
   } catch (error) {
-    console.error(req.t('history.retry_all_failed_prints_error_log'), error);
-    res.status(500).json({ error: req.t('history.internal_server_error') });
+    console.error(req.t("history.retry_all_failed_prints_error_log"), error);
+    res.status(500).json({ error: req.t("history.internal_server_error") });
   }
 };
 
@@ -2017,10 +2068,10 @@ exports.getPrintStats = async (req, res) => {
       activeRetries: failedPrintQueue.filter(
         (job) => job.order.restaurantId.toString() === restaurantId
       ).length,
-      message: req.t('history.print_stats_success'),
+      message: req.t("history.print_stats_success"),
     });
   } catch (error) {
-    console.error(req.t('history.print_stats_error_log'), error);
-    res.status(500).json({ error: req.t('history.internal_server_error') });
+    console.error(req.t("history.print_stats_error_log"), error);
+    res.status(500).json({ error: req.t("history.internal_server_error") });
   }
 };

@@ -102,7 +102,7 @@ const ProductSchema = new mongoose.Schema({
   //   type: mongoose.Schema.Types.ObjectId,
   //   ref: "Rule",
   // }],
-});
+}, { timestamps: true });
 
 // ProductSchema.pre("save", async function (next) {
 //   try {

@@ -58,6 +58,6 @@ const ingrediantSchema = mongoose.Schema({
     ref: "Restaurant",
     required: true
   }
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model("Ingrediant", ingrediantSchema);
