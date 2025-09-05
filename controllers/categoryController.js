@@ -62,7 +62,12 @@ exports.getAllCategories = async (req, res) => {
         populate: [
           {
             path: "type",
-            select: "name label message min selection payment max",
+            select: "name label message min selection payment max ingredients",
+            populate: {
+              path: "ingredients",
+              model: "Ingrediant",
+              select: "name image price suppPrice outOfStock visible",
+            },
           },
           {
             path: "typeVariations",
@@ -85,123 +90,102 @@ exports.getAllCategories = async (req, res) => {
           },
         ],
       });
-    const populatedCategories = await Promise.all(
-      categories
-        .filter((category) =>
-          category.products.some((product) => product.visible)
-        )
-        .map(async (category) => {
-          const categoryObj = category.toObject();
 
-          categoryObj.products = await Promise.all(
-            category.products
-              .filter((product) => product.visible !== false)
-              .map(async (product) => {
-                const productObj = product.toObject();
+    const populatedCategories = categories
+      .map((category) => {
+        const categoryObj = category.toObject();
+        categoryObj.products = category.products
+          .filter((product) => product.visible)
+          .map((product) => {
+            const productObj = product.toObject();
 
-                // Discount logic using correct model fields
-                let now = new Date();
-                let hasDiscount = false;
-                if (
-                  typeof productObj.discountValue === "number" &&
-                  productObj.discountValue > 0 
-                ) {
-                  const start = productObj.discountStartDate
-                    ? new Date(productObj.discountStartDate)
-                    : null;
-                  // If no end date, discount never expires
-                  const end = productObj.discountEndDate
-                    ? new Date(productObj.discountEndDate)
-                    : null;
-                  if ((!start || now >= start) && (!end || now <= end)) {
-                    hasDiscount = true;
-                  }
+            // Discount logic
+            let now = new Date();
+            let hasDiscount = false;
+            if (
+              typeof productObj.discountValue === "number" &&
+              productObj.discountValue > 0
+            ) {
+              const start = productObj.discountStartDate
+                ? new Date(productObj.discountStartDate)
+                : null;
+              const end = productObj.discountEndDate
+                ? new Date(productObj.discountEndDate)
+                : null;
+              if ((!start || now >= start) && (!end || now <= end)) {
+                hasDiscount = true;
+              }
+            }
+            if (hasDiscount) {
+              productObj.originalPrice = productObj.price;
+              productObj.price = Number(
+                (productObj.price - productObj.discountValue).toFixed(2)
+              );
+            } else {
+              productObj.originalPrice = null;
+            }
+
+            // TypeVariations logic
+            if (
+              productObj.typeVariations &&
+              productObj.typeVariations.variations
+            ) {
+              const { typeVariation, variations } = productObj.typeVariations;
+              const validVariations = variations.filter(
+                (v) => v?._id?._id && v._id?.name && typeof v._id._id === "object"
+              );
+              if (validVariations?.length > 0) {
+                productObj.typeVariations = {
+                  _id: typeVariation._id,
+                  name: typeVariation.name,
+                  label: typeVariation.label,
+                  description: typeVariation.description,
+                  variations: validVariations.map((v) => ({
+                    _id: v._id._id,
+                    name: v._id.name,
+                    price: v.price || 0,
+                  })),
+                };
+              } else {
+                productObj.typeVariations = null;
+              }
+            }
+
+            // New Type and Ingredients logic
+            productObj.type = product.type
+              .map((type) => {
+                if (!type.ingredients || type.ingredients.length === 0) {
+                  return null;
                 }
-                if (hasDiscount) {
-                  productObj.originalPrice = productObj.price;
-                  productObj.price = Number(
-                    (productObj.price - productObj.discountValue).toFixed(2)
-                  );
-                } else {
-                  productObj.originalPrice = null;
-                }
-
-                if (
-                  productObj.typeVariations &&
-                  productObj.typeVariations.variations
-                ) {
-                  const { typeVariation, variations } =
-                    productObj.typeVariations;
-                  const validVariations = variations.filter(
-                    (v) =>
-                      v?._id?._id &&
-                      v._id?.name &&
-                      typeof v._id._id === "object"
-                  );
-                  if (validVariations?.length > 0) {
-                    productObj.typeVariations = {
-                      _id: typeVariation._id,
-                      name: typeVariation.name,
-                      label: typeVariation.label,
-                      description: typeVariation.description,
-                      variations: validVariations.map((v) => ({
-                        _id: v._id._id,
-                        name: v._id.name,
-                        price: v.price || 0,
-                      })),
+                const typeObj = type;
+                typeObj.ingrediants = type.ingredients
+                  .filter((ing) => ing.visible)
+                  .map((ing) => {
+                    const basePrice = !type.payment ? ing.suppPrice : ing.price;
+                    return {
+                      _id: ing._id,
+                      name: ing.name,
+                      image: ing.image,
+                      price: Number(basePrice.toFixed(2)),
+                      outOfStock: ing.outOfStock,
+                      visible: ing.visible,
                     };
-                  } else {
-                    productObj.typeVariations = null;
-                  }
+                  });
+                if (typeObj.ingrediants.length === 0) {
+                  return null;
                 }
-
-                const typesWithIngredients = await Promise.all(
-                  product.type.map(async (type) => {
-                    const typeObj = type.toObject();
-
-                    const typeIngredients = await Ingrediant.find({
-                      types: type._id,
-                      visible: true,
-                    }).select("name image price suppPrice outOfStock visible ");
-
-                    if (typeIngredients.length > 0) {
-                      typeObj.ingrediants = typeIngredients.map((ing) => {
-                        const basePrice = !type.payment
-                          ? ing.suppPrice
-                          : ing.price;
-                        const priceWithTVA = Number(basePrice.toFixed(2));
-
-                        return {
-                          _id: ing._id,
-                          name: ing.name,
-                          image: ing.image,
-                          price: priceWithTVA,
-                          outOfStock: ing.outOfStock,
-                          visible: ing.visible,
-                        };
-                      });
-                      return typeObj;
-                    }
-                    return null;
-                  })
-                );
-
-                productObj.type = typesWithIngredients.filter(
-                  (type) => type !== null
-                );
-                return productObj;
+                delete typeObj.ingredients;
+                return typeObj;
               })
-          );
+              .filter((type) => type !== null);
 
-          return categoryObj;
-        })
-    );
+            return productObj;
+          });
+        return categoryObj;
+      })
+      .filter((category) => category.products.length > 0);
 
-    const finalCategories = populatedCategories.filter(
-      (cat) => cat.products.length > 0
-    );
-
-    res.status(200).json(finalCategories);
+    res.status(200).json(populatedCategories);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -218,19 +202,6 @@ exports.getAllCategory = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-// exports.getCategoryById = async (req, res) => {
-//   const categoryId = req.params.categoryId;
-//   try {
-//     const category = await Category.findById(categoryId).populate("products");
-//     if (!category) {
-//       return res.status(404).json({ message: "Aucun categorie trouvée" });
-//     }
-//     res.status(200).json(category);
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// };
 
 exports.updateCategory = async (req, res) => {
   const categoryId = req.params.categoryId;
@@ -349,11 +320,7 @@ exports.deleteCategory = async (req, res) => {
     }
 
     await Product.deleteMany({ category: categoryId, restaurantId });
-    // Update products to set category to null
-    // await Product.updateMany(
-    //   { category: categoryId, restaurantId },
-    //   { $set: { category: null } }
-    // );
+    
     if (category.image) {
       const imagePath = path.join(__dirname, "..", category.image);
       if (fs.existsSync(imagePath)) {

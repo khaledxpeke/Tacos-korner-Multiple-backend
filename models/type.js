@@ -31,7 +31,40 @@ const typeSchema = mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Restaurant",
     required: true
-  }
+  },
+  mode: {
+    type: String,
+    enum: ["INGREDIENT", "PRODUCT"],
+    default: "INGREDIENT"
+  },
+  ingredients: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Ingrediant"
+  }],
+  // When mode = PRODUCT → selectable extra products
+  products: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Product"
+  }]
 }, { timestamps: true });
+
+typeSchema.index({ restaurantId: 1, name: 1 }, { unique: true });
+
+typeSchema.pre("save", function(next) {
+  if (this.mode === "INGREDIENT") {
+    this.products = [];
+    if (this.payment === undefined) {
+      this.payment = false;
+    }
+  } else if (this.mode === "PRODUCT") {
+    this.ingredients = [];
+    // Force payment true for product extras
+    this.payment = true;
+  }
+  if (this.min > this.max) {
+    return next(new Error("min cannot be greater than max"));
+  }
+  next();
+});
 
 module.exports = mongoose.model("Type", typeSchema);

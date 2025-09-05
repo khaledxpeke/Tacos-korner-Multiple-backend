@@ -31,7 +31,6 @@ const models = {
   Ingrediant,
   Product,
   Settings,
-  StatusHistory,
   Type,
   TypeVariation,
   User,
@@ -82,78 +81,104 @@ exports.exportRestaurantData = async (req, res) => {
   try {
     const exportDataRaw = {};
     const exportDataCloned = {};
+    const counts = { raw: {}, cloned: {} };
+
     // Export all collections for raw
     for (const [name, Model] of Object.entries(models)) {
-      let query = {};
-      if (Model.schema.paths.restaurantId) query.restaurantId = restaurantId;
+      const query = Model.schema.paths.restaurantId ? { restaurantId } : {};
       const data = await Model.find(query).lean();
-      if (!data || data.length === 0) continue;
-      exportDataRaw[name] = data;
+      if (data?.length) {
+        exportDataRaw[name] = data;
+        counts.raw[name] = data.length;
+      }
     }
     // For cloned, export all except History
     for (const [name, Model] of Object.entries(models)) {
       if (name === "History") continue;
-      let query = {};
-      if (Model.schema.paths.restaurantId) query.restaurantId = restaurantId;
-      const data = await Model.find(query).lean();
-      if (!data || data.length === 0) continue;
-      exportDataCloned[name] = data;
+      if (exportDataRaw[name]) {
+        exportDataCloned[name] = exportDataRaw[name];
+        counts.cloned[name] = exportDataRaw[name].length;
+      }
     }
+
     if (Object.keys(exportDataRaw).length === 0)
       return res
         .status(404)
         .json({ message: "No data found for this restaurant." });
 
-    // Save files
+    // Save files async
     const exportFolder = path.join(__dirname, "../data/exports");
     if (!fs.existsSync(exportFolder))
       fs.mkdirSync(exportFolder, { recursive: true });
 
     const now = new Date();
-    const timestamp = `${now.getDate().toString().padStart(2, "0")}-${(
-      now.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}-${now.getFullYear()}`;
+    const timestamp = `${now.getDate().toString().padStart(2, "0")}-${(now.getMonth() + 1).toString().padStart(2, "0")}-${now.getFullYear()}`;
+    const rawFileName = `restaurant_${restaurantId}_raw_${timestamp}.json`;
+    const clonedFileName = `restaurant_${restaurantId}_cloned_${timestamp}.json`;
+    const rawFilePath = path.join(exportFolder, rawFileName);
+    const clonedFilePath = path.join(exportFolder, clonedFileName);
 
-    const rawFilePath = path.join(
-      exportFolder,
-      `restaurant_${restaurantId}_raw_${timestamp}.json`
-    );
-    const clonedFilePath = path.join(
-      exportFolder,
-      `restaurant_${restaurantId}_cloned_${timestamp}.json`
-    );
+    await Promise.all([
+      fs.promises.writeFile(rawFilePath, JSON.stringify(exportDataRaw, null, 2), "utf-8"),
+      fs.promises.writeFile(clonedFilePath, JSON.stringify(exportDataCloned, null, 2), "utf-8"),
+    ]);
 
-    fs.writeFileSync(
-      rawFilePath,
-      JSON.stringify(exportDataRaw, null, 2),
-      "utf-8"
-    );
-    fs.writeFileSync(
-      clonedFilePath,
-      JSON.stringify(exportDataCloned, null, 2),
-      "utf-8"
-    );
+    const [rawStat, clonedStat] = await Promise.all([
+      fs.promises.stat(rawFilePath),
+      fs.promises.stat(clonedFilePath),
+    ]);
 
     return res.json({
       success: true,
-      message: "Export complete",
-      rawFile: rawFilePath,
-      clonedFile: clonedFilePath,
-      rawData: exportDataRaw,
-      clonedData: exportDataCloned,
+      message: "Export files generated successfully.",
+      files: [
+        { type: "raw", filename: rawFileName, size: rawStat.size, docCounts: counts.raw },
+        { type: "cloned", filename: clonedFileName, size: clonedStat.size, docCounts: counts.cloned },
+      ],
     });
   } catch (err) {
     console.error("Export error:", err);
     return res
       .status(500)
-      .json({
-        success: false,
-        message: "Error exporting data",
-        error: err.message,
-      });
+      .json({ success: false, message: "Error exporting data", error: err.message });
   }
+};
+
+exports.downloadRestaurantExport = async (req, res) => {
+  const { restaurantId } = req;
+  const { file } = req.query;
+
+  if (!restaurantId) {
+    return res.status(400).json({ message: "Restaurant ID missing from middleware." });
+  }
+  if (!file) {
+    return res.status(400).json({ message: "file query parameter is required." });
+  }
+
+  // Security: Validate filename pattern is bound to the requesting restaurant
+  const safeRegex = new RegExp(`^restaurant_${restaurantId}_(raw|cloned)_\\d{2}-\\d{2}-\\d{4}\\.json$`);
+  if (!safeRegex.test(file)) {
+    return res.status(403).json({ message: "Invalid or forbidden file name." });
+  }
+
+  const exportFolder = path.join(__dirname, "../data/exports");
+  const fullPath = path.join(exportFolder, file);
+
+  // Security: Prevent path traversal
+  if (path.dirname(fullPath) !== exportFolder) {
+    return res.status(400).json({ message: "Invalid path." });
+  }
+
+  if (!fs.existsSync(fullPath)) {
+    return res.status(404).json({ message: "File not found." });
+  }
+
+  return res.download(fullPath, file, (err) => {
+    if (err) {
+      console.error("Download error:", err);
+      // Cannot send response if headers already sent
+    }
+  });
 };
 
 const imageCollections = {

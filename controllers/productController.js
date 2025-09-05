@@ -1,6 +1,7 @@
 const Product = require("../models/product");
 const Category = require("../models/category");
 const Ingrediant = require("../models/ingrediant");
+const Type = require("../models/type");
 const express = require("express");
 const app = express();
 require("dotenv").config();
@@ -152,7 +153,7 @@ exports.getProductsByCategory = async (req, res, next) => {
     const products = await Product.find({ category: categoryId, restaurantId })
       .populate({
         path: "type",
-        select: "name",
+        select: "name mode message payment selection max min",
       })
       .sort({ position: 1 });
 
@@ -179,7 +180,7 @@ exports.getAllProducts = async (req, res, next) => {
     const products = await Product.find({ restaurantId }).populate([
       {
         path: "type",
-        select: "name",
+        select: "name mode message payment selection max min",
       },
     ]);
     res.status(200).json(products);
@@ -238,46 +239,147 @@ exports.getProductData = async (req, res) => {
       };
     }
 
-    const typesWithIngredients = await Promise.all(
-      product.type.map(async (type) => {
-        const typeIngredients = await Ingrediant.find({
-          types: type._id,
-          visible: true,
-          restaurantId,
-        })
-          .populate({
-            path: "variations",
-            model: "Variation",
-            select: "name price",
+    // const typesWithIngredients = await Promise.all(
+    //   product.type.map(async (type) => {
+    //     const typeIngredients = await Ingrediant.find({
+    //       types: type._id,
+    //       visible: true,
+    //       restaurantId,
+    //     })
+    //       .populate({
+    //         path: "variations",
+    //         model: "Variation",
+    //         select: "name price",
+    //       })
+    //       .select("name image price outOfStock visible")
+    //       .lean();
+
+    //     if (typeIngredients.length > 0) {
+    //       return {
+    //         ...type,
+    //         ingrediants: typeIngredients.map((ing) => {
+    //           const variation = ing.variations?.find(
+    //             (v) => v._id.toString() === variationId
+    //           );
+    //           const basePrice = !type.payment ? ing.suppPrice : ing.price;
+    //           const price = variation ? variation.price : basePrice;
+
+    //           return {
+    //             _id: ing._id,
+    //             name: ing.name,
+    //             image: ing.image,
+    //             price: price,
+    //             outOfStock: ing.outOfStock,
+    //             visible: ing.visible,
+    //           };
+    //         }),
+    //       };
+    //     }
+    //     return null;
+    //   })
+    // );
+
+    const typesExpanded = await Promise.all(
+      product.type.map(async (t) => {
+        // t = { _id, name, message, payment, selection, max, min }
+        const typeDoc = await Type.findOne({ _id: t._id, restaurantId }).lean();
+        if (!typeDoc) return null;
+
+        if (typeDoc.mode === "INGREDIENT") {
+          if (!typeDoc.ingredients || typeDoc.ingredients.length === 0)
+            return null;
+
+          const ingDocs = await Ingrediant.find({
+            _id: { $in: typeDoc.ingredients },
+            visible: true,
+            restaurantId,
           })
-          .select("name image price outOfStock visible")
-          .lean();
+            .populate({
+              path: "variations",
+              model: "Variation",
+              select: "name price",
+            })
+            .select("name image price suppPrice outOfStock visible variations")
+            .lean();
 
-        if (typeIngredients.length > 0) {
+          const ingrediants = ingDocs.map((ing) => {
+            const variation = ing.variations?.find(
+              (v) => v._id.toString() === variationId
+            );
+            const basePrice = !typeDoc.payment ? ing.suppPrice : ing.price;
+            const price = variation ? variation.price : basePrice;
+            return {
+              _id: ing._id,
+              name: ing.name,
+              image: ing.image,
+              price,
+              outOfStock: ing.outOfStock,
+              visible: ing.visible,
+            };
+          });
+
+          if (!ingrediants.length) return null;
+
           return {
-            ...type,
-            ingrediants: typeIngredients.map((ing) => {
-              const variation = ing.variations?.find(
-                (v) => v._id.toString() === variationId
-              );
-              const basePrice = !type.payment ? ing.suppPrice : ing.price;
-              const price = variation ? variation.price : basePrice;
-
-              return {
-                _id: ing._id,
-                name: ing.name,
-                image: ing.image,
-                price: price,
-                outOfStock: ing.outOfStock,
-                visible: ing.visible,
-              };
-            }),
+            _id: typeDoc._id,
+            name: typeDoc.name,
+            message: typeDoc.message,
+            payment: typeDoc.payment,
+            selection: typeDoc.selection,
+            max: typeDoc.max,
+            min: typeDoc.min,
+            mode: "INGREDIENT",
+            ingrediants,
           };
         }
+
+        if (typeDoc.mode === "PRODUCT") {
+          if (!typeDoc.products || typeDoc.products.length === 0)
+            return null;
+
+          let prodDocs = await Product.find({
+            _id: { $in: typeDoc.products },
+            visible: true,
+            restaurantId,
+          })
+            .select(
+              "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate"
+            )
+            .lean();
+
+          prodDocs = prodDocs.map((p) => {
+            const discountInfo = calculateDiscountInfo(p);
+            return {
+              _id: p._id,
+              name: p.name,
+              image: p.image,
+              price: discountInfo.price,
+              hasDiscount: discountInfo.hasDiscount,
+              originalPrice: discountInfo.originalPrice,
+              outOfStock: p.outOfStock,
+              visible: p.visible,
+            };
+          });
+
+          if (!prodDocs.length) return null;
+
+          return {
+            _id: typeDoc._id,
+            name: typeDoc.name,
+            message: typeDoc.message,
+            payment: true, // product extras always add cost
+            selection: typeDoc.selection,
+            max: typeDoc.max,
+            min: typeDoc.min,
+            mode: "PRODUCT",
+            products: prodDocs,
+          };
+        }
+
         return null;
       })
     );
-
+    product.type = typesExpanded.filter(Boolean);
     // Calculate discount information
     const discountInfo = calculateDiscountInfo(product);
     product.price = discountInfo.price;
@@ -285,7 +387,7 @@ exports.getProductData = async (req, res) => {
     res.status(200).json({
       ...product,
       // ...discountInfo,
-      type: typesWithIngredients.filter((t) => t !== null),
+      // type: typesWithIngredients.filter((t) => t !== null),
     });
   } catch (error) {
     res.status(500).json({
@@ -438,12 +540,10 @@ exports.updateProduct = async (req, res) => {
 
       const updatedProduct = await product.save();
 
-      res
-        .status(200)
-        .json({
-          ...updatedProduct.toObject(),
-          message: req.t("product.updated_success"),
-        });
+      res.status(200).json({
+        ...updatedProduct.toObject(),
+        message: req.t("product.updated_success"),
+      });
     } catch (error) {
       console.log(error);
       res.status(500).json({ message: req.t("errors.unknown") });
