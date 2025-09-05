@@ -34,8 +34,8 @@ const typeSchema = mongoose.Schema({
   },
   mode: {
     type: String,
-    enum: ["INGREDIENTS", "PRODUCT"],
-    default: "INGREDIENT"
+    enum: ["INGREDIENTS", "PRODUCTS"],
+    default: "INGREDIENTS"
   },
   ingredients: [{
     type: mongoose.Schema.Types.ObjectId,

@@ -48,7 +48,7 @@ exports.createType = async (req, res, next) => {
           ? (Array.isArray(ingredients) ? ingredients : [])
           : [],
       products:
-        effectiveMode === "PRODUCT"
+        effectiveMode === "PRODUCTS"
           ? (Array.isArray(products) ? products : [])
           : [],
       restaurantId
@@ -132,7 +132,7 @@ exports.updateType = async (req, res, next) => {
       type.mode = mode;
       if (mode === "INGREDIENT") {
         type.products = [];
-      } else if (mode === "PRODUCT") {
+      } else if (mode === "PRODUCTS") {
         type.ingredients = [];
       }
     }
