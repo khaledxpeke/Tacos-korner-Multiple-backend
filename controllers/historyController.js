@@ -795,9 +795,10 @@ const generatePDF = async (orderData) => {
   const settings = await Settings.findOne({ restaurantId });
   const restaurant = await Restaurant.findById(restaurantId);
   const tva = settings?.tva || 0;
-  const address = settings?.address;
+  const address = restaurant?.address;
   const totalHt = (100 * orderData.total) / (100 + tva);
   const tvaAmount = orderData.total - totalHt;
+  const safeRestaurantName = restaurant.name.replace(/[\s'"]/g, '-').replace(/--+/g, '-');
   const logoUrl = `${process.env.BASE_URL}/${restaurant.logo.replace(
     /\\/g,
     "/"
@@ -875,7 +876,7 @@ const generatePDF = async (orderData) => {
       currency: orderData.currency,
       restaurantId: restaurantId,
     },
-    path: `./uploads/order-${orderData.commandNumber}.pdf`,
+    path: `./uploads/${safeRestaurantName}-commande-${orderData.commandNumber}.pdf`,
   };
 
   try {

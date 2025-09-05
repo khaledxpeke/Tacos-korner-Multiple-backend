@@ -303,7 +303,7 @@ exports.getProductData = async (req, res) => {
         const typeDoc = await Type.findOne({ _id: t._id, restaurantId }).lean();
         if (!typeDoc) return null;
 
-        if (typeDoc.mode === "INGREDIENT") {
+        if (typeDoc.mode === "INGREDIENTS") {
           if (!typeDoc.ingredients || typeDoc.ingredients.length === 0)
             return null;
 
@@ -346,7 +346,7 @@ exports.getProductData = async (req, res) => {
             selection: typeDoc.selection,
             max: typeDoc.max,
             min: typeDoc.min,
-            mode: "INGREDIENT",
+            mode: "INGREDIENTS",
             ingrediants,
           };
         }

@@ -33,7 +33,7 @@ exports.createType = async (req, res, next) => {
         message: req.t("type.min_max_error"),
       });
     }
-    const effectiveMode = mode || "INGREDIENT";
+    const effectiveMode = mode || "INGREDIENTS";
     const newType = new Type({
       name,
       label,
@@ -44,7 +44,7 @@ exports.createType = async (req, res, next) => {
       selection,
       mode: effectiveMode,
       ingredients:
-        effectiveMode === "INGREDIENT"
+        effectiveMode === "INGREDIENTS"
           ? (Array.isArray(ingredients) ? ingredients : [])
           : [],
       products:

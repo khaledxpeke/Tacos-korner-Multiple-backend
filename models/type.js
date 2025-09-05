@@ -34,7 +34,7 @@ const typeSchema = mongoose.Schema({
   },
   mode: {
     type: String,
-    enum: ["INGREDIENT", "PRODUCT"],
+    enum: ["INGREDIENTS", "PRODUCT"],
     default: "INGREDIENT"
   },
   ingredients: [{
