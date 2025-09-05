@@ -9,6 +9,7 @@ const {
   getProductData,
   setProductDiscount,
   removeProductDiscount,
+  getSeuleProducts,
 } = require("../controllers/productController");
 const { USER_ROLES } = require("../enum/constants");
 
@@ -17,6 +18,12 @@ router.post(
   restaurantAuth(),
   roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   addProductToCategory
+);
+router.get(
+  "/seul",
+  restaurantAuth(),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
+  getSeuleProducts
 );
 router.get(
   "/:categoryId",

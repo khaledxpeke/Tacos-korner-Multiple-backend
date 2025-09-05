@@ -192,6 +192,24 @@ exports.getAllProducts = async (req, res, next) => {
   }
 };
 
+exports.getSeuleProducts = async (req, res, next) => {
+  try {
+    const { restaurantId } = req;
+    const products = await Product.find({ restaurantId, choice: "seul" }).populate([
+      {
+         path: "type",
+        select: "name mode message payment selection max min",
+      },
+    ]);
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(400).json({
+      message: req.t("product.error"),
+      error: error.message,
+    });
+  }
+};
+
 exports.getProductData = async (req, res) => {
   try {
     const { productId, variationId } = req.params;
