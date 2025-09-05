@@ -192,102 +192,99 @@ exports.getSettings = async (req, res) => {
   }
 };
 
-exports.getSettingsRT = async (socket, req) => {
-  try {
-    const { restaurantId } = req;
-    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
-      "settings"
-    );
+// exports.getSettingsRT = async (socket, req) => {
+//   try {
+//     const { restaurantId } = req;
+//     const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
+//       "settings"
+//     );
 
-    if (!restaurant) {
-      return res.status(404).json({ message: req.t("restaurant.not_found") });
-    }
+//     if (!restaurant) {
+//       return res.status(404).json({ message: req.t("restaurant.not_found") });
+//     }
 
-    let settings = null;
-    if (restaurant.settings) {
-      settings = await Settings.findOne({
-        _id: restaurant.settings,
-        restaurantId: restaurantId,
-      });
-    }
+//     let settings = null;
+//     if (restaurant.settings) {
+//       settings = await Settings.findOne({
+//         _id: restaurant.settings,
+//         restaurantId: restaurantId,
+//       });
+//     }
 
-    if (!settings) {
-      // Create default settings if none exist (same as getSettings)
-      settings = new Settings({
-        restaurantId: restaurantId,
-        tva: 10,
-        method: [
-          {
-            _id: new mongoose.Types.ObjectId(),
-            label: "Espèce",
-            isActive: true,
-          },
-          {
-            _id: new mongoose.Types.ObjectId(),
-            label: "Carte bancaire",
-            isActive: true,
-          },
-        ],
-        currencies: ["€", "$"],
-        defaultCurrency: "€",
-        maxExtras: 5,
-        maxDessert: 5,
-        maxDrink: 5,
-        pack: [
-          {
-            _id: new mongoose.Types.ObjectId(),
-            label: "Sur Place",
-            isActive: true,
-          },
-          {
-            _id: new mongoose.Types.ObjectId(),
-            label: "À emporter",
-            isActive: true,
-          },
-        ],
-        carouselDuration: 5,
-        carouselTiming: 120,
-        qrCode: "https://www.google.com",
-        host: process.env.EMAIL_HOST || "smtp.example.com",
-        port: process.env.EMAIL_PORT || 587,
-        emailPass: process.env.EMAIL_PASSWORD || "",
-        emailSender: process.env.EMAIL_SENDER || "",
-        emailUser: process.env.EMAIL_USER || "",
-        emailName: process.env.EMAIL_NAME || "Restaurant",
-      });
-      await settings.save();
-      restaurant.settings = settings._id;
-      await restaurant.save();
-    }
+//     if (!settings) {
+//       // Create default settings if none exist (same as getSettings)
+//       settings = new Settings({
+//         restaurantId: restaurantId,
+//         tva: 10,
+//         method: [
+//           {
+//             _id: new mongoose.Types.ObjectId(),
+//             label: "Espèce",
+//             isActive: true,
+//           },
+//           {
+//             _id: new mongoose.Types.ObjectId(),
+//             label: "Carte bancaire",
+//             isActive: true,
+//           },
+//         ],
+//         currencies: ["€", "$"],
+//         defaultCurrency: "€",
+//         maxExtras: 5,
+//         maxDessert: 5,
+//         maxDrink: 5,
+//         pack: [
+//           {
+//             _id: new mongoose.Types.ObjectId(),
+//             label: "Sur Place",
+//             isActive: true,
+//           },
+//           {
+//             _id: new mongoose.Types.ObjectId(),
+//             label: "À emporter",
+//             isActive: true,
+//           },
+//         ],
+//         carouselDuration: 5,
+//         carouselTiming: 120,
+//         qrCode: "https://www.google.com",
+//         host: process.env.EMAIL_HOST || "smtp.example.com",
+//         port: process.env.EMAIL_PORT || 587,
+//         emailPass: process.env.EMAIL_PASSWORD || "",
+//         emailSender: process.env.EMAIL_SENDER || "",
+//         emailUser: process.env.EMAIL_USER || "",
+//         emailName: process.env.EMAIL_NAME || "Restaurant",
+//       });
+//       await settings.save();
+//       restaurant.settings = settings._id;
+//       await restaurant.save();
+//     }
 
-    socket.emit("join-restaurant", restaurantId);
+//     socket.emit("join-restaurant", restaurantId);
 
-    // Send initial settings
-    const settingsObject = settings.toObject();
-    settingsObject.isPasswordSet = !!settingsObject.emailPass;
-    delete settingsObject.emailPass;
+//     // Send initial settings
+//     const settingsObject = settings.toObject();
+//     settingsObject.isPasswordSet = !!settingsObject.emailPass;
+//     delete settingsObject.emailPass;
 
-    socket.emit("settings-realtime-fetched", {
-      restaurantId,
-      settings: settingsObject,
-    });
+//     socket.emit("settings-realtime-fetched", settingsObject);
 
-    socket.on("settings-updated", (data) => {
-      socket.emit("settings-realtime-update", data);
-    });
+//     socket.on("settings-updated", (data) => {
+//       socket.emit("settings-realtime-update", data);
+//     });
 
-    socket.on("settings-fetched", (data) => {
-      socket.emit("settings-realtime-fetched", data);
-    });
+//     socket.on("settings-fetched", (data) => {
+//       socket.emit("settings-realtime-fetched", data);
+//     });
 
-    // res.status(200).json(settingsObject);
-  } catch (error) {
-    socket.emit("error", {
-      message: "Failed to fetch settings",
-      error: error.message,
-    });
-  }
-};
+//     // res.status(200).json(settingsObject);
+//   } catch (error) {
+//     socket.emit("error", {
+//       message: "Failed to fetch settings",
+//       error: error.message,
+//     });
+//   }
+// };
 
 exports.getAllCurrencies = async (req, res) => {
   try {
@@ -636,13 +633,7 @@ exports.updateSettings = async (req, res) => {
       );
       console.log("io is defined:", !!io);
       if (io) {
-        io.to(`restaurant-${restaurantId}`).emit("settings-updated", {
-          id: settings._id,
-          restaurantId,
-          message: "Settings have been updated. Please refresh.",
-          settings,
-          updatedAt: new Date().toISOString(),
-        });
+        io.to(`restaurant-${restaurantId}`).emit("settings-updated", settings);
         console.log(
           "Emitted settings-updated to room:",
           `restaurant-${restaurantId}`
