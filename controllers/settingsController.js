@@ -353,6 +353,18 @@ exports.updateDefaultCurrency = async (req, res) => {
 
     currencyDoc.defaultCurrency = defaultCurrency.toUpperCase();
     await currencyDoc.save();
+    if (io) {
+      io.to(`restaurant-${restaurantId}`).emit(
+        "settings-updated",
+        currencyDoc
+      );
+      console.log(
+        "Emitted settings-updated to room:",
+        `restaurant-${restaurantId}`
+      ); // Move this HERE
+    } else {
+      console.log("io is not defined, emit skipped");
+    }
 
     return res.status(200).json({
       message: req.t("settings.currency_default_updated"),
