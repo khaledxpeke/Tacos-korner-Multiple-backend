@@ -6,10 +6,11 @@ const cors = require("cors");
 const { roleAuth } = require("./middleware/auth");
 const path = require("path");
 const socketIo = require("socket.io");
-const i18next = require('i18next');
-const i18nextMiddleware = require('i18next-http-middleware');
-const FsBackend = require('i18next-fs-backend');
+const i18next = require("i18next");
+const i18nextMiddleware = require("i18next-http-middleware");
+const FsBackend = require("i18next-fs-backend");
 const { setIO, getHistoriesRT } = require("./controllers/historyController");
+const settingsController = require("./controllers/settingsController");
 const http = require("http");
 const { USER_ROLES } = require("./enum/constants");
 const PORT = process.env.PORT;
@@ -28,18 +29,33 @@ setIO(io);
 io.engine.on("connection_error", (err) => {
   console.log("Connection error:", err);
 });
+settingsController.setIO(io);
 io.on("connection", (socket) => {
   console.log(`New client connected: ${socket.id}`);
-  socket.on("join-restaurant", (restaurantId) => {
-    socket.join(`restaurant-${restaurantId}`);
-    console.log(`Socket ${socket.id} joined restaurant ${restaurantId}`);
-  });
+
   // Test event every 5 seconds
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
   });
+  socket.on("join-restaurant", (data) => {
+    const { restaurantId } = data;
+    socket.join(`restaurant-${restaurantId}`);
+    console.log(`Socket ${socket.id} joined restaurant ${restaurantId}`);
+    getHistoriesRT(socket, restaurantId);
 
-  getHistoriesRT(socket);
+    const mockReq = { restaurantId }; // Define mockReq here
+    settingsController.getSettingsRT(socket, mockReq);
+  });
+
+  socket.on("get-settings-rt", (data) => {
+    // Assume data contains restaurantId and other req-like info
+    const mockReq = { restaurantId: data.restaurantId }; // Mock req object
+    settingsController.getSettingsRT(socket, mockReq);
+  });
+
+  socket.on("disconnect", () => {
+    console.log(`Client disconnected: ${socket.id}`);
+  });
 });
 app.use(
   cors({
@@ -57,14 +73,17 @@ i18next
   .use(FsBackend)
   .use(i18nextMiddleware.LanguageDetector)
   .init({
-    fallbackLng: 'fr',
-    preload: ['en', 'fr', 'ar'],
-    ns: ['translation'],
-    defaultNS: 'translation',
-    backend: { loadPath: path.join(__dirname, 'translations/{{lng}}.json') },
-    detection: { order: ['querystring', 'header', 'cookie'], lookupQuerystring: 'lng' },
+    fallbackLng: "fr",
+    preload: ["en", "fr", "ar"],
+    ns: ["translation"],
+    defaultNS: "translation",
+    backend: { loadPath: path.join(__dirname, "translations/{{lng}}.json") },
+    detection: {
+      order: ["querystring", "header", "cookie"],
+      lookupQuerystring: "lng",
+    },
     initImmediate: false,
-    keySeparator: false
+    keySeparator: false,
   });
 
 app.use(i18nextMiddleware.handle(i18next));
@@ -104,20 +123,20 @@ app.use(
   express.static(path.join(__dirname, "uploads", "carousel"))
 );
 app.get("/adminRoute", roleAuth([USER_ROLES.ADMIN]), (req, res) => {
-  res.send(req.t('routes.authenticated.admin'));
+  res.send(req.t("routes.authenticated.admin"));
 });
 app.get("/managerRoute", roleAuth([USER_ROLES.MANAGER]), (req, res) => {
-  res.send(req.t('routes.authenticated.manager'));
+  res.send(req.t("routes.authenticated.manager"));
 });
 app.get("/waiterRoute", roleAuth([USER_ROLES.WAITER]), (req, res) => {
-  res.send(req.t('routes.authenticated.waiter'));
+  res.send(req.t("routes.authenticated.waiter"));
 });
 app.get("/clientRoute", roleAuth([USER_ROLES.CLIENT]), (req, res) => {
-  res.send(req.t('routes.authenticated.client'));
+  res.send(req.t("routes.authenticated.client"));
 });
 
-app.get('/welcome', (req, res) => {
-  res.json({ lang: req.language, message: req.t('welcome') });
+app.get("/welcome", (req, res) => {
+  res.json({ lang: req.language, message: req.t("welcome") });
 });
 
 app.set("view engine", "ejs");
@@ -128,7 +147,7 @@ app.get("/logout", (req, res) => {
 });
 // 404 handler for unmatched routes
 app.use((req, res, next) => {
-  res.status(404).json({ success: false, message: req.t('errors.not_found') });
+  res.status(404).json({ success: false, message: req.t("errors.not_found") });
 });
 /**
  * Global error handler with i18n
@@ -137,10 +156,13 @@ app.use((err, req, res, next) => {
   console.error(err);
   const status = err.status || 500;
   const key =
-    status === 401 ? 'errors.unauthorized' :
-    status === 403 ? 'errors.forbidden' :
-    status === 404 ? 'errors.not_found' :
-    'errors.unknown';
+    status === 401
+      ? "errors.unauthorized"
+      : status === 403
+      ? "errors.forbidden"
+      : status === 404
+      ? "errors.not_found"
+      : "errors.unknown";
   res.status(status).json({ success: false, message: req.t(key) });
 });
 

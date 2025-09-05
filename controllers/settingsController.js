@@ -11,6 +11,11 @@ const multerStorage = require("../middleware/multerStorage");
 const upload = multer({ storage: multerStorage });
 const { default: mongoose } = require("mongoose");
 const { encrypt } = require("../middleware/crypto");
+let io;
+
+exports.setIO = (socketIO) => {
+  io = socketIO;
+};
 
 exports.addSettings = async (req, res) => {
   try {
@@ -21,12 +26,14 @@ exports.addSettings = async (req, res) => {
     );
 
     if (!restaurant) {
-      return res.status(404).json({ message: req.t('restaurant.not_found') });
+      return res.status(404).json({ message: req.t("restaurant.not_found") });
     }
 
     const { currency } = req.body;
     if (!currency) {
-      return res.status(400).json({ message: req.t('settings.currency_required') });
+      return res
+        .status(400)
+        .json({ message: req.t("settings.currency_required") });
     }
     let existing = null;
     if (restaurant.settings) {
@@ -37,7 +44,9 @@ exports.addSettings = async (req, res) => {
     }
     if (existing) {
       if (existing.currencies.includes(currency.toUpperCase())) {
-        return res.status(400).json({ message: req.t('settings.currency_exists') });
+        return res
+          .status(400)
+          .json({ message: req.t("settings.currency_exists") });
       }
 
       existing.currencies.push(currency.toUpperCase());
@@ -45,10 +54,12 @@ exports.addSettings = async (req, res) => {
       await existing.save();
       return res
         .status(200)
-        .json({ existing, message: req.t('settings.currency_added') });
+        .json({ existing, message: req.t("settings.currency_added") });
     } else {
       if (currency === undefined) {
-        return res.status(400).json({ message: req.t('settings.currency_required') });
+        return res
+          .status(400)
+          .json({ message: req.t("settings.currency_required") });
       }
       const newSettings = new Settings({
         restaurantId: restaurantId,
@@ -113,7 +124,7 @@ exports.getSettings = async (req, res) => {
     );
 
     if (!restaurant) {
-      return res.status(404).json({ message: req.t('restaurant.not_found') });
+      return res.status(404).json({ message: req.t("restaurant.not_found") });
     }
     let settings = null;
     if (restaurant.settings) {
@@ -181,6 +192,103 @@ exports.getSettings = async (req, res) => {
   }
 };
 
+exports.getSettingsRT = async (socket, req) => {
+  try {
+    const { restaurantId } = req;
+    const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
+      "settings"
+    );
+
+    if (!restaurant) {
+      return res.status(404).json({ message: req.t("restaurant.not_found") });
+    }
+
+    let settings = null;
+    if (restaurant.settings) {
+      settings = await Settings.findOne({
+        _id: restaurant.settings,
+        restaurantId: restaurantId,
+      });
+    }
+
+    if (!settings) {
+      // Create default settings if none exist (same as getSettings)
+      settings = new Settings({
+        restaurantId: restaurantId,
+        tva: 10,
+        method: [
+          {
+            _id: new mongoose.Types.ObjectId(),
+            label: "Espèce",
+            isActive: true,
+          },
+          {
+            _id: new mongoose.Types.ObjectId(),
+            label: "Carte bancaire",
+            isActive: true,
+          },
+        ],
+        currencies: ["€", "$"],
+        defaultCurrency: "€",
+        maxExtras: 5,
+        maxDessert: 5,
+        maxDrink: 5,
+        pack: [
+          {
+            _id: new mongoose.Types.ObjectId(),
+            label: "Sur Place",
+            isActive: true,
+          },
+          {
+            _id: new mongoose.Types.ObjectId(),
+            label: "À emporter",
+            isActive: true,
+          },
+        ],
+        carouselDuration: 5,
+        carouselTiming: 120,
+        qrCode: "https://www.google.com",
+        host: process.env.EMAIL_HOST || "smtp.example.com",
+        port: process.env.EMAIL_PORT || 587,
+        emailPass: process.env.EMAIL_PASSWORD || "",
+        emailSender: process.env.EMAIL_SENDER || "",
+        emailUser: process.env.EMAIL_USER || "",
+        emailName: process.env.EMAIL_NAME || "Restaurant",
+      });
+      await settings.save();
+      restaurant.settings = settings._id;
+      await restaurant.save();
+    }
+
+    socket.emit("join-restaurant", restaurantId);
+
+    // Send initial settings
+    const settingsObject = settings.toObject();
+    settingsObject.isPasswordSet = !!settingsObject.emailPass;
+    delete settingsObject.emailPass;
+
+    socket.emit("settings-realtime-fetched", {
+      restaurantId,
+      settings: settingsObject,
+    });
+
+    socket.on("settings-updated", (data) => {
+      socket.emit("settings-realtime-update", data);
+    });
+
+    socket.on("settings-fetched", (data) => {
+      socket.emit("settings-realtime-fetched", data);
+    });
+
+    // res.status(200).json(settingsObject);
+  } catch (error) {
+    socket.emit("error", {
+      message: "Failed to fetch settings",
+      error: error.message,
+    });
+  }
+};
+
 exports.getAllCurrencies = async (req, res) => {
   try {
     const { restaurantId } = req;
@@ -192,14 +300,16 @@ exports.getAllCurrencies = async (req, res) => {
     if (!restaurant || !restaurant.settings) {
       return res
         .status(404)
-        .json({ message: req.t('settings.param_not_found') });
+        .json({ message: req.t("settings.param_not_found") });
     }
     const currencies = await Settings.findOne({
       _id: restaurant.settings,
       restaurantId: restaurantId,
     });
     if (!currencies) {
-      return res.status(404).json({ message: req.t('settings.currency_not_found') });
+      return res
+        .status(404)
+        .json({ message: req.t("settings.currency_not_found") });
     }
 
     return res.status(200).json({
@@ -222,14 +332,14 @@ exports.updateDefaultCurrency = async (req, res) => {
     if (!restaurant || !restaurant.settings) {
       return res
         .status(404)
-        .json({ message: req.t('settings.param_not_found') });
+        .json({ message: req.t("settings.param_not_found") });
     }
 
     const { defaultCurrency } = req.body;
     if (!defaultCurrency) {
       return res
         .status(400)
-        .json({ message: req.t('settings.currency_default_required') });
+        .json({ message: req.t("settings.currency_default_required") });
     }
     const currencyDoc = await Settings.findOne({
       _id: restaurant.settings,
@@ -239,14 +349,16 @@ exports.updateDefaultCurrency = async (req, res) => {
       !currencyDoc ||
       !currencyDoc.currencies.includes(defaultCurrency.toUpperCase())
     ) {
-      return res.status(400).json({ message: req.t('settings.currency_invalid') });
+      return res
+        .status(400)
+        .json({ message: req.t("settings.currency_invalid") });
     }
 
     currencyDoc.defaultCurrency = defaultCurrency.toUpperCase();
     await currencyDoc.save();
 
     return res.status(200).json({
-      message: req.t('settings.currency_default_updated'),
+      message: req.t("settings.currency_default_updated"),
       defaultCurrency: currencyDoc.defaultCurrency,
     });
   } catch (error) {
@@ -265,12 +377,14 @@ exports.deleteCurrency = async (req, res) => {
     if (!restaurant || !restaurant.settings) {
       return res
         .status(404)
-        .json({ message: req.t('settings.param_not_found') });
+        .json({ message: req.t("settings.param_not_found") });
     }
 
     const { currency } = req.body;
     if (!currency) {
-      return res.status(400).json({ message: req.t('settings.currency_required') });
+      return res
+        .status(400)
+        .json({ message: req.t("settings.currency_required") });
     }
 
     const currencyDoc = await Settings.findOne({
@@ -281,12 +395,14 @@ exports.deleteCurrency = async (req, res) => {
       !currencyDoc ||
       !currencyDoc.currencies.includes(currency.toUpperCase())
     ) {
-      return res.status(400).json({ message: req.t('settings.currency_not_found') });
+      return res
+        .status(400)
+        .json({ message: req.t("settings.currency_not_found") });
     }
 
     if (currencyDoc.currencies.length <= 1) {
       return res.status(400).json({
-        message: req.t('settings.currency_last_delete_error'),
+        message: req.t("settings.currency_last_delete_error"),
       });
     }
     currencyDoc.currencies = currencyDoc.currencies.filter(
@@ -298,7 +414,7 @@ exports.deleteCurrency = async (req, res) => {
 
     await currencyDoc.save();
     return res.status(200).json({
-      message: req.t('settings.currency_deleted'),
+      message: req.t("settings.currency_deleted"),
       currencies: currencyDoc.currencies,
       defaultCurrency: currencyDoc.defaultCurrency,
     });
@@ -311,7 +427,7 @@ exports.updateSettings = async (req, res) => {
   upload.single("banner")(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
-        message: req.t('settings.image_upload_failed'),
+        message: req.t("settings.image_upload_failed"),
         error: err.message,
       });
     }
@@ -322,7 +438,7 @@ exports.updateSettings = async (req, res) => {
       const restaurant = await Restaurant.findOne({ _id: restaurantId });
 
       if (!restaurant) {
-        return res.status(404).json({ message: req.t('restaurant.not_found') });
+        return res.status(404).json({ message: req.t("restaurant.not_found") });
       }
 
       // Find or create settings
@@ -337,7 +453,7 @@ exports.updateSettings = async (req, res) => {
       if (!settings) {
         return res
           .status(404)
-          .json({ message: req.t('settings.param_not_found') });
+          .json({ message: req.t("settings.param_not_found") });
       }
       const {
         oldCurrency,
@@ -369,7 +485,7 @@ exports.updateSettings = async (req, res) => {
         if (!settings.currencies.includes(oldCurrencyUpper)) {
           return res
             .status(400)
-            .json({ message: req.t('settings.old_currency_not_found') });
+            .json({ message: req.t("settings.old_currency_not_found") });
         }
         if (
           settings.currencies.includes(newCurrencyUpper) &&
@@ -377,7 +493,7 @@ exports.updateSettings = async (req, res) => {
         ) {
           return res
             .status(400)
-            .json({ message: req.t('settings.new_currency_exists') });
+            .json({ message: req.t("settings.new_currency_exists") });
         }
 
         settings.currencies = settings.currencies.map((c) =>
@@ -390,7 +506,9 @@ exports.updateSettings = async (req, res) => {
 
       if (tva !== undefined) {
         if (tva < 0) {
-          return res.status(400).json({ message: req.t('settings.tva_positive') });
+          return res
+            .status(400)
+            .json({ message: req.t("settings.tva_positive") });
         }
         settings.tva = tva;
         settings.maxExtras = maxExtras || settings.maxExtras;
@@ -512,8 +630,28 @@ exports.updateSettings = async (req, res) => {
       }
 
       await settings.save();
+      console.log(
+        "About to emit settings-updated for restaurantId:",
+        restaurantId
+      );
+      console.log("io is defined:", !!io);
+      if (io) {
+        io.to(`restaurant-${restaurantId}`).emit("settings-updated", {
+          id: settings._id,
+          restaurantId,
+          message: "Settings have been updated. Please refresh.",
+          settings,
+          updatedAt: new Date().toISOString(),
+        });
+        console.log(
+          "Emitted settings-updated to room:",
+          `restaurant-${restaurantId}`
+        ); // Move this HERE
+      } else {
+        console.log("io is not defined, emit skipped");
+      }
       return res.status(200).json({
-        message: req.t('settings.updated_success'),
+        message: req.t("settings.updated_success"),
         settings,
       });
     } catch (error) {

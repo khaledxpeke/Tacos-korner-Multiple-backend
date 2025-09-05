@@ -107,17 +107,17 @@ function formatOrderForPrint(order, restaurant, settings) {
       productList += `<feed line="1"/>`;
     }
 
-    // Add addons (grouped like Flutter) - Fixed data handling
     if (product.addons && product.addons.length > 0) {
       const addonGroups = {};
       product.addons.forEach((addon) => {
         const name = addon.name || "Addon";
         const price = parseFloat(addon.price) || 0;
+        const key = `${name}_${price}`;
 
-        if (!addonGroups[name]) {
-          addonGroups[name] = { name: name, price: price, count: 0 };
+        if (!addonGroups[key]) {
+          addonGroups[key] = { name: name, price: price, count: 0 };
         }
-        addonGroups[name].count++;
+        addonGroups[key].count++;
       });
 
       Object.values(addonGroups).forEach((addon) => {
@@ -139,7 +139,6 @@ function formatOrderForPrint(order, restaurant, settings) {
       });
     }
 
-    // Add extras (grouped like Flutter) - Fixed data handling
     if (product.extras && product.extras.length > 0) {
       productList += `<text align="left" em="true">Extras:</text>`;
       productList += `<feed line="1"/>`;
@@ -200,16 +199,24 @@ function formatOrderForPrint(order, restaurant, settings) {
 
     // Addons
     if (product.addons && product.addons.length > 0) {
-      const uniqueAddons = [
-        ...new Map(product.addons.map((a) => [a.name, a])).values(),
-      ];
-      uniqueAddons.forEach((addon) => {
-        const count = product.addons.filter(
-          (a) => a.name === addon.name
-        ).length;
-        kitchenProductList += `<text width="2" height="2" align="left" em="false"> ${
-          count > 1 ? count + "X " : ""
-        }${addon.name}</text>`;
+      const addonGroups = {};
+      product.addons.forEach((addon) => {
+        const name = addon.name || "Addon";
+        const price = parseFloat(addon.price) || 0;
+        const key = `${name}_${price}`; // Group by name and price (same as productList)
+
+        if (!addonGroups[key]) {
+          addonGroups[key] = { name: name, price: price, count: 0 };
+        }
+        addonGroups[key].count++;
+      });
+
+      Object.values(addonGroups).forEach((addon) => {
+        const addonName = `${addon.count > 1 ? addon.count + "X " : ""}${
+          addon.name
+        }`;
+        // No price display for kitchen
+        kitchenProductList += `<text width="2" height="2" align="left" em="false">${addonName}</text>`;
         kitchenProductList += `<feed line="1"/>`;
       });
     }
@@ -608,8 +615,8 @@ exports.addHistory = async (req, res) => {
             status: "enCours",
             updatedAt: franceDatetime,
           });
-          io.emit("new-history", response);
-          await notifyWaiters(history,req);
+          io.to(`restaurant-${restaurantId}`).emit("new-history", response);
+          await notifyWaiters(history, req);
         }
 
         // 🚀 AUTO-PRINT: Trigger printing immediately after order is saved (non-blocking)
@@ -655,7 +662,7 @@ exports.addHistory = async (req, res) => {
   }
 };
 
-const notifyWaiters = async (history,req) => {
+const notifyWaiters = async (history, req) => {
   try {
     const { restaurantId } = history;
     const users = await User.find({
@@ -1328,7 +1335,7 @@ exports.getHistoriesRT = async (socket) => {
           },
         };
 
-        socket.emit("histories-update", response);
+        io.to(`restaurant-${restaurantId}`).emit("histories-update", response);
       } catch (error) {
         console.error("Error in fetch-histories:", error);
         socket.emit(
@@ -1340,12 +1347,10 @@ exports.getHistoriesRT = async (socket) => {
       }
     });
   } catch (error) {
-    socket.emit(
-      "error",
-      socket.request.t("history.fetch_histories_error", {
-        error: error.message,
-      })
-    );
+    io.to(`restaurant`).emit("error", {
+      message: "Failed to fetch histories",
+      error: error.message,
+    });
   }
 };
 const checkAndUpdateDelayedOrders = async (restaurantId) => {
@@ -1778,7 +1783,12 @@ exports.getStatistics = async (req, res) => {
         moyenRevenue: 0,
         totalRevenue: 0,
         paymentMethodsTotalRevenue: { espece: 0, cb: 0 },
-        deliveryTypes: { surPlace: 0, emporter: 0 ,surPlaceCount:0,emporterCount:0},
+        deliveryTypes: {
+          surPlace: 0,
+          emporter: 0,
+          surPlaceCount: 0,
+          emporterCount: 0,
+        },
       }),
       totalOrders: statusCounts[0]?.totalOrders || 0,
       totalPlat: totalPlatStats[0]?.totalPlat || 0,
