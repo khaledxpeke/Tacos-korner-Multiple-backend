@@ -195,9 +195,12 @@ exports.getAllProducts = async (req, res, next) => {
 exports.getSeuleProducts = async (req, res, next) => {
   try {
     const { restaurantId } = req;
-    const products = await Product.find({ restaurantId, choice: "seul" }).populate([
+    const products = await Product.find({
+      restaurantId,
+      choice: "seul",
+    }).populate([
       {
-         path: "type",
+        path: "type",
         select: "name mode message payment selection max min",
       },
     ]);
@@ -228,7 +231,7 @@ exports.getProductData = async (req, res) => {
     })
       .populate({
         path: "type",
-        select: "name message payment selection max min",
+        select: "name message payment selection max min ",
       })
       .populate({
         path: "typeVariations.typeVariation",
@@ -266,12 +269,13 @@ exports.getProductData = async (req, res) => {
             populate: {
               path: "variations",
               model: "Variation",
-              select: "name price"
-            }
+              select: "name price",
+            },
           })
           .populate({
             path: "products",
-            select: "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate"
+            select:
+              "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate",
           })
           .lean();
 
@@ -280,18 +284,23 @@ exports.getProductData = async (req, res) => {
         const out = {
           _id: typeDoc._id,
           name: typeDoc.name,
-            message: typeDoc.message,
+          message: typeDoc.message,
           payment: typeDoc.payment,
           selection: typeDoc.selection,
           max: typeDoc.max,
-          min: typeDoc.min
+          min: typeDoc.min,
         };
 
-           if (Array.isArray(typeDoc.ingredients) && typeDoc.ingredients.length > 0) {
+        if (
+          Array.isArray(typeDoc.ingredients) &&
+          typeDoc.ingredients.length > 0
+        ) {
           const ingrediants = typeDoc.ingredients
-            .filter(ing => ing.visible)
-            .map(ing => {
-              const variation = ing.variations?.find(v => v._id.toString() === variationId);
+            .filter((ing) => ing.visible && !ing.outOfStock)
+            .map((ing) => {
+              const variation = ing.variations?.find(
+                (v) => v._id.toString() === variationId
+              );
               const basePrice = !typeDoc.payment ? ing.suppPrice : ing.price;
               const price = variation ? variation.price : basePrice;
               return {
@@ -300,7 +309,7 @@ exports.getProductData = async (req, res) => {
                 image: ing.image,
                 price,
                 outOfStock: ing.outOfStock,
-                visible: ing.visible
+                // visible: ing.visible,
               };
             });
           if (ingrediants.length) {
@@ -311,8 +320,8 @@ exports.getProductData = async (req, res) => {
         // PRODUCTS (if you are allowing extra products on same Type)
         if (Array.isArray(typeDoc.products) && typeDoc.products.length > 0) {
           let prodDocs = typeDoc.products
-            .filter(p => p.visible)
-            .map(p => {
+            .filter((p) => p.visible && !p.outOfStock)
+            .map((p) => {
               const discountInfo = calculateDiscountInfo(p);
               return {
                 _id: p._id,
@@ -322,7 +331,7 @@ exports.getProductData = async (req, res) => {
                 hasDiscount: discountInfo.hasDiscount,
                 originalPrice: discountInfo.originalPrice,
                 outOfStock: p.outOfStock,
-                visible: p.visible
+                // visible: p.visible,
               };
             });
           if (prodDocs.length) {
@@ -339,12 +348,10 @@ exports.getProductData = async (req, res) => {
 
     const discountInfo = calculateDiscountInfo(product);
     product.price = discountInfo.price;
+    product.originalPrice = discountInfo.originalPrice;
+    product.hasDiscount = discountInfo.hasDiscount;
 
-    res.status(200).json({
-      ...product,
-      // ...discountInfo,
-      // type: typesWithIngredients.filter((t) => t !== null),
-    });
+    res.status(200).json(product);
   } catch (error) {
     res.status(500).json({
       message: req.t("errors.unknown"),

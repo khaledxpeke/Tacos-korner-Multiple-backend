@@ -62,12 +62,20 @@ exports.getAllCategories = async (req, res) => {
         populate: [
           {
             path: "type",
-            select: "name label message min selection payment max ingredients",
-            populate: {
-              path: "ingredients",
-              model: "Ingrediant",
-              select: "name image price suppPrice outOfStock visible",
-            },
+            select:
+              "name label message min selection payment max ingredients products",
+            populate: [
+              {
+                path: "ingredients",
+                model: "Ingrediant",
+                select: "name image price suppPrice outOfStock visible",
+              },
+              {
+                path: "products",
+                model: "Product",
+                select: "name price image outOfStock visible discountValue",
+              },
+            ],
           },
           {
             path: "typeVariations",
@@ -132,7 +140,8 @@ exports.getAllCategories = async (req, res) => {
             ) {
               const { typeVariation, variations } = productObj.typeVariations;
               const validVariations = variations.filter(
-                (v) => v?._id?._id && v._id?.name && typeof v._id._id === "object"
+                (v) =>
+                  v?._id?._id && v._id?.name && typeof v._id._id === "object"
               );
               if (validVariations?.length > 0) {
                 productObj.typeVariations = {
@@ -151,8 +160,11 @@ exports.getAllCategories = async (req, res) => {
               }
             }
 
+            delete productObj.discountStartDate;
+            delete productObj.discountEndDate;
+            delete productObj.visible;
             // New Type and Ingredients logic
-             productObj.type = product.type
+            productObj.type = (productObj.type || [])
               .map((type) => {
                 const hasIngredients =
                   Array.isArray(type.ingredients) &&
@@ -176,7 +188,7 @@ exports.getAllCategories = async (req, res) => {
 
                 if (hasIngredients) {
                   typeOut.ingrediants = type.ingredients
-                    .filter((ing) => ing.visible)
+                    .filter((ing) => ing.visible && !ing.outOfStock)
                     .map((ing) => {
                       const basePrice = !type.payment
                         ? ing.suppPrice
@@ -185,11 +197,9 @@ exports.getAllCategories = async (req, res) => {
                         _id: ing._id,
                         name: ing.name,
                         image: ing.image,
-                        price: Number(
-                          (basePrice ?? 0).toFixed(2)
-                        ),
+                        price: Number((basePrice ?? 0).toFixed(2)),
                         outOfStock: ing.outOfStock,
-                        visible: ing.visible,
+                        // visible: ing.visible,
                       };
                     });
                   if (!typeOut.ingrediants.length) delete typeOut.ingrediants;
@@ -197,7 +207,7 @@ exports.getAllCategories = async (req, res) => {
 
                 if (hasProducts) {
                   typeOut.products = type.products
-                    .filter((p) => p.visible)
+                    .filter((p) => p.visible && !p.outOfStock)
                     .map((p) => {
                       // discount calc (mirrors earlier logic)
                       const pn = { ...p };
@@ -212,10 +222,7 @@ exports.getAllCategories = async (req, res) => {
                         const pe = pn.discountEndDate
                           ? new Date(pn.discountEndDate)
                           : null;
-                        if (
-                          (!ps || now >= ps) &&
-                          (!pe || now <= pe)
-                        ) {
+                        if ((!ps || now >= ps) && (!pe || now <= pe)) {
                           pHasDiscount = true;
                         }
                       }
@@ -234,7 +241,7 @@ exports.getAllCategories = async (req, res) => {
                         price: finalPrice,
                         originalPrice,
                         outOfStock: pn.outOfStock,
-                        visible: pn.visible,
+                        // visible: pn.visible,
                       };
                     });
                   if (!typeOut.products.length) delete typeOut.products;
@@ -386,7 +393,7 @@ exports.deleteCategory = async (req, res) => {
     }
 
     await Product.deleteMany({ category: categoryId, restaurantId });
-    
+
     if (category.image) {
       const imagePath = path.join(__dirname, "..", category.image);
       if (fs.existsSync(imagePath)) {

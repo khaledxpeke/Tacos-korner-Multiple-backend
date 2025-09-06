@@ -535,6 +535,7 @@ exports.addHistory = async (req, res) => {
     const settings = await Settings.findOne({ restaurantId });
     const parisTime = moment.tz("Europe/Paris");
     const franceDatetime = parisTime.toDate();
+
     const methodExists = settings.method.find(
       (m) => m._id.toString() === method
     );
@@ -616,7 +617,7 @@ exports.addHistory = async (req, res) => {
             updatedAt: franceDatetime,
           });
           io.to(`restaurant-${restaurantId}`).emit("new-history", response);
-          await notifyWaiters(history, req);
+          await notifyWaiters(history, req.t.bind(req));
         }
 
         // 🚀 AUTO-PRINT: Trigger printing immediately after order is saved (non-blocking)
@@ -662,7 +663,7 @@ exports.addHistory = async (req, res) => {
   }
 };
 
-const notifyWaiters = async (history, req) => {
+const notifyWaiters = async (history, t) => {
   try {
     const { restaurantId } = history;
     const users = await User.find({
@@ -671,11 +672,10 @@ const notifyWaiters = async (history, req) => {
     });
 
     const tokens = users.map((user) => user.fcmToken);
-
     const payload = {
       notification: {
-        title: req.t("history.new_order_title"),
-        body: req.t("history.new_order_body", {
+        title: t("history.new_order_title"),
+        body: t("history.new_order_body", {
           name: history.name,
           commandNumber: history.commandNumber,
         }),
@@ -690,13 +690,13 @@ const notifyWaiters = async (history, req) => {
         });
       } catch (error) {
         console.error(
-          req.t("history.notification_token_error", { token }),
+          t("history.notification_token_error", { token }),
           error
         );
       }
     }
   } catch (error) {
-    console.error(req.t("history.notification_send_error"), error);
+    console.error(t("history.notification_send_error"), error);
   }
 };
 exports.getHistory = async (req, res) => {
