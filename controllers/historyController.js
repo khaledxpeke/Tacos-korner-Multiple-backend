@@ -287,8 +287,8 @@ ${productList}
 <feed line="1"/>
 <text>${formatLine("Total(HT)", totalHT.toFixed(2))}</text>
 <feed line="1"/>
-<text>${formatLine("Remise", order.discountValue.toFixed(2))}</text>
-<feed line="1"/>
+<text>${formatLine("Remise", order.discountValue)}</text>
+<feed line="1"/>+
 <text>===============================================</text>
 <feed line="1"/>
 <text em="true">${formatLine(
@@ -579,6 +579,7 @@ exports.addHistory = async (req, res) => {
       name,
       currency,
       tva,
+      discountValue: req.body.discountValue || "0",
       status: "enCours",
       logo: restaurant.logo,
       method: {
