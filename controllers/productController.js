@@ -257,148 +257,86 @@ exports.getProductData = async (req, res) => {
       };
     }
 
-    // const typesWithIngredients = await Promise.all(
-    //   product.type.map(async (type) => {
-    //     const typeIngredients = await Ingrediant.find({
-    //       types: type._id,
-    //       visible: true,
-    //       restaurantId,
-    //     })
-    //       .populate({
-    //         path: "variations",
-    //         model: "Variation",
-    //         select: "name price",
-    //       })
-    //       .select("name image price outOfStock visible")
-    //       .lean();
-
-    //     if (typeIngredients.length > 0) {
-    //       return {
-    //         ...type,
-    //         ingrediants: typeIngredients.map((ing) => {
-    //           const variation = ing.variations?.find(
-    //             (v) => v._id.toString() === variationId
-    //           );
-    //           const basePrice = !type.payment ? ing.suppPrice : ing.price;
-    //           const price = variation ? variation.price : basePrice;
-
-    //           return {
-    //             _id: ing._id,
-    //             name: ing.name,
-    //             image: ing.image,
-    //             price: price,
-    //             outOfStock: ing.outOfStock,
-    //             visible: ing.visible,
-    //           };
-    //         }),
-    //       };
-    //     }
-    //     return null;
-    //   })
-    // );
-
     const typesExpanded = await Promise.all(
-      product.type.map(async (t) => {
-        // t = { _id, name, message, payment, selection, max, min }
-        const typeDoc = await Type.findOne({ _id: t._id, restaurantId }).lean();
-        if (!typeDoc) return null;
-
-        if (typeDoc.mode === "INGREDIENTS") {
-          if (!typeDoc.ingredients || typeDoc.ingredients.length === 0)
-            return null;
-
-          const ingDocs = await Ingrediant.find({
-            _id: { $in: typeDoc.ingredients },
-            visible: true,
-            restaurantId,
-          })
-            .populate({
+      (product.type || []).map(async (t) => {
+        const typeDoc = await Type.findOne({ _id: t._id, restaurantId })
+          .populate({
+            path: "ingredients",
+            select: "name image price suppPrice outOfStock visible variations",
+            populate: {
               path: "variations",
               model: "Variation",
-              select: "name price",
-            })
-            .select("name image price suppPrice outOfStock visible variations")
-            .lean();
-
-          const ingrediants = ingDocs.map((ing) => {
-            const variation = ing.variations?.find(
-              (v) => v._id.toString() === variationId
-            );
-            const basePrice = !typeDoc.payment ? ing.suppPrice : ing.price;
-            const price = variation ? variation.price : basePrice;
-            return {
-              _id: ing._id,
-              name: ing.name,
-              image: ing.image,
-              price,
-              outOfStock: ing.outOfStock,
-              visible: ing.visible,
-            };
-          });
-
-          if (!ingrediants.length) return null;
-
-          return {
-            _id: typeDoc._id,
-            name: typeDoc.name,
-            message: typeDoc.message,
-            payment: typeDoc.payment,
-            selection: typeDoc.selection,
-            max: typeDoc.max,
-            min: typeDoc.min,
-            mode: "INGREDIENTS",
-            ingrediants,
-          };
-        }
-
-        if (typeDoc.mode === "PRODUCT") {
-          if (!typeDoc.products || typeDoc.products.length === 0)
-            return null;
-
-          let prodDocs = await Product.find({
-            _id: { $in: typeDoc.products },
-            visible: true,
-            restaurantId,
+              select: "name price"
+            }
           })
-            .select(
-              "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate"
-            )
-            .lean();
+          .populate({
+            path: "products",
+            select: "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate"
+          })
+          .lean();
 
-          prodDocs = prodDocs.map((p) => {
-            const discountInfo = calculateDiscountInfo(p);
-            return {
-              _id: p._id,
-              name: p.name,
-              image: p.image,
-              price: discountInfo.price,
-              hasDiscount: discountInfo.hasDiscount,
-              originalPrice: discountInfo.originalPrice,
-              outOfStock: p.outOfStock,
-              visible: p.visible,
-            };
-          });
+        if (!typeDoc) return null;
 
-          if (!prodDocs.length) return null;
-
-          return {
-            _id: typeDoc._id,
-            name: typeDoc.name,
+        const out = {
+          _id: typeDoc._id,
+          name: typeDoc.name,
             message: typeDoc.message,
-            payment: true, // product extras always add cost
-            selection: typeDoc.selection,
-            max: typeDoc.max,
-            min: typeDoc.min,
-            mode: "PRODUCT",
-            products: prodDocs,
-          };
+          payment: typeDoc.payment,
+          selection: typeDoc.selection,
+          max: typeDoc.max,
+          min: typeDoc.min
+        };
+
+           if (Array.isArray(typeDoc.ingredients) && typeDoc.ingredients.length > 0) {
+          const ingrediants = typeDoc.ingredients
+            .filter(ing => ing.visible)
+            .map(ing => {
+              const variation = ing.variations?.find(v => v._id.toString() === variationId);
+              const basePrice = !typeDoc.payment ? ing.suppPrice : ing.price;
+              const price = variation ? variation.price : basePrice;
+              return {
+                _id: ing._id,
+                name: ing.name,
+                image: ing.image,
+                price,
+                outOfStock: ing.outOfStock,
+                visible: ing.visible
+              };
+            });
+          if (ingrediants.length) {
+            out.ingrediants = ingrediants; // <- renamed field
+          }
         }
 
-        return null;
+        // PRODUCTS (if you are allowing extra products on same Type)
+        if (Array.isArray(typeDoc.products) && typeDoc.products.length > 0) {
+          let prodDocs = typeDoc.products
+            .filter(p => p.visible)
+            .map(p => {
+              const discountInfo = calculateDiscountInfo(p);
+              return {
+                _id: p._id,
+                name: p.name,
+                image: p.image,
+                price: discountInfo.price,
+                hasDiscount: discountInfo.hasDiscount,
+                originalPrice: discountInfo.originalPrice,
+                outOfStock: p.outOfStock,
+                visible: p.visible
+              };
+            });
+          if (prodDocs.length) {
+            out.products = prodDocs;
+          }
+        }
+
+        if (!out.ingrediants && !out.products) return null;
+        return out;
       })
     );
+
     product.type = typesExpanded.filter(Boolean);
-    // Calculate discount information
+
     const discountInfo = calculateDiscountInfo(product);
     product.price = discountInfo.price;
 

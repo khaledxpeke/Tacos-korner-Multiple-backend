@@ -152,32 +152,98 @@ exports.getAllCategories = async (req, res) => {
             }
 
             // New Type and Ingredients logic
-            productObj.type = product.type
+             productObj.type = product.type
               .map((type) => {
-                if (!type.ingredients || type.ingredients.length === 0) {
-                  return null;
+                const hasIngredients =
+                  Array.isArray(type.ingredients) &&
+                  type.ingredients.length > 0;
+
+                const hasProducts =
+                  Array.isArray(type.products) && type.products.length > 0;
+
+                if (!hasIngredients && !hasProducts) return null;
+
+                const typeOut = {
+                  _id: type._id,
+                  name: type.name,
+                  label: type.label,
+                  message: type.message,
+                  min: type.min,
+                  max: type.max,
+                  selection: type.selection,
+                  payment: type.payment,
+                };
+
+                if (hasIngredients) {
+                  typeOut.ingrediants = type.ingredients
+                    .filter((ing) => ing.visible)
+                    .map((ing) => {
+                      const basePrice = !type.payment
+                        ? ing.suppPrice
+                        : ing.price;
+                      return {
+                        _id: ing._id,
+                        name: ing.name,
+                        image: ing.image,
+                        price: Number(
+                          (basePrice ?? 0).toFixed(2)
+                        ),
+                        outOfStock: ing.outOfStock,
+                        visible: ing.visible,
+                      };
+                    });
+                  if (!typeOut.ingrediants.length) delete typeOut.ingrediants;
                 }
-                const typeObj = type;
-                typeObj.ingrediants = type.ingredients
-                  .filter((ing) => ing.visible)
-                  .map((ing) => {
-                    const basePrice = !type.payment ? ing.suppPrice : ing.price;
-                    return {
-                      _id: ing._id,
-                      name: ing.name,
-                      image: ing.image,
-                      price: Number(basePrice.toFixed(2)),
-                      outOfStock: ing.outOfStock,
-                      visible: ing.visible,
-                    };
-                  });
-                if (typeObj.ingrediants.length === 0) {
-                  return null;
+
+                if (hasProducts) {
+                  typeOut.products = type.products
+                    .filter((p) => p.visible)
+                    .map((p) => {
+                      // discount calc (mirrors earlier logic)
+                      const pn = { ...p };
+                      let pHasDiscount = false;
+                      if (
+                        typeof pn.discountValue === "number" &&
+                        pn.discountValue > 0
+                      ) {
+                        const ps = pn.discountStartDate
+                          ? new Date(pn.discountStartDate)
+                          : null;
+                        const pe = pn.discountEndDate
+                          ? new Date(pn.discountEndDate)
+                          : null;
+                        if (
+                          (!ps || now >= ps) &&
+                          (!pe || now <= pe)
+                        ) {
+                          pHasDiscount = true;
+                        }
+                      }
+                      let finalPrice = pn.price;
+                      let originalPrice = null;
+                      if (pHasDiscount) {
+                        originalPrice = pn.price;
+                        finalPrice = Number(
+                          (pn.price - pn.discountValue).toFixed(2)
+                        );
+                      }
+                      return {
+                        _id: pn._id,
+                        name: pn.name,
+                        image: pn.image,
+                        price: finalPrice,
+                        originalPrice,
+                        outOfStock: pn.outOfStock,
+                        visible: pn.visible,
+                      };
+                    });
+                  if (!typeOut.products.length) delete typeOut.products;
                 }
-                delete typeObj.ingredients;
-                return typeObj;
+
+                if (!typeOut.ingrediants && !typeOut.products) return null;
+                return typeOut;
               })
-              .filter((type) => type !== null);
+              .filter((t) => t !== null);
 
             return productObj;
           });

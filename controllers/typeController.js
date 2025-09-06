@@ -66,7 +66,16 @@ exports.createType = async (req, res, next) => {
 exports.getAllTypes = async (req, res, next) => {
   try {
     const { restaurantId } = req;
-    const types = await Type.find({ restaurantId });
+    const types = await Type.find({ restaurantId }).populate([
+    {
+      path: 'ingredients',
+      select: 'name' // Selects only the 'name' field for ingredients
+    },
+    {
+      path: 'products',
+      select: 'name' // Selects only the 'name' field for products
+    }
+  ])
     res.status(200).json(types);
   } catch (error) {
     res.status(400).json({
