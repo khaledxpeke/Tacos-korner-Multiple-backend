@@ -8,22 +8,6 @@ app.use(express.json());
 const moment = require("moment-timezone");
 const RESTAURANT_TIMEZONE = process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
 
-// Helper function to add Z to date strings if missing
-const addTimezoneZ = (dateString) => {
-  if (!dateString) return null;
-
-  // If date doesn't have timezone info, add Z at the end
-  if (
-    !dateString.includes("Z") &&
-    !dateString.includes("+") &&
-    !dateString.match(/-\d{2}:\d{2}$/)
-  ) {
-    return dateString + "Z";
-  }
-
-  return dateString;
-};
-
 exports.addCoupon = async (req, res) => {
   try {
     const { restaurantId } = req;
@@ -75,8 +59,8 @@ exports.addCoupon = async (req, res) => {
       });
     }
 
-    // Validate date interval
     const now = moment().tz(RESTAURANT_TIMEZONE);
+
     const start = startDate ? moment.tz(startDate, RESTAURANT_TIMEZONE) : now;
     const end = endDate ? moment.tz(endDate, RESTAURANT_TIMEZONE) : null;
 
@@ -157,7 +141,24 @@ exports.getCoupon = async (req, res) => {
       return res.status(404).json({ message: req.t("coupon.not_found") });
     }
 
-    return res.status(200).json(coupon);
+    // Convert dates to restaurant timezone for consistent display
+    const couponObj = coupon.toObject();
+    
+    // Convert startDate to restaurant timezone if it exists
+    if (couponObj.startDate) {
+      couponObj.startDate = moment(couponObj.startDate)
+        .tz(RESTAURANT_TIMEZONE)
+        .format("YYYY-MM-DDTHH:mm");
+    }
+    
+    // Convert endDate to restaurant timezone if it exists
+    if (couponObj.endDate) {
+      couponObj.endDate = moment(couponObj.endDate)
+        .tz(RESTAURANT_TIMEZONE)
+        .format("YYYY-MM-DDTHH:mm");
+    }
+
+    return res.status(200).json(couponObj);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -233,34 +234,48 @@ exports.updateCoupon = async (req, res) => {
       });
     }
 
-    const newStartDate = startDate
-      ? moment(addTimezoneZ(startDate)).tz(RESTAURANT_TIMEZONE)
+    // --- Date Handling for Coupon Update ---
+    // The following logic ensures that start and end dates are handled correctly,
+    // respecting the restaurant's timezone (Europe/Paris).
+
+    // If a new `startDate` is provided, parse it in the restaurant's timezone.
+    // Otherwise, use the existing `startDate` from the coupon.
+    const start = startDate
+      ? moment.tz(startDate, RESTAURANT_TIMEZONE)
       : moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
 
-    const newEndDate =
+    // If `endDate` is provided in the request (even as null), use it.
+    // `endDate: null` means the coupon never expires.
+    // If `endDate` is not in the request (`undefined`), keep the existing one.
+    const end =
       endDate !== undefined
         ? endDate
-          ? moment(addTimezoneZ(endDate)).tz(RESTAURANT_TIMEZONE)
-          : null
+          ? moment.tz(endDate, RESTAURANT_TIMEZONE)
+          : null // A null endDate means it never expires
         : coupon.endDate
         ? moment(coupon.endDate).tz(RESTAURANT_TIMEZONE)
         : null;
 
-    if (newEndDate && newStartDate.isSameOrAfter(newEndDate)) {
+    if (end && start.isSameOrAfter(end)) {
       return res.status(400).json({
         message: req.t("coupon.end_after_start"),
       });
     }
 
-    // Update fields
+    // --- Update Coupon Fields ---
+    // Apply the updates to the coupon object.
+    // The `.toDate()` method converts the moment object (which is timezone-aware)
+    // into a standard JavaScript Date object, which is stored in UTC in MongoDB.
+    // This is the correct and standard way to handle dates with MongoDB and Mongoose.
     if (code) coupon.code = code.toUpperCase();
     if (couponType) coupon.couponType = couponType;
     if (couponValue !== undefined) coupon.couponValue = Number(couponValue);
     if (minOrderAmount !== undefined)
       coupon.minOrderAmount = Number(minOrderAmount);
     if (isActive !== undefined) coupon.isActive = isActive;
-    if (startDate !== undefined) coupon.startDate = newStartDate;
-    if (endDate !== undefined) coupon.endDate = newEndDate;
+    // Only update dates if they were actually provided in the request body
+    if (startDate !== undefined) coupon.startDate = start.toDate();
+    if (endDate !== undefined) coupon.endDate = end ? end.toDate() : null;
     if (categoryType) {
       coupon.categoryType = categoryType;
       coupon.couponCategories = ["categories", "categories_products"].includes(

@@ -139,7 +139,7 @@ exports.updateType = async (req, res, next) => {
     if (selection !== undefined) type.selection = selection;
     if (mode) {
       type.mode = mode;
-      if (mode === "INGREDIENT") {
+      if (mode === "INGREDIENTS") {
         type.products = [];
       } else if (mode === "PRODUCTS") {
         type.ingredients = [];

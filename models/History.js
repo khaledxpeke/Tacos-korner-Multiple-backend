@@ -47,6 +47,7 @@ const historySchema = mongoose.Schema({
   logo: { type: String, default: "uploads/logo.png" },
   totalWithTVA: { type: Number },
   tva: { type: Number },
+  discountValue: { type: Number, default: 0 },
   status: { type: String, default: "enCours", enum: ["enCours", "terminee", "annulee", "echouee","enAttente","remboursee","enRetard"] },
   boughtAt: { type: Date, default: Date.now },
   restaurantId: { type: mongoose.Schema.Types.ObjectId, ref: "Restaurant", required: true },

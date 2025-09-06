@@ -70,7 +70,7 @@ async function run() {
     typesFound++;
 
     // Only ingest into INGREDIENT mode types.
-    if (type.mode === 'PRODUCT') {
+    if (type.mode === 'PRODUCTS') {
       // Optionally skip; could force switch mode, but that is dangerous.
       console.warn(`SKIP: Type ${typeId} is PRODUCT mode; not attaching ingredients.`);
       continue;

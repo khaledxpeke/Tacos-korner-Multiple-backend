@@ -51,12 +51,12 @@ const typeSchema = mongoose.Schema({
 typeSchema.index({ restaurantId: 1, name: 1 }, { unique: true });
 
 typeSchema.pre("save", function(next) {
-  if (this.mode === "INGREDIENT") {
+  if (this.mode === "INGREDIENTS") {
     this.products = [];
     if (this.payment === undefined) {
       this.payment = false;
     }
-  } else if (this.mode === "PRODUCT") {
+  } else if (this.mode === "PRODUCTS") {
     this.ingredients = [];
     // Force payment true for product extras
     this.payment = true;
