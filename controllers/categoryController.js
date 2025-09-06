@@ -63,7 +63,7 @@ exports.getAllCategories = async (req, res) => {
           {
             path: "type",
             select:
-              "name label message min selection payment max ingredients products",
+              "name label message min selection payment max ingredients products mode",
             populate: [
               {
                 path: "ingredients",
