@@ -184,6 +184,7 @@ exports.getAllCategories = async (req, res) => {
                   max: type.max,
                   selection: type.selection,
                   payment: type.payment,
+                  mode: type.mode,
                 };
 
                 if (hasIngredients) {
