@@ -1288,6 +1288,23 @@ exports.getHistoriesRT = async (socket) => {
                   },
                 },
                 {
+                  $lookup: {
+                    from: "coupons",
+                    let: { couponId: "$couponId" },
+                    pipeline: [
+                      { $match: { $expr: { $eq: ["$_id", "$$couponId"] } } },
+                      { $project: { _id: 1, code: 1, couponType: 1 } },
+                    ],
+                    as: "couponDetails",
+                  },
+                },
+                {
+                  $unwind: {
+                    path: "$couponDetails",
+                    preserveNullAndEmptyArrays: true,
+                  },
+                },
+                {
                   $group: {
                     _id: "$_id",
                     product: { $push: "$product" },
@@ -1303,6 +1320,7 @@ exports.getHistoriesRT = async (socket) => {
                     currency: { $first: "$settingsData.defaultCurrency" },
                     commandNumber: { $first: "$commandNumber" },
                     status: { $first: "$status" },
+                     coupon: { $first: "$couponDetails" },
                   },
                 },
                 { $sort: { boughtAt: -1 } },
