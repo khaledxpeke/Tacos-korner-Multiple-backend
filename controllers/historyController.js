@@ -1,4 +1,5 @@
 const History = require("../models/History");
+const Coupon = require("../models/coupon");
 const express = require("express");
 const app = express();
 require("dotenv").config();
@@ -287,8 +288,7 @@ ${productList}
 <feed line="1"/>
 <text>${formatLine("Total(HT)", totalHT.toFixed(2))}</text>
 <feed line="1"/>
-<text>${formatLine("Remise", order.discountValue)}</text>
-<feed line="1"/>+
+<text em="true" align="left">Remise: ${order.discountValue}</text>
 <text>===============================================</text>
 <feed line="1"/>
 <text em="true">${formatLine(
@@ -529,8 +529,17 @@ function startPrintRetryWorker() {
   }, RETRY_INTERVAL);
 }
 exports.addHistory = async (req, res) => {
-  const { products, pack, name, method, total, currency, commandNumber } =
-    req.body;
+  const {
+    products,
+    pack,
+    name,
+    method,
+    total,
+    currency,
+    commandNumber,
+    discountValue,
+    couponId,
+  } = req.body;
   const { restaurantId } = req;
   try {
     const restaurant = await Restaurant.findById(restaurantId);
@@ -579,7 +588,8 @@ exports.addHistory = async (req, res) => {
       name,
       currency,
       tva,
-      discountValue: req.body.discountValue || "0",
+      discountValue: discountValue || 0,
+      couponId: couponId || null,
       status: "enCours",
       logo: restaurant.logo,
       method: {
@@ -692,10 +702,7 @@ const notifyWaiters = async (history, t) => {
           token,
         });
       } catch (error) {
-        console.error(
-          t("history.notification_token_error", { token }),
-          error
-        );
+        console.error(t("history.notification_token_error", { token }), error);
       }
     }
   } catch (error) {
@@ -733,21 +740,27 @@ exports.getHistory = async (req, res) => {
         ],
       })
       .lean();
-    const historiesWithTva = histories.map((history) => {
+
+    const historiesWithTva = await Promise.all(histories.map(async (history) => {
       const tva = history.tva || 0;
       const totalHT = (100 * history.total) / (100 + tva);
       const tvaAmount = history.total - totalHT;
+      const couponType = history.couponId
+        ? await Coupon.findById(history.couponId).then((coupon) => (coupon ? coupon.type : null))
+        : null;
+
       const formattedBoughtAt = history.boughtAt
         ? moment(history.boughtAt).format("YYYY-MM-DD HH:mm:ss")
         : null;
 
       return {
         ...history,
+        couponType,
         tvaAmount: parseFloat(tvaAmount.toFixed(2)),
         totalHT: parseFloat(totalHT.toFixed(2)),
         boughtAt: formattedBoughtAt,
       };
-    });
+    }));
 
     const totalHistories = await History.countDocuments({ restaurantId });
 
@@ -801,7 +814,9 @@ const generatePDF = async (orderData) => {
   const address = restaurant?.address;
   const totalHt = (100 * orderData.total) / (100 + tva);
   const tvaAmount = orderData.total - totalHt;
-  const safeRestaurantName = restaurant.name.replace(/[\s'"]/g, '-').replace(/--+/g, '-');
+  const safeRestaurantName = restaurant.name
+    .replace(/[\s'"]/g, "-")
+    .replace(/--+/g, "-");
   const logoUrl = `${process.env.BASE_URL}/${restaurant.logo.replace(
     /\\/g,
     "/"
