@@ -1314,6 +1314,7 @@ exports.getHistoriesRT = async (socket) => {
                     total: { $first: "$total" },
                     totalHT: { $first: "$totalHT" },
                     tvaAmount: { $first: "$tvaAmount" },
+                    discountValue: { $first: "$discountValue" },
                     tva: { $first: "$tva" },
                     // tvaRate: { $first: "$tvaRate" },
                     boughtAt: { $first: "$boughtAt" },
