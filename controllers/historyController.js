@@ -739,15 +739,19 @@ exports.getHistory = async (req, res) => {
           },
         ],
       })
+      .populate({
+        path: "couponId",
+        select: "couponType", 
+      })
       .lean();
 
-    const historiesWithTva = await Promise.all(histories.map(async (history) => {
+    const historiesWithTva = histories.map((history) => {
       const tva = history.tva || 0;
       const totalHT = (100 * history.total) / (100 + tva);
       const tvaAmount = history.total - totalHT;
-      const couponType = history.couponId
-        ? await Coupon.findById(history.couponId).then((coupon) => (coupon ? coupon.type : null))
-        : null;
+      // const couponType = history.couponId
+      //   ? await Coupon.findById(history.couponId).then((coupon) => (coupon ? coupon.type : null))
+      //   : null;
 
       const formattedBoughtAt = history.boughtAt
         ? moment(history.boughtAt).format("YYYY-MM-DD HH:mm:ss")
@@ -755,12 +759,11 @@ exports.getHistory = async (req, res) => {
 
       return {
         ...history,
-        couponType,
         tvaAmount: parseFloat(tvaAmount.toFixed(2)),
         totalHT: parseFloat(totalHT.toFixed(2)),
         boughtAt: formattedBoughtAt,
       };
-    }));
+    });
 
     const totalHistories = await History.countDocuments({ restaurantId });
 
