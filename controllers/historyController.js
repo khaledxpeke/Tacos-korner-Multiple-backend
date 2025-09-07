@@ -712,7 +712,16 @@ const notifyWaiters = async (history, t) => {
 exports.getHistory = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const { page = 1, limit = 10, search = "" } = req.query;
+    const {
+      page = 1,
+      limit = 10,
+      search = "",
+      status,
+      packId,
+      methodId,
+      startDate,
+      endDate,
+    } = req.query;
     const skip = (page - 1) * parseInt(limit);
     let query = { restaurantId };
 
@@ -722,9 +731,24 @@ exports.getHistory = async (req, res) => {
       query.$or = [
         { name: { $regex: searchRegex } },
         { commandNumber: isNaN(parseInt(search)) ? -1 : parseInt(search) },
-        { "method.label": { $regex: searchRegex } },
-        { "pack.label": { $regex: searchRegex } },
       ];
+    }
+    if (status) {
+      query.status = status;
+    }
+
+    if (packId) query["pack._id"] = packId;
+
+    if (methodId) query["method._id"] = methodId;
+
+    if (startDate || endDate) {
+      query.boughtAt = {};
+      if (startDate) {
+        query.boughtAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.boughtAt.$lte = new Date(endDate);
+      }
     }
     const histories = await History.find(query)
       .sort({ boughtAt: -1 })
@@ -741,7 +765,7 @@ exports.getHistory = async (req, res) => {
       })
       .populate({
         path: "couponId",
-        select: "couponType", 
+        select: "couponType",
       })
       .lean();
 
@@ -765,7 +789,10 @@ exports.getHistory = async (req, res) => {
       };
     });
 
-    const totalHistories = await History.countDocuments({ restaurantId });
+    const totalHistories = await History.countDocuments({
+      restaurantId,
+      ...query,
+    });
 
     res.status(200).json({
       histories: historiesWithTva,
@@ -1162,8 +1189,6 @@ exports.getHistoriesRT = async (socket) => {
           matchQuery.$or = [
             { name: { $regex: searchRegex } },
             { commandNumber: isNaN(parseInt(search)) ? -1 : parseInt(search) },
-            { "method.label": { $regex: searchRegex } },
-            { "pack.label": { $regex: searchRegex } },
           ];
         }
 
