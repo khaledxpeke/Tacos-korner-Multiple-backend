@@ -79,7 +79,7 @@ i18next
     defaultNS: "translation",
     backend: { loadPath: path.join(__dirname, "translations/{{lng}}.json") },
     detection: {
-      order: ["querystring", "header", "cookie"],
+      order: ["querystring", "cookie"],
       lookupQuerystring: "lng",
     },
     initImmediate: false,

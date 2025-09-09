@@ -114,27 +114,25 @@ function formatOrderForPrint(order, restaurant, settings) {
         const name = addon.name || "Addon";
         const price = parseFloat(addon.price) || 0;
         const key = `${name}_${price}`;
+         const addonCount = Number(addon.count) || 1;
 
         if (!addonGroups[key]) {
           addonGroups[key] = { name: name, price: price, count: 0 };
         }
-        addonGroups[key].count++;
+        addonGroups[key].count += addonCount;
       });
 
       Object.values(addonGroups).forEach((addon) => {
         const addonName = `${addon.count > 1 ? " " + addon.count + "X " : " "}${
           addon.name
         }`;
-        const addonPrice =
-          addon.price === 0
-            ? ""
-            : (product.plat.count * addon.count * addon.price).toFixed(2);
+       const addonPrice = addon.price === 0 ? "" : addon.price.toFixed(2);
         // productList += `<text>${addonName}                   </text>`;
         if (addonPrice) {
           const formattedLine = formatLine(addonName, addonPrice); // aligned
-          productList += `<text align="left">${formattedLine}</text>`;
+          productList += `<text align="left" em="false">${formattedLine}</text>`;
         } else {
-          productList += `<text align="left">${addonName}</text>`; // just name
+          productList += `<text align="left" em="false">${addonName}</text>`; // just name
         }
         productList += `<feed line="1"/>`;
       });
@@ -204,12 +202,13 @@ function formatOrderForPrint(order, restaurant, settings) {
       product.addons.forEach((addon) => {
         const name = addon.name || "Addon";
         const price = parseFloat(addon.price) || 0;
-        const key = `${name}_${price}`; // Group by name and price (same as productList)
+        const key = `${name}_${price}`; 
 
+         const addonCount = Number(addon.count) || 1;
         if (!addonGroups[key]) {
           addonGroups[key] = { name: name, price: price, count: 0 };
         }
-        addonGroups[key].count++;
+        addonGroups[key].count += addonCount;
       });
 
       Object.values(addonGroups).forEach((addon) => {
@@ -286,9 +285,9 @@ ${productList}
     tvaAmount.toFixed(2)
   )}</text>
 <feed line="1"/>
+${order.discountValue && order.couponId ? `<text align="left">${formatLine("Remise", order.couponId.couponType === "percentage" ? "-" + order.discountValue + " %" : "-" + order.discountValue + " " + currencySymbol)}</text><feed line="1"/>` : ""}
 <text>${formatLine("Total(HT)", totalHT.toFixed(2))}</text>
 <feed line="1"/>
-<text em="true" align="left">Remise: ${order.discountValue}</text>
 <text>===============================================</text>
 <feed line="1"/>
 <text em="true">${formatLine(
@@ -351,7 +350,7 @@ async function sendToPrinterServer(
 // Auto-print function (non-blocking)
 async function triggerAutoPrint(orderId) {
   try {
-    const order = await History.findById(orderId);
+    const order = await History.findById(orderId).populate("couponId", "couponType");
     if (!order) {
       console.error(`❌ Order with ID ${orderId} not found`);
       return;
@@ -368,7 +367,7 @@ async function triggerAutoPrint(orderId) {
       return;
     }
     const printData = {
-      restaurantId: order.restaurantId, // Pass restaurantId to the printer server
+      restaurantId: order.restaurantId,
       orderId: order._id,
       commandNumber: order.commandNumber,
       customerName: order.name,
