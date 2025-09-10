@@ -75,7 +75,7 @@ exports.getAllTypes = async (req, res, next) => {
       path: 'products',
       select: 'name' // Selects only the 'name' field for products
     }
-  ])
+  ]).sort({ createdAt: -1 });
     res.status(200).json(types);
   } catch (error) {
     res.status(400).json({

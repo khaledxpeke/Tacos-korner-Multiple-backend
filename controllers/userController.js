@@ -184,7 +184,7 @@ exports.getUsers = async (req, res, next) => {
     const { restaurantId } = req;
     const users = await User.find({
       restaurants: { $elemMatch: { restaurantId } },
-    }).select("-password");
+    }).select("-password").sort({ createdAt: -1 });
 
     res.status(200).json(users);
   } catch (error) {

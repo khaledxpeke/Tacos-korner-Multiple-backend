@@ -86,7 +86,7 @@ exports.getAllIngrediants = async (req, res, next) => {
     const { restaurantId } = req;
     const ingrediants = await Ingrediant.find({ restaurantId }).populate(
       "types"
-    );
+    ).sort({ createdAt: -1 });
     return res.status(200).json(ingrediants);
   } catch (error) {
     return res.status(400).json({
