@@ -24,6 +24,11 @@ const io = socketIo(server, {
   },
   pingTimeout: 60000,
   transports: ["websocket", "polling"],
+  allowUpgrades: true,
+  perMessageDeflate: {
+    threshold: 2048,
+  },
+  path: "/socket.io/",
 });
 setIO(io);
 io.engine.on("connection_error", (err) => {
