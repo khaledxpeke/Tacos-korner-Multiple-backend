@@ -628,7 +628,10 @@ exports.addHistory = async (req, res) => {
             status: "enCours",
             updatedAt: franceDatetime,
           });
-          io.to(`restaurant-${restaurantId}`).emit("new-history", response);
+          console.log('Emitting new-history to room:', `restaurant-${restaurantId}`);
+io.to(`restaurant-${restaurantId}`).emit("new-history", response);
+console.log('Also emitting globally for debugging');
+io.emit("new-history-debug", response);
           await notifyWaiters(history, req.t.bind(req));
         }
 
