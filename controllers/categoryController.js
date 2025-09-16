@@ -57,7 +57,7 @@ exports.getAllCategories = async (req, res) => {
       .populate({
         path: "products",
         select:
-          "name price image type choice description category outOfStock variations visible originalPrice discountValue discountStartDate discountEndDate",
+          "name price formulePrice image type choice description category outOfStock variations visible originalPrice discountValue discountStartDate discountEndDate",
         options: { sort: { position: 1 } },
         populate: [
           {
@@ -73,7 +73,7 @@ exports.getAllCategories = async (req, res) => {
               {
                 path: "products",
                 model: "Product",
-                select: "name price image outOfStock visible discountValue",
+                select: "name price formulePrice image outOfStock visible discountValue",
               },
             ],
           },
@@ -210,36 +210,46 @@ exports.getAllCategories = async (req, res) => {
                   typeOut.products = type.products
                     .filter((p) => p.visible && !p.outOfStock)
                     .map((p) => {
-                      // discount calc (mirrors earlier logic)
+                      // Check if formulePrice > 0, if so use it directly, otherwise calculate discount
                       const pn = { ...p };
-                      let pHasDiscount = false;
-                      if (
-                        typeof pn.discountValue === "number" &&
-                        pn.discountValue > 0
-                      ) {
-                        const ps = pn.discountStartDate
-                          ? new Date(pn.discountStartDate)
-                          : null;
-                        const pe = pn.discountEndDate
-                          ? new Date(pn.discountEndDate)
-                          : null;
-                        if ((!ps || now >= ps) && (!pe || now <= pe)) {
-                          pHasDiscount = true;
+                      let finalPrice, hasDiscount = false, originalPrice = null;
+                      
+                      if (pn.formulePrice && pn.formulePrice > 0) {
+                        // Use formule price directly without discount
+                        finalPrice = pn.formulePrice;
+                      } else {
+                        // Use regular price with discount calculation
+                        let pHasDiscount = false;
+                        if (
+                          typeof pn.discountValue === "number" &&
+                          pn.discountValue > 0
+                        ) {
+                          const ps = pn.discountStartDate
+                            ? new Date(pn.discountStartDate)
+                            : null;
+                          const pe = pn.discountEndDate
+                            ? new Date(pn.discountEndDate)
+                            : null;
+                          if ((!ps || now >= ps) && (!pe || now <= pe)) {
+                            pHasDiscount = true;
+                          }
+                        }
+                        finalPrice = pn.price;
+                        if (pHasDiscount) {
+                          hasDiscount = true;
+                          originalPrice = pn.price;
+                          finalPrice = Number(
+                            (pn.price - pn.discountValue).toFixed(2)
+                          );
                         }
                       }
-                      let finalPrice = pn.price;
-                      let originalPrice = null;
-                      if (pHasDiscount) {
-                        originalPrice = pn.price;
-                        finalPrice = Number(
-                          (pn.price - pn.discountValue).toFixed(2)
-                        );
-                      }
+                      
                       return {
                         _id: pn._id,
                         name: pn.name,
                         image: pn.image,
                         price: finalPrice,
+                        hasDiscount: hasDiscount,
                         originalPrice,
                         outOfStock: pn.outOfStock,
                         // visible: pn.visible,

@@ -16,6 +16,25 @@ const Restaurant = require("../models/restaurant");
 const moment = require("moment-timezone");
 const RESTAURANT_TIMEZONE = process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
 
+// Helper function to get the final price (formule price or regular price with discount)
+const getFinalPrice = (product, useFormulePrice = false) => {
+  // If formule price should be used and is greater than 0, return it directly
+  if (useFormulePrice && product.formulePrice > 0) {
+    return {
+      price: product.formulePrice,
+      originalPrice: null,
+      hasDiscount: false,
+      discountValue: null,
+      discountAmount: 0,
+      discountActive: false,
+      isUsingFormulePrice: true,
+    };
+  }
+
+  // Otherwise, use regular discount calculation
+  return calculateDiscountInfo(product);
+};
+
 // Helper function to calculate discount information
 const calculateDiscountInfo = (product) => {
   const now = moment().tz(RESTAURANT_TIMEZONE);
@@ -49,6 +68,7 @@ const calculateDiscountInfo = (product) => {
       ? Math.round(discountAmount * 100) / 100
       : 0,
     discountActive: hasActiveDiscount,
+    isUsingFormulePrice: false,
   };
 };
 
@@ -81,6 +101,7 @@ exports.addProductToCategory = async (req, res, next) => {
       visible,
       typeVariation,
       variations,
+      formulePrice,
     } = req.body;
     const typeIds = req.body.type || [];
     try {
@@ -112,6 +133,7 @@ exports.addProductToCategory = async (req, res, next) => {
           name,
           description,
           price,
+          formulePrice: formulePrice ? Number(formulePrice) : 0,
           category: categoryId,
           outOfStock,
           visible,
@@ -322,14 +344,27 @@ exports.getProductData = async (req, res) => {
           let prodDocs = typeDoc.products
             .filter((p) => p.visible && !p.outOfStock)
             .map((p) => {
-              const discountInfo = calculateDiscountInfo(p);
+              // Check if formulePrice > 0, if so use it directly, otherwise calculate discount
+              let finalPrice, hasDiscount = false, originalPrice = null;
+              
+              if (p.formulePrice && p.formulePrice > 0) {
+                // Use formule price directly without discount
+                finalPrice = p.formulePrice;
+              } else {
+                // Use regular price with discount calculation
+                const discountInfo = calculateDiscountInfo(p);
+                finalPrice = discountInfo.price;
+                hasDiscount = discountInfo.hasDiscount;
+                originalPrice = discountInfo.originalPrice;
+              }
+              
               return {
                 _id: p._id,
                 name: p.name,
                 image: p.image,
-                price: discountInfo.price,
-                hasDiscount: discountInfo.hasDiscount,
-                originalPrice: discountInfo.originalPrice,
+                price: finalPrice,
+                hasDiscount: hasDiscount,
+                originalPrice: originalPrice,
                 outOfStock: p.outOfStock,
                 // visible: p.visible,
               };
@@ -405,6 +440,7 @@ exports.updateProduct = async (req, res) => {
     const {
       name,
       price,
+      formulePrice,
       description,
       outOfStock,
       visible,
@@ -493,6 +529,7 @@ exports.updateProduct = async (req, res) => {
       product.outOfStock = outOfStock || product.outOfStock;
       product.visible = visible || product.visible;
       product.price = price || product.price;
+      product.formulePrice = formulePrice !== undefined ? Number(formulePrice) : product.formulePrice;
       product.choice = choice || product.choice;
 
       product.supplements = supplements ? supplements.split(",") : [];
