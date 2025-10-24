@@ -62,6 +62,7 @@
   "product.updated_success": "تم تحديث المنتج بنجاح.",
   "product.discount.value_required": "قيمة الخصم مطلوبة.",
   "product.discount.value_gt_zero": "يجب أن تكون قيمة الخصم أكبر من 0.",
+  "product.discount.value_lt_price": "يجب أن تكون قيمة الخصم أقل من سعر المنتج.",
   "product.discount.end_after_start": "يجب أن يكون تاريخ ووقت الانتهاء بعد تاريخ ووقت البدء.",
   "product.discount.applied": "تم تطبيق الخصم بنجاح.",
   "product.discount.removed": "تمت إزالة الخصم بنجاح.",

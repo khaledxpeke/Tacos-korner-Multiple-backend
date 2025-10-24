@@ -138,6 +138,11 @@ exports.addProductToCategory = async (req, res, next) => {
             message: req.t("product.discount.value_gt_zero"),
           });
         }
+        if (discountValue > price) {
+          return res.status(400).json({
+            message: req.t("product.discount.value_lt_price"),
+          });
+        }
         if (discountStartDate && discountEndDate) {
           const start = moment(addTimezoneZ(discountStartDate)).tz(
             RESTAURANT_TIMEZONE
@@ -159,10 +164,15 @@ exports.addProductToCategory = async (req, res, next) => {
           formulePrice: formulePrice ? Number(formulePrice) : 0,
           discountValue: Number(discountValue) || 0,
           discountStartDate: discountStartDate
-            ? moment(discountStartDate).tz(RESTAURANT_TIMEZONE).toDate()
+            ? moment(addTimezoneZ(discountStartDate))
+                .tz(RESTAURANT_TIMEZONE)
+                .toDate()
             : null,
+
           discountEndDate: discountEndDate
-            ? moment(discountEndDate).tz(RESTAURANT_TIMEZONE).toDate()
+            ? moment(addTimezoneZ(discountEndDate))
+                .tz(RESTAURANT_TIMEZONE)
+                .toDate()
             : null,
           originalPrice: price || null,
           supplements: [],
@@ -232,12 +242,14 @@ exports.getProductsByCategory = async (req, res, next) => {
 exports.getAllProducts = async (req, res, next) => {
   try {
     const { restaurantId } = req;
-    const products = await Product.find({ restaurantId }).populate([
-      {
-        path: "type",
-        select: "name mode message payment selection max min",
-      },
-    ]);
+    const products = await Product.find({ restaurantId })
+      .populate([
+        {
+          path: "type",
+          select: "name mode message payment selection max min",
+        },
+      ])
+      .sort({ createdAt: -1 });
     res.status(200).json(products);
   } catch (error) {
     res.status(400).json({
@@ -566,6 +578,11 @@ exports.updateProduct = async (req, res) => {
           message: req.t("product.discount.value_gt_zero"),
         });
       }
+      if (discountValue > price) {
+        return res.status(400).json({
+          message: req.t("product.discount.value_lt_price"),
+        });
+      }
       if (discountStartDate && discountEndDate) {
         const start = moment(addTimezoneZ(discountStartDate)).tz(
           RESTAURANT_TIMEZONE
@@ -588,10 +605,13 @@ exports.updateProduct = async (req, res) => {
       product.price = price || product.price;
       product.discountValue = Number(discountValue) || 0;
       product.discountStartDate = discountStartDate
-        ? moment(discountStartDate).tz(RESTAURANT_TIMEZONE).toDate()
+        ? moment(addTimezoneZ(discountStartDate))
+            .tz(RESTAURANT_TIMEZONE)
+            .toDate()
         : null;
+
       product.discountEndDate = discountEndDate
-        ? moment(discountEndDate).tz(RESTAURANT_TIMEZONE).toDate()
+        ? moment(addTimezoneZ(discountEndDate)).tz(RESTAURANT_TIMEZONE).toDate()
         : null;
       if (!product.originalPrice) {
         product.originalPrice = product.price;
@@ -665,6 +685,12 @@ exports.setProductDiscount = async (req, res) => {
     const product = await Product.findOne({ _id: productId, restaurantId });
     if (!product) {
       return res.status(404).json({ message: req.t("product.not_found") });
+    }
+
+    if (discountValue > product.price) {
+      return res.status(400).json({
+        message: req.t("product.discount.value_lt_price"),
+      });
     }
 
     // Validate date interval if provided

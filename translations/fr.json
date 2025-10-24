@@ -62,6 +62,7 @@
   "product.updated_success": "Produit mis à jour avec succès.",
   "product.discount.value_required": "Valeur de remise requise.",
   "product.discount.value_gt_zero": "La valeur de la remise doit être supérieure à 0.",
+  "product.discount.value_lt_price": "La valeur de la remise doit être inférieure au prix du produit.",
   "product.discount.end_after_start": "La date et l'heure de fin doivent être postérieures à la date et l'heure de début.",
   "product.discount.applied": "Remise appliquée avec succès.",
   "product.discount.removed": "Remise supprimée avec succès.",
