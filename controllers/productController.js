@@ -138,11 +138,6 @@ exports.addProductToCategory = async (req, res, next) => {
             message: req.t("product.discount.value_gt_zero"),
           });
         }
-        if (discountValue > price) {
-          return res.status(400).json({
-            message: req.t("product.discount.value_lt_price"),
-          });
-        }
         if (discountStartDate && discountEndDate) {
           const start = moment(addTimezoneZ(discountStartDate)).tz(
             RESTAURANT_TIMEZONE
@@ -578,11 +573,7 @@ exports.updateProduct = async (req, res) => {
           message: req.t("product.discount.value_gt_zero"),
         });
       }
-      if (discountValue > price) {
-        return res.status(400).json({
-          message: req.t("product.discount.value_lt_price"),
-        });
-      }
+
       if (discountStartDate && discountEndDate) {
         const start = moment(addTimezoneZ(discountStartDate)).tz(
           RESTAURANT_TIMEZONE
