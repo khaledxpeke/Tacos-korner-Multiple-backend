@@ -620,7 +620,7 @@ exports.addHistory = async (req, res) => {
         const coupon = await Coupon.findById(couponId);
         if (coupon) {
           coupon.usageCount += 1;
-          if (coupon.limit && coupon.usageCount >= coupon.limit) {
+          if (coupon.usageCount >= coupon.limit) {
             coupon.isActive = false;
           }
           await coupon.save();
