@@ -133,7 +133,7 @@ exports.addProductToCategory = async (req, res, next) => {
           ? typeIds
           : JSON.parse(typeIds);
 
-        if (discountValue <= 0) {
+        if (discountValue < 0) {
           return res.status(400).json({
             message: req.t("product.discount.value_gt_zero"),
           });
@@ -568,7 +568,7 @@ exports.updateProduct = async (req, res) => {
         product.image = req.body.image;
       }
 
-      if (discountValue <= 0) {
+      if (discountValue < 0) {
         return res.status(400).json({
           message: req.t("product.discount.value_gt_zero"),
         });
