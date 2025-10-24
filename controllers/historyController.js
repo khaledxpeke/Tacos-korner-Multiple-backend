@@ -114,7 +114,7 @@ function formatOrderForPrint(order, restaurant, settings) {
         const name = addon.name || "Addon";
         const price = parseFloat(addon.price) || 0;
         const key = `${name}_${price}`;
-         const addonCount = Number(addon.count) || 1;
+        const addonCount = Number(addon.count) || 1;
 
         if (!addonGroups[key]) {
           addonGroups[key] = { name: name, price: price, count: 0 };
@@ -126,7 +126,7 @@ function formatOrderForPrint(order, restaurant, settings) {
         const addonName = `${addon.count > 1 ? " " + addon.count + "X " : " "}${
           addon.name
         }`;
-       const addonPrice = addon.price === 0 ? "" : addon.price.toFixed(2);
+        const addonPrice = addon.price === 0 ? "" : addon.price.toFixed(2);
         // productList += `<text>${addonName}                   </text>`;
         if (addonPrice) {
           const formattedLine = formatLine(addonName, addonPrice); // aligned
@@ -202,9 +202,9 @@ function formatOrderForPrint(order, restaurant, settings) {
       product.addons.forEach((addon) => {
         const name = addon.name || "Addon";
         const price = parseFloat(addon.price) || 0;
-        const key = `${name}_${price}`; 
+        const key = `${name}_${price}`;
 
-         const addonCount = Number(addon.count) || 1;
+        const addonCount = Number(addon.count) || 1;
         if (!addonGroups[key]) {
           addonGroups[key] = { name: name, price: price, count: 0 };
         }
@@ -285,7 +285,16 @@ ${productList}
     tvaAmount.toFixed(2)
   )}</text>
 <feed line="1"/>
-${order.discountValue && order.couponId ? `<text align="left">${formatLine("Remise", order.couponId.couponType === "percentage" ? "-" + order.discountValue + " %" : "-" + order.discountValue + " " + currencySymbol)}</text><feed line="1"/>` : ""}
+${
+  order.discountValue && order.couponId
+    ? `<text align="left">${formatLine(
+        "Remise",
+        order.couponId.couponType === "percentage"
+          ? "-" + order.discountValue + " %"
+          : "-" + order.discountValue + " " + currencySymbol
+      )}</text><feed line="1"/>`
+    : ""
+}
 <text>${formatLine("Total(HT)", totalHT.toFixed(2))}</text>
 <feed line="1"/>
 <text>===============================================</text>
@@ -350,7 +359,10 @@ async function sendToPrinterServer(
 // Auto-print function (non-blocking)
 async function triggerAutoPrint(orderId) {
   try {
-    const order = await History.findById(orderId).populate("couponId", "couponType");
+    const order = await History.findById(orderId).populate(
+      "couponId",
+      "couponType"
+    );
     if (!order) {
       console.error(`❌ Order with ID ${orderId} not found`);
       return;
@@ -1125,7 +1137,14 @@ exports.getHistoriesRT = async (socket) => {
   try {
     socket.on("fetch-histories", async (data) => {
       try {
-        const { page = 1, search = "", startDate, endDate, filter = "" } = data;
+        const {
+          page = 1,
+          search = "",
+          startDate,
+          endDate,
+          filter = "",
+          status = "all",
+        } = data;
         const limit = 30;
         const skip = (page - 1) * limit;
         const { restaurantId } = data;
@@ -1134,6 +1153,9 @@ exports.getHistoriesRT = async (socket) => {
           restaurantId: new mongoose.Types.ObjectId(restaurantId),
         };
 
+        if (status && status !== "all") {
+          matchQuery.status = status;
+        }
         const currentDate = new Date();
         if (filter === "today") {
           const startOfDay = new Date(currentDate);
@@ -1329,7 +1351,7 @@ exports.getHistoriesRT = async (socket) => {
                     currency: { $first: "$settingsData.defaultCurrency" },
                     commandNumber: { $first: "$commandNumber" },
                     status: { $first: "$status" },
-                     coupon: { $first: "$couponDetails" },
+                    coupon: { $first: "$couponDetails" },
                   },
                 },
                 { $sort: { boughtAt: -1 } },

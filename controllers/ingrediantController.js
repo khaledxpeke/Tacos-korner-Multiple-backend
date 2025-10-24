@@ -81,12 +81,37 @@ exports.createIngredient = async (req, res, next) => {
   });
 };
 
-exports.getAllIngrediants = async (req, res, next) => {
+exports.getAllIngrediants = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const ingrediants = await Ingrediant.find({ restaurantId }).populate(
-      "types"
-    ).sort({ createdAt: -1 });
+
+    const ingrediants = await Ingrediant.aggregate([
+      {
+        $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId) },
+      },
+      {
+        $lookup: {
+          from: "types",
+          let: { ingrediantId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $in: [
+                    "$$ingrediantId",
+                    { $ifNull: ["$ingredients", []] } 
+                  ]
+                }
+              }
+            },
+            { $project: { _id: 1, name: 1 } }
+          ],
+          as: "types"
+        }
+      },
+      { $sort: { createdAt: -1 } }
+    ]);
+
     return res.status(200).json(ingrediants);
   } catch (error) {
     return res.status(400).json({
@@ -95,6 +120,8 @@ exports.getAllIngrediants = async (req, res, next) => {
     });
   }
 };
+
+
 
 exports.updateIngrediant = async (req, res) => {
   const ingrediantId = req.params.ingrediantId;
