@@ -24,6 +24,14 @@ const couponSchema = mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  limit:{
+    type: Number,
+    default: 0, // 0 = no limit
+  },
+  usageCount: {
+    type: Number,
+    default: 0,
+  },
   startDate: {
     type: Date,
     default: Date.now, // Can start immediately or set future date

@@ -16,6 +16,7 @@ exports.addCoupon = async (req, res) => {
       couponType,
       couponValue,
       minOrderAmount,
+      limit,
       startDate,
       endDate,
       categoryType,
@@ -85,6 +86,7 @@ exports.addCoupon = async (req, res) => {
       couponValue: Number(couponValue),
       minOrderAmount: Number(minOrderAmount) || 0,
       isActive: true,
+      limit: Number(limit) || 0,
       startDate: start.toDate(),
       endDate: end ? end.toDate() : null,
       categoryType: categoryType,
@@ -118,8 +120,18 @@ exports.getCoupons = async (req, res) => {
       .populate("couponCategories", "name")
       .populate("couponProducts", "name")
       .sort({ createdAt: -1 });
+      if (!coupons) {
+        return res.status(404).json({ message: req.t("coupon.not_found") });
+      }
+       const couponsWithStatus = coupons.map((coupon) => {
+      return {
+        ...coupon.toObject(), 
+        isExpired: coupon.limit ? coupon.usageCount >= coupon.limit : false,
+      };
+    });
 
-    return res.status(200).json(coupons);
+
+    return res.status(200).json(couponsWithStatus);
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
@@ -173,6 +185,7 @@ exports.updateCoupon = async (req, res) => {
       couponType,
       couponValue,
       minOrderAmount,
+      limit,
       isActive,
       startDate,
       endDate,
@@ -273,6 +286,7 @@ exports.updateCoupon = async (req, res) => {
     if (minOrderAmount !== undefined)
       coupon.minOrderAmount = Number(minOrderAmount);
     if (isActive !== undefined) coupon.isActive = isActive;
+    if (limit !== undefined) coupon.limit = Number(limit) || 0;
     // Only update dates if they were actually provided in the request body
     if (startDate !== undefined) coupon.startDate = start.toDate();
     if (endDate !== undefined) coupon.endDate = end ? end.toDate() : null;
@@ -418,7 +432,7 @@ exports.validateCoupon = async (req, res) => {
     }
 
     // Check usage limit
-    if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
+    if (coupon.limit && coupon.usageCount >= coupon.limit) {
       return res.status(400).json({
         message: "Ce code promo a atteint sa limite d'utilisation",
       });
@@ -623,7 +637,7 @@ exports.getCouponStatus = async (req, res) => {
         now.isAfter(moment(coupon.endDate).tz(RESTAURANT_TIMEZONE))
       ) {
         status = "expired";
-      } else if (coupon.maxUsage && coupon.usageCount >= coupon.maxUsage) {
+      } else if (coupon.limit && coupon.usageCount >= coupon.limit) {
         status = "used_up";
       }
 

@@ -102,8 +102,12 @@ exports.addProductToCategory = async (req, res, next) => {
       typeVariation,
       variations,
       formulePrice,
+      discountValue,
+      discountStartDate,
+      discountEndDate,
     } = req.body;
     const typeIds = req.body.type || [];
+
     try {
       let typeVariationsData = null;
       let product = await Product.findOne({ name: name, restaurantId });
@@ -129,11 +133,40 @@ exports.addProductToCategory = async (req, res, next) => {
           ? typeIds
           : JSON.parse(typeIds);
 
+        if (discountValue <= 0) {
+          return res.status(400).json({
+            message: req.t("product.discount.value_gt_zero"),
+          });
+        }
+        if (discountStartDate && discountEndDate) {
+          const start = moment(addTimezoneZ(discountStartDate)).tz(
+            RESTAURANT_TIMEZONE
+          );
+          const end = moment(addTimezoneZ(discountEndDate)).tz(
+            RESTAURANT_TIMEZONE
+          );
+
+          if (start.isSameOrAfter(end)) {
+            return res.status(400).json({
+              message: req.t("product.discount.end_after_start"),
+            });
+          }
+        }
         const product = new Product({
           name,
           description,
           price,
           formulePrice: formulePrice ? Number(formulePrice) : 0,
+          discountValue: Number(discountValue) || 0,
+          discountStartDate: discountStartDate
+            ? moment(discountStartDate).tz(RESTAURANT_TIMEZONE).toDate()
+            : null,
+          discountEndDate: discountEndDate
+            ? moment(discountEndDate).tz(RESTAURANT_TIMEZONE).toDate()
+            : null,
+          originalPrice: price || null,
+          supplements: [],
+          ingrediants: [],
           category: categoryId,
           outOfStock,
           visible,
@@ -345,8 +378,10 @@ exports.getProductData = async (req, res) => {
             .filter((p) => p.visible && !p.outOfStock)
             .map((p) => {
               // Check if formulePrice > 0, if so use it directly, otherwise calculate discount
-              let finalPrice, hasDiscount = false, originalPrice = null;
-              
+              let finalPrice,
+                hasDiscount = false,
+                originalPrice = null;
+
               if (p.formulePrice && p.formulePrice > 0) {
                 // Use formule price directly without discount
                 finalPrice = p.formulePrice;
@@ -357,7 +392,7 @@ exports.getProductData = async (req, res) => {
                 hasDiscount = discountInfo.hasDiscount;
                 originalPrice = discountInfo.originalPrice;
               }
-              
+
               return {
                 _id: p._id,
                 name: p.name,
@@ -451,6 +486,9 @@ exports.updateProduct = async (req, res) => {
       type,
       typeVariation,
       variations,
+      discountValue,
+      discountStartDate,
+      discountEndDate,
     } = req.body;
 
     try {
@@ -523,13 +561,45 @@ exports.updateProduct = async (req, res) => {
         product.image = req.body.image;
       }
 
+      if (discountValue <= 0) {
+        return res.status(400).json({
+          message: req.t("product.discount.value_gt_zero"),
+        });
+      }
+      if (discountStartDate && discountEndDate) {
+        const start = moment(addTimezoneZ(discountStartDate)).tz(
+          RESTAURANT_TIMEZONE
+        );
+        const end = moment(addTimezoneZ(discountEndDate)).tz(
+          RESTAURANT_TIMEZONE
+        );
+
+        if (start.isSameOrAfter(end)) {
+          return res.status(400).json({
+            message: req.t("product.discount.end_after_start"),
+          });
+        }
+      }
       product.name = name || product.name;
       product.description =
         description !== undefined ? description : product.description;
       product.outOfStock = outOfStock || product.outOfStock;
       product.visible = visible || product.visible;
       product.price = price || product.price;
-      product.formulePrice = formulePrice !== undefined ? Number(formulePrice) : product.formulePrice;
+      product.discountValue = Number(discountValue) || 0;
+      product.discountStartDate = discountStartDate
+        ? moment(discountStartDate).tz(RESTAURANT_TIMEZONE).toDate()
+        : null;
+      product.discountEndDate = discountEndDate
+        ? moment(discountEndDate).tz(RESTAURANT_TIMEZONE).toDate()
+        : null;
+      if (!product.originalPrice) {
+        product.originalPrice = product.price;
+      }
+      product.formulePrice =
+        formulePrice !== undefined
+          ? Number(formulePrice)
+          : product.formulePrice;
       product.choice = choice || product.choice;
 
       product.supplements = supplements ? supplements.split(",") : [];
