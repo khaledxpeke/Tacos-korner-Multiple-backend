@@ -28,6 +28,7 @@ const historySchema = mongoose.Schema({
           count: { type: Number },
         },
       ],
+      tva: { type: Number },
       total: { type: Number },
     },
   ],

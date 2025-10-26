@@ -56,8 +56,10 @@ exports.getAllCategories = async (req, res) => {
       .sort("position")
       .populate({
         path: "products",
+        match: { visible: true }, // only show visible products
+        options: { sort: { position: 1 } },
         select:
-          "name price formulePrice image type choice description category outOfStock variations visible originalPrice discountValue discountStartDate discountEndDate",
+          "name price formulePrice image type choice description categories outOfStock variations visible originalPrice discountValue discountStartDate discountEndDate tva",
         options: { sort: { position: 1 } },
         populate: [
           {
@@ -73,7 +75,8 @@ exports.getAllCategories = async (req, res) => {
               {
                 path: "products",
                 model: "Product",
-                select: "name price formulePrice image outOfStock visible discountValue",
+                select:
+                  "name price formulePrice image outOfStock visible discountValue",
               },
             ],
           },
@@ -212,8 +215,10 @@ exports.getAllCategories = async (req, res) => {
                     .map((p) => {
                       // Check if formulePrice > 0, if so use it directly, otherwise calculate discount
                       const pn = { ...p };
-                      let finalPrice, hasDiscount = false, originalPrice = null;
-                      
+                      let finalPrice,
+                        hasDiscount = false,
+                        originalPrice = null;
+
                       if (pn.formulePrice && pn.formulePrice > 0) {
                         // Use formule price directly without discount
                         finalPrice = pn.formulePrice;
@@ -243,7 +248,7 @@ exports.getAllCategories = async (req, res) => {
                           );
                         }
                       }
-                      
+
                       return {
                         _id: pn._id,
                         name: pn.name,
@@ -274,6 +279,7 @@ exports.getAllCategories = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
 
 exports.getAllCategory = async (req, res) => {
   try {
@@ -356,7 +362,7 @@ exports.updatePositions = async (req, res) => {
     await Promise.all(
       positions.map(async ({ productId, position }) => {
         await Product.findOneAndUpdate(
-          { _id: productId, category: categoryId, restaurantId },
+          { _id: productId, category: { $in: [categoryId] }, restaurantId },
           { $set: { position } },
           { new: true }
         );

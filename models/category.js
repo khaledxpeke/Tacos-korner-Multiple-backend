@@ -10,12 +10,12 @@ const categorySchema = mongoose.Schema({
     default:
       "https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
   },
-  products: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Product",
-    },
-  ],
+  // products: [
+  //   {
+  //     type: mongoose.Schema.Types.ObjectId,
+  //     ref: "Product",
+  //   },
+  // ],
   position: {
     type: Number,
     default: 0
@@ -31,5 +31,11 @@ const categorySchema = mongoose.Schema({
     required: true
   }
 }, { timestamps: true });
+
+categorySchema.virtual("products", {
+  ref: "Product",
+  localField: "_id",
+  foreignField: "categories", // match products where this category is in their categories array
+});
 
 module.exports = mongoose.model("Category", categorySchema);

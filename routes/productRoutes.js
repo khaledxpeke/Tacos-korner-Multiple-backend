@@ -10,15 +10,17 @@ const {
   setProductDiscount,
   removeProductDiscount,
   getSeuleProducts,
+  migrateProductsCategory
 } = require("../controllers/productController");
 const { USER_ROLES } = require("../enum/constants");
 
 router.post(
-  "/:categoryId",
+  "/",
   restaurantAuth(),
   roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   addProductToCategory
 );
+router.post("/category/migrate", restaurantAuth(), roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), migrateProductsCategory);  
 router.get(
   "/seul",
   restaurantAuth(),

@@ -89,7 +89,10 @@ exports.addProductToCategory = async (req, res, next) => {
       });
     }
 
-    const { categoryId } = req.params;
+    // const { categoryId } = req.params;
+    const categoryIds = Array.isArray(req.body.categories)
+      ? req.body.categories
+      : JSON.parse(req.body.categories || "[]");
     const userId = req.user.user._id;
     const price = Number(req.body.price ?? "");
     const name = req.body.name.replace(/"/g, "");
@@ -105,6 +108,7 @@ exports.addProductToCategory = async (req, res, next) => {
       discountValue,
       discountStartDate,
       discountEndDate,
+      tva,
     } = req.body;
     const typeIds = req.body.type || [];
 
@@ -172,7 +176,8 @@ exports.addProductToCategory = async (req, res, next) => {
           originalPrice: price || null,
           supplements: [],
           ingrediants: [],
-          category: categoryId,
+          // category: categoryId,
+          categories: categoryIds,
           outOfStock,
           visible,
           type: parsedTypeIds,
@@ -181,18 +186,24 @@ exports.addProductToCategory = async (req, res, next) => {
           choice,
           restaurantId,
           image,
+          tva: tva ? Number(tva) : 0,
         });
         const savedProduct = await product.save();
 
-        const updatedCategory = await Category.findOneAndUpdate(
-          { _id: categoryId, restaurantId },
-          { $push: { products: savedProduct._id } },
+        // const updatedCategory = await Category.findOneAndUpdate(
+        //   { _id: categoryId, restaurantId },
+        //   { $push: { products: savedProduct._id } },
+        //   { new: true }
+        // );
+        const updatedCategories = await Category.updateMany(
+          { _id: { $in: categoryIds }, restaurantId },
+          { $addToSet: { products: product._id } },
           { new: true }
         );
 
         res.status(201).json({
           ...savedProduct.toObject(),
-          category: updatedCategory,
+          categories: updatedCategories,
           message: req.t("product.created"),
         });
       }
@@ -213,7 +224,7 @@ exports.getProductsByCategory = async (req, res, next) => {
     const products = await Product.find({ category: categoryId, restaurantId })
       .populate({
         path: "type",
-        select: "name mode message payment selection max min",
+        select: "name mode message payment selection max min tva",
       })
       .sort({ position: 1 });
 
@@ -241,7 +252,7 @@ exports.getAllProducts = async (req, res, next) => {
       .populate([
         {
           path: "type",
-          select: "name mode message payment selection max min",
+          select: "name mode message payment selection max min tva",
         },
       ])
       .sort({ createdAt: -1 });
@@ -263,7 +274,7 @@ exports.getSeuleProducts = async (req, res, next) => {
     }).populate([
       {
         path: "type",
-        select: "name mode message payment selection max min",
+        select: "name mode message payment selection max min tva",
       },
     ]);
     res.status(200).json(products);
@@ -293,7 +304,7 @@ exports.getProductData = async (req, res) => {
     })
       .populate({
         path: "type",
-        select: "name message payment selection max min ",
+        select: "name message payment selection max min tva",
       })
       .populate({
         path: "typeVariations.typeVariation",
@@ -337,7 +348,7 @@ exports.getProductData = async (req, res) => {
           .populate({
             path: "products",
             select:
-              "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate",
+              "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate tva formulePrice",
           })
           .lean();
 
@@ -488,7 +499,7 @@ exports.updateProduct = async (req, res) => {
       visible,
       supplements,
       ingrediants,
-      category,
+      categories,
       choice,
       type,
       typeVariation,
@@ -496,6 +507,7 @@ exports.updateProduct = async (req, res) => {
       discountValue,
       discountStartDate,
       discountEndDate,
+      tva,
     } = req.body;
 
     try {
@@ -505,23 +517,49 @@ exports.updateProduct = async (req, res) => {
         return res.status(404).json({ message: req.t("product.not_found") });
       }
 
-      if (category && category !== product.category.toString()) {
-        await Category.findOneAndUpdate(
-          { _id: product.category, restaurantId },
-          {
-            $pull: { products: product._id },
-          }
-        );
+      // if (category && category !== product.category.toString()) {
+      //   await Category.findOneAndUpdate(
+      //     { _id: product.category, restaurantId },
+      //     {
+      //       $pull: { products: product._id },
+      //     }
+      //   );
 
-        await Category.findOneAndUpdate(
-          { _id: category, restaurantId },
-          {
-            $push: { products: product._id },
-          }
-        );
+      //   await Category.findOneAndUpdate(
+      //     { _id: category, restaurantId },
+      //     {
+      //       $push: { products: product._id },
+      //     }
+      //   );
 
-        product.category = category;
+      //   product.category = category;
+      // }
+
+      const oldCategories = product.categories.map((id) => id.toString());
+      const newCategories = Array.isArray(categories) ? categories : [];
+
+      const removedCategories = oldCategories.filter(
+        (id) => !newCategories.includes(id)
+      );
+      const addedCategories = newCategories.filter(
+        (id) => !oldCategories.includes(id)
+      );
+
+      if (removedCategories.length > 0) {
+        await Category.updateMany(
+          { _id: { $in: removedCategories }, restaurantId },
+          { $pull: { products: product._id } }
+        );
       }
+
+      if (addedCategories.length > 0) {
+        await Category.updateMany(
+          { _id: { $in: addedCategories }, restaurantId },
+          { $addToSet: { products: product._id } }
+        );
+      }
+
+      product.categories = newCategories;
       if (typeVariation !== undefined || variations !== undefined) {
         if (!typeVariation && (!variations || variations.length === 0)) {
           product.typeVariations = undefined;
@@ -595,6 +633,7 @@ exports.updateProduct = async (req, res) => {
       product.visible = visible || product.visible;
       product.price = price || product.price;
       product.discountValue = Number(discountValue) || 0;
+      product.tva = tva ? Number(tva) : product.tva;
       product.discountStartDate = discountStartDate
         ? moment(addTimezoneZ(discountStartDate))
             .tz(RESTAURANT_TIMEZONE)
@@ -653,6 +692,27 @@ const addTimezoneZ = (dateString) => {
     return dateString.replace("Z", "T00:00:00Z");
   }
   return dateString;
+};
+
+exports.migrateProductsCategory = async (req, res) => {
+  try {
+    const products = await Product.find({ category: { $exists: true } });
+
+    for (const product of products) {
+      if (Array.isArray(product.categories) && product.categories.length > 0) continue;
+
+      const categoryId = product.category;
+      product.categories = categoryId ? [categoryId] : [];
+      product.category = undefined;
+
+      await product.save();
+    }
+
+    res.status(200).json({ message: "Products migration completed!" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Migration failed", error: error.message });
+  }
 };
 
 exports.setProductDiscount = async (req, res) => {

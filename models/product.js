@@ -25,11 +25,13 @@ const ProductSchema = new mongoose.Schema({
   // currency: {
   //   type: String,
   // },
-  category: {
+  categories: [
+  {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Category",
     required: true,
   },
+],
   typeVariations: {
     typeVariation: {
       type: mongoose.Schema.Types.ObjectId,
@@ -101,7 +103,12 @@ const ProductSchema = new mongoose.Schema({
   discountEndDate: {
     type: Date,
     default: null
-  }
+  },
+  tva : {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
   // rules : [{
   //   type: mongoose.Schema.Types.ObjectId,
   //   ref: "Rule",

@@ -61,8 +61,23 @@ function padLine(label, price, totalWidth = 45) {
 // Convert order to print format - STEP 3: COMPLETE FLUTTER FORMAT
 function formatOrderForPrint(order, restaurant, settings) {
   const tva = order.tva || 0;
-  const totalHT = (100 * order.total) / (100 + tva);
-  const tvaAmount = order.total - totalHT;
+  // const totalHT = (100 * order.total) / (100 + tva);
+  // const tvaAmount = order.total - totalHT;
+  let totalHT = 0;
+  let tvaAmount = 0;
+  order.product.forEach((product) => {
+    const productTotal = Number(product.total) || 0;
+    const productTva =
+      product.tva && product.tva > 0
+        ? product.tva
+        : order.tva || settings?.tva || 0;
+
+    const productHT = (100 * productTotal) / (100 + productTva);
+    const productTVA = productTotal - productHT;
+
+    totalHT += productHT;
+    tvaAmount += productTVA;
+  });
   const currencySymbol = order.currency === "€" ? "€" : order.currency;
 
   let productList = "";
@@ -575,6 +590,8 @@ exports.addHistory = async (req, res) => {
     const tva = settings?.tva || 0;
     const history = await new History({
       product: products.map((product) => {
+        const productTva =
+          product.tva && product.tva > 0 ? product.tva : settings?.tva || 0;
         return {
           plat: product.plat,
           variation: product.variation
@@ -594,6 +611,7 @@ exports.addHistory = async (req, res) => {
             price: extra.price,
             count: extra.count,
           })),
+          tva: productTva,
         };
       }),
       name,
@@ -790,16 +808,48 @@ exports.getHistory = async (req, res) => {
       .lean();
 
     const historiesWithTva = histories.map((history) => {
-      const tva = history.tva || 0;
-      const totalHT = (100 * history.total) / (100 + tva);
-      const tvaAmount = history.total - totalHT;
+      const globalTva = history.tva || 0;
+
       // const couponType = history.couponId
       //   ? await Coupon.findById(history.couponId).then((coupon) => (coupon ? coupon.type : null))
       //   : null;
 
+      // if (Array.isArray(history.product) && history.product.length > 0) {
+      //   history.product.forEach((p) => {
+      //     const productTotal = Number(p.total) || 0;
+      //     const productTva = p.tva && p.tva > 0 ? p.tva : globalTva;
+
+      //     // Calculate HT (price without tax) for this product
+      //     const productHT = (100 * productTotal) / (100 + productTva);
+      //     const productTVA = productTotal - productHT;
+
+      //     totalHT += productHT;
+      //     totalTVA += productTVA;
+      //   });
+      // } else {
+      //   // fallback (no detailed product list)
+      //   totalHT = (100 * history.total) / (100 + globalTva);
+      //   totalTVA = history.total - totalHT;
+      // }
       const formattedBoughtAt = history.boughtAt
         ? moment(history.boughtAt).format("YYYY-MM-DD HH:mm:ss")
         : null;
+
+      const { totalHT, tvaAmount } = history.product?.reduce(
+        (acc, p) => {
+          const productTotal = Number(p.total) || 0;
+          const productTva = p.tva && p.tva > 0 ? p.tva : globalTva;
+
+          const productHT = (100 * productTotal) / (100 + productTva);
+          const productTVA = productTotal - productHT;
+
+          acc.totalHT += productHT;
+          acc.tvaAmount += productTVA;
+
+          return acc;
+        },
+        { totalHT: 0, tvaAmount: 0 }
+      ) || { totalHT: 0, tvaAmount: 0 };
 
       return {
         ...history,
@@ -862,8 +912,10 @@ const generatePDF = async (orderData) => {
   const restaurant = await Restaurant.findById(restaurantId);
   const tva = settings?.tva || 0;
   const address = restaurant?.address;
-  const totalHt = (100 * orderData.total) / (100 + tva);
-  const tvaAmount = orderData.total - totalHt;
+  // const totalHt = (100 * orderData.total) / (100 + tva);
+  // const tvaAmount = orderData.total - totalHt;
+  let totalHT = 0;
+  let totalTVA = 0;
   const safeRestaurantName = restaurant.name
     .replace(/[\s'"]/g, "-")
     .replace(/--+/g, "-");
@@ -900,6 +952,16 @@ const generatePDF = async (orderData) => {
     `,
   };
 
+  orderData.product.forEach((product) => {
+    const productTotal = Number(product.total) || 0;
+    const productTva = product.tva && product.tva > 0 ? product.tva : tva;
+
+    const productHT = (100 * productTotal) / (100 + productTva);
+    const productTVA = productTotal - productHT;
+
+    totalHT += productHT;
+    totalTVA += productTVA;
+  });
   const document = {
     html: html,
     data: {
@@ -934,9 +996,9 @@ const generatePDF = async (orderData) => {
         };
       }),
       total: orderData.total.toFixed(2),
-      tvaAmount: tvaAmount.toFixed(2),
       tva: tva,
-      totalHt: totalHt.toFixed(2),
+      totalHt: totalHT.toFixed(2),
+      tvaAmount: totalTVA.toFixed(2),
       logo: logoUrl,
       address: address.split("\n"),
       pack: orderData.pack.label,
@@ -978,9 +1040,21 @@ exports.addEmail = async (req, res) => {
     const settings = await Settings.findOne({ restaurantId });
     const tva = settings?.tva || 0;
     const totalHt = (100 * history.total) / (100 + tva);
-    const tvaAmount = history.total - totalHt;
+    // const tvaAmount = history.total - totalHt;
     const orderDate = new Date(history.boughtAt).setHours(0, 0, 0, 0);
     const today = new Date().setHours(0, 0, 0, 0);
+    let totalHT = 0;
+    let totalTVA = 0;
+    history.product.forEach((product) => {
+      const productTotal = Number(product.total) || 0;
+      const productTva = product.tva && product.tva > 0 ? product.tva : tva;
+
+      const productHT = (100 * productTotal) / (100 + productTva);
+      const productTVA = productTotal - productHT;
+
+      totalHT += productHT;
+      totalTVA += productTVA;
+    });
     if (orderDate < today) {
       return res.status(400).json({
         message: req.t("history.email_past_order_error"),
@@ -1042,8 +1116,8 @@ exports.addEmail = async (req, res) => {
           };
         }),
         total: history.total.toFixed(2),
-        tvaAmount: tvaAmount.toFixed(2),
-        totalHt: totalHt.toFixed(2),
+        totalHt: totalHT.toFixed(2),
+        tvaAmount: totalTVA.toFixed(2),
         tva: tva,
         pack: history.pack.label,
         method: history.method.label,
@@ -1242,33 +1316,36 @@ exports.getHistoriesRT = async (socket) => {
               histories: [
                 {
                   $addFields: {
-                    tvaRate: { $ifNull: ["$tva", 0] },
                     totalHT: {
                       $round: [
                         {
-                          $divide: [
-                            { $multiply: ["$total", 100] },
-                            { $add: [{ $ifNull: ["$tva", 0] }, 100] },
-                          ],
+                          $sum: {
+                            $map: {
+                              input: "$product",
+                              as: "p",
+                              in: {
+                                $divide: [
+                                  { $multiply: ["$$p.total", 100] },
+                                  {
+                                    $add: [
+                                      { $ifNull: ["$$p.tva", "$tva"] },
+                                      100,
+                                    ],
+                                  },
+                                ],
+                              },
+                            },
+                          },
                         },
                         2,
                       ],
                     },
+                  },
+                },
+                {
+                  $addFields: {
                     tvaAmount: {
-                      $round: [
-                        {
-                          $subtract: [
-                            "$total",
-                            {
-                              $divide: [
-                                { $multiply: ["$total", 100] },
-                                { $add: [{ $ifNull: ["$tva", 0] }, 100] },
-                              ],
-                            },
-                          ],
-                        },
-                        2,
-                      ],
+                      $round: [{ $subtract: ["$total", "$totalHT"] }, 2],
                     },
                   },
                 },
@@ -1358,45 +1435,46 @@ exports.getHistoriesRT = async (socket) => {
                 { $skip: skip },
                 { $limit: limit },
               ],
-              counts: [
-                {
-                  $group: {
-                    _id: null,
-                    total: { $sum: 1 },
-                    enCours: {
-                      $sum: { $cond: [{ $eq: ["$status", "enCours"] }, 1, 0] },
-                    },
-                    terminee: {
-                      $sum: { $cond: [{ $eq: ["$status", "terminee"] }, 1, 0] },
-                    },
-                    annulee: {
-                      $sum: { $cond: [{ $eq: ["$status", "annulee"] }, 1, 0] },
-                    },
-                    echouee: {
-                      $sum: { $cond: [{ $eq: ["$status", "echouee"] }, 1, 0] },
-                    },
-                    enAttente: {
-                      $sum: {
-                        $cond: [{ $eq: ["$status", "enAttente"] }, 1, 0],
-                      },
-                    },
-                    enRetard: {
-                      $sum: { $cond: [{ $eq: ["$status", "enRetard"] }, 1, 0] },
-                    },
-                    remboursee: {
-                      $sum: {
-                        $cond: [{ $eq: ["$status", "remboursee"] }, 1, 0],
-                      },
-                    },
-                  },
-                },
-              ],
             },
           },
         ];
 
+        const statsQuery = { ...matchQuery };
+        delete statsQuery.status;
         const result = await History.aggregate(aggregationPipeline);
-        const [{ histories, counts }] = result;
+        const [{ histories }] = result;
+        const counts = await History.aggregate([
+          { $match: statsQuery },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: 1 },
+              enCours: {
+                $sum: { $cond: [{ $eq: ["$status", "enCours"] }, 1, 0] },
+              },
+              terminee: {
+                $sum: { $cond: [{ $eq: ["$status", "terminee"] }, 1, 0] },
+              },
+              annulee: {
+                $sum: { $cond: [{ $eq: ["$status", "annulee"] }, 1, 0] },
+              },
+              echouee: {
+                $sum: { $cond: [{ $eq: ["$status", "echouee"] }, 1, 0] },
+              },
+              enAttente: {
+                $sum: { $cond: [{ $eq: ["$status", "enAttente"] }, 1, 0] },
+              },
+              enRetard: {
+                $sum: { $cond: [{ $eq: ["$status", "enRetard"] }, 1, 0] },
+              },
+              remboursee: {
+                $sum: { $cond: [{ $eq: ["$status", "remboursee"] }, 1, 0] },
+              },
+            },
+          },
+        ]);
+
+        const stats = counts[0] || {};
         const total = await History.countDocuments(matchQuery);
         const restaurantTimezone =
           process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
