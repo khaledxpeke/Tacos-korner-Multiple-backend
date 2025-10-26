@@ -1809,6 +1809,24 @@ exports.getStatistics = async (req, res) => {
               ],
             },
           },
+          especeCount: {
+            $sum: {
+              $cond: [
+                { $eq: [{ $toString: "$method._id" }, especeMethodId] },
+                1,
+                0,
+              ],
+            },
+          },
+          cbCount: {
+            $sum: {
+              $cond: [
+                { $eq: [{ $toString: "$method._id" }, cbMethodId] },
+                1,
+                0,
+              ],
+            },
+          },
           surPlaceCount: {
             $sum: {
               $cond: [
@@ -1858,6 +1876,8 @@ exports.getStatistics = async (req, res) => {
           paymentMethodsTotalRevenue: {
             espece: { $round: ["$especeTotal", 2] },
             cb: { $round: ["$cbTotal", 2] },
+            especeCount: "$especeCount",
+            cbCount: "$cbCount"
           },
           deliveryTypes: {
             surPlaceCount: "$surPlaceCount",
