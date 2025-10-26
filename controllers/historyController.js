@@ -1607,6 +1607,21 @@ exports.getStatistics = async (req, res) => {
     const especeMethodId = settings.method[0]._id.toString();
     const surPlacePackId = settings.pack[0]._id.toString();
     const emporterPackId = settings.pack[1]._id.toString();
+    let groupByFormat = "%Y-%m"; 
+    if (filter === "today") groupByFormat = "%Y-%m-%d %H:00";
+    if (filter === "week") groupByFormat = "%Y-%U";
+    if (filter === "month") groupByFormat = "%Y-%m-%d";
+    if (filter === "year") groupByFormat = "%Y-%m";
+    if (filter === "custom") {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const diffInDays = (end - start) / (1000 * 60 * 60 * 24);
+
+      if (diffInDays <= 1) groupByFormat = "%Y-%m-%d %H:00";
+      else if (diffInDays <= 31) groupByFormat = "%Y-%m-%d";
+      else if (diffInDays <= 365) groupByFormat = "%Y-%m";
+      else groupByFormat = "%Y";
+    }
 
     if (
       (startDate && startDate.trim() !== "") ||
@@ -1877,7 +1892,7 @@ exports.getStatistics = async (req, res) => {
             espece: { $round: ["$especeTotal", 2] },
             cb: { $round: ["$cbTotal", 2] },
             especeCount: "$especeCount",
-            cbCount: "$cbCount"
+            cbCount: "$cbCount",
           },
           deliveryTypes: {
             surPlaceCount: "$surPlaceCount",
@@ -1885,6 +1900,27 @@ exports.getStatistics = async (req, res) => {
             surPlace: { $round: ["$surPlaceTotal", 2] },
             emporter: { $round: ["$emporterTotal", 2] },
           },
+        },
+      },
+    ]);
+    const revenueOverTime = await History.aggregate([
+      { $match: revenueMatchQuery },
+      {
+        $group: {
+          _id: {
+            date: {
+              $dateToString: { format: groupByFormat, date: "$boughtAt" },
+            },
+          },
+          totalRevenue: { $sum: "$total" },
+        },
+      },
+      { $sort: { "_id.date": 1 } },
+      {
+        $project: {
+          _id: 0,
+          date: "$_id.date",
+          totalRevenue: { $round: ["$totalRevenue", 2] },
         },
       },
     ]);
@@ -2034,6 +2070,7 @@ exports.getStatistics = async (req, res) => {
             ? "decrease"
             : "stable",
       },
+      revenueOverTime,
       topProducts: topProductsStats,
     });
   } catch (error) {
