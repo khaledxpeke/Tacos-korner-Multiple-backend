@@ -780,17 +780,8 @@ exports.getHistory = async (req, res) => {
 
     if (methodId) query["method._id"] = methodId;
 
-    // if (startDate || endDate) {
-    //   query.boughtAt = {};
-    //   if (startDate) {
-    //     query.boughtAt.$gte = new Date(startDate);
-    //   }
-    //   if (endDate) {
-    //     query.boughtAt.$lte = new Date(endDate);
-    //   }
-    // }
     const now = new Date();
-    if (filter === "day") {
+    if (filter === "today") {
       const start = new Date(now);
       start.setHours(0, 0, 0, 0);
       const end = new Date(now);

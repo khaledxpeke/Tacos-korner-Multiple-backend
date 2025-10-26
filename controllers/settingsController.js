@@ -354,10 +354,7 @@ exports.updateDefaultCurrency = async (req, res) => {
     currencyDoc.defaultCurrency = defaultCurrency.toUpperCase();
     await currencyDoc.save();
     if (io) {
-      io.to(`restaurant-${restaurantId}`).emit(
-        "settings-updated",
-        currencyDoc
-      );
+      io.to(`restaurant-${restaurantId}`).emit("settings-updated", currencyDoc);
       console.log(
         "Emitted settings-updated to room:",
         `restaurant-${restaurantId}`
@@ -633,6 +630,9 @@ exports.updateSettings = async (req, res) => {
       }
       if (printMode) {
         settings.printMode = printMode || settings.printMode;
+      }
+      if (printMode) {
+       settings.printerUrl = `${process.env.CAROUSEL_URL}/printer/get-job?printerId=${restaurantId}`;
       }
       if (printerIp) {
         settings.printerIp = printerIp || settings.printerIp;

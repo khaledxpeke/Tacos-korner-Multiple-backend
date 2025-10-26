@@ -114,6 +114,10 @@ const settingsSchema = new mongoose.Schema(
       type: String,
       default: "127.0.0.1",
     },
+    printerUrl: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
