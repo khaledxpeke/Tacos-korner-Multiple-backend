@@ -254,6 +254,10 @@ exports.getAllProducts = async (req, res, next) => {
           path: "type",
           select: "name mode message payment selection max min tva",
         },
+        {
+          path: "categories",
+          select: "name",
+        }
       ])
       .sort({ createdAt: -1 });
     res.status(200).json(products);
