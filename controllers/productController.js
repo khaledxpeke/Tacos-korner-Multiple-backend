@@ -221,7 +221,7 @@ exports.getProductsByCategory = async (req, res, next) => {
   const { restaurantId } = req;
 
   try {
-    const products = await Product.find({ category: categoryId, restaurantId })
+    const products = await Product.find({ categories: { $in: [categoryId] }, restaurantId })
       .populate({
         path: "type",
         select: "name mode message payment selection max min tva",

@@ -754,6 +754,7 @@ exports.getHistory = async (req, res) => {
       page = 1,
       limit = 10,
       search = "",
+      filter = "all",
       status,
       packId,
       methodId,
@@ -779,13 +780,47 @@ exports.getHistory = async (req, res) => {
 
     if (methodId) query["method._id"] = methodId;
 
-    if (startDate || endDate) {
+    // if (startDate || endDate) {
+    //   query.boughtAt = {};
+    //   if (startDate) {
+    //     query.boughtAt.$gte = new Date(startDate);
+    //   }
+    //   if (endDate) {
+    //     query.boughtAt.$lte = new Date(endDate);
+    //   }
+    // }
+    const now = new Date();
+    if (filter === "day") {
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(now);
+      end.setHours(23, 59, 59, 999);
+      query.boughtAt = { $gte: start, $lte: end };
+    } else if (filter === "week") {
+      const day = now.getDay() || 7; // Monday as start
+      const start = new Date(now);
+      start.setDate(now.getDate() - day + 1);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      query.boughtAt = { $gte: start, $lte: end };
+    } else if (filter === "month") {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      end.setHours(23, 59, 59, 999);
+      query.boughtAt = { $gte: start, $lte: end };
+    } else if (filter === "custom" && (startDate || endDate)) {
       query.boughtAt = {};
       if (startDate) {
-        query.boughtAt.$gte = new Date(startDate);
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        query.boughtAt.$gte = start;
       }
       if (endDate) {
-        query.boughtAt.$lte = new Date(endDate);
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        query.boughtAt.$lte = end;
       }
     }
     const histories = await History.find(query)
