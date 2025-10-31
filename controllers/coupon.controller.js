@@ -22,6 +22,8 @@ exports.addCoupon = async (req, res) => {
       categoryType,
       couponCategories,
       couponProducts,
+      excludeProducts,
+      recurringDays,
     } = req.body;
 
     if (!code || !couponType || !couponValue) {
@@ -98,6 +100,8 @@ exports.addCoupon = async (req, res) => {
       couponProducts: ["products", "categories_products"].includes(categoryType)
         ? couponProducts
         : [],
+      excludeProducts: excludeProducts || [],
+      recurringDays: recurringDays || [],
       restaurantId,
     });
 
@@ -119,17 +123,17 @@ exports.getCoupons = async (req, res) => {
     const coupons = await Coupon.find({ restaurantId })
       .populate("couponCategories", "name")
       .populate("couponProducts", "name")
+      .populate("excludeProducts", "name")
       .sort({ createdAt: -1 });
-      if (!coupons) {
-        return res.status(404).json({ message: req.t("coupon.not_found") });
-      }
-       const couponsWithStatus = coupons.map((coupon) => {
+    if (!coupons) {
+      return res.status(404).json({ message: req.t("coupon.not_found") });
+    }
+    const couponsWithStatus = coupons.map((coupon) => {
       return {
-        ...coupon.toObject(), 
+        ...coupon.toObject(),
         isExpired: coupon.limit ? coupon.usageCount >= coupon.limit : false,
       };
     });
-
 
     return res.status(200).json(couponsWithStatus);
   } catch (error) {
@@ -147,7 +151,8 @@ exports.getCoupon = async (req, res) => {
       restaurantId,
     })
       .populate("couponCategories", "name")
-      .populate("couponProducts", "name");
+      .populate("couponProducts", "name")
+      .populate("excludeProducts", "name");
 
     if (!coupon) {
       return res.status(404).json({ message: req.t("coupon.not_found") });
@@ -155,14 +160,14 @@ exports.getCoupon = async (req, res) => {
 
     // Convert dates to restaurant timezone for consistent display
     const couponObj = coupon.toObject();
-    
+
     // Convert startDate to restaurant timezone if it exists
     if (couponObj.startDate) {
       couponObj.startDate = moment(couponObj.startDate)
         .tz(RESTAURANT_TIMEZONE)
         .format("YYYY-MM-DDTHH:mm");
     }
-    
+
     // Convert endDate to restaurant timezone if it exists
     if (couponObj.endDate) {
       couponObj.endDate = moment(couponObj.endDate)
@@ -192,6 +197,8 @@ exports.updateCoupon = async (req, res) => {
       categoryType,
       couponCategories,
       couponProducts,
+      excludeProducts,
+      recurringDays,
     } = req.body;
 
     const coupon = await Coupon.findOne({
@@ -302,6 +309,12 @@ exports.updateCoupon = async (req, res) => {
       )
         ? couponProducts || []
         : [];
+
+        coupon.excludeProducts = excludeProducts || [];
+
+      if (Array.isArray(recurringDays)) {
+        coupon.recurringDays = recurringDays;
+      }
       if (categoryType === "all") {
         coupon.couponCategories = [];
         coupon.couponProducts = [];
@@ -406,6 +419,28 @@ exports.validateCoupon = async (req, res) => {
     }
 
     const now = moment().tz(RESTAURANT_TIMEZONE);
+    const currentDay = now.day();
+
+    if (coupon.recurringDays && coupon.recurringDays.length > 0) {
+      if (!coupon.recurringDays.includes(currentDay)) {
+        return res.status(400).json({
+          message: `Ce code promo n'est valable que les jours suivants : ${coupon.recurringDays
+            .map(
+              (d) =>
+                [
+                  "Dimanche",
+                  "Lundi",
+                  "Mardi",
+                  "Mercredi",
+                  "Jeudi",
+                  "Vendredi",
+                  "Samedi",
+                ][d]
+            )
+            .join(", ")}`,
+        });
+      }
+    }
 
     // Check if coupon has started
     if (coupon.startDate) {
@@ -453,6 +488,7 @@ exports.validateCoupon = async (req, res) => {
       )
         ? coupon.couponProducts
         : [],
+      excludeProducts: coupon.excludeProducts,
     });
   } catch (error) {
     return res.status(500).json({ error: error.message });
