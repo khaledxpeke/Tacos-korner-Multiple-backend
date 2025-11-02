@@ -17,9 +17,9 @@ exports.createType = async (req, res, next) => {
     max,
     payment,
     selection,
-    mode,
-    ingredients,
-    products,
+    mode = "INGREDIENTS",
+    ingredients = [],
+    products = [],
   } = req.body;
   const { restaurantId } = req;
 
@@ -33,7 +33,6 @@ exports.createType = async (req, res, next) => {
         message: req.t("type.min_max_error"),
       });
     }
-    const effectiveMode = mode || "INGREDIENTS";
     const newType = new Type({
       name,
       label,
@@ -42,16 +41,22 @@ exports.createType = async (req, res, next) => {
       max,
       payment,
       selection,
-      mode: effectiveMode,
+      mode,
       ingredients:
-        effectiveMode === "INGREDIENTS"
-          ? (Array.isArray(ingredients) ? ingredients : [])
+        mode === "INGREDIENTS"
+          ? ingredients.map((item, index) => ({
+              ingredient: item.ingredient || item,
+              position: item.position ?? index,
+            }))
           : [],
       products:
-        effectiveMode === "PRODUCTS"
-          ? (Array.isArray(products) ? products : [])
+        mode === "PRODUCTS"
+          ? products.map((item, index) => ({
+              product: item.product || item,
+              position: item.position ?? index,
+            }))
           : [],
-      restaurantId
+      restaurantId,
     });
     await newType.save();
 
@@ -66,16 +71,11 @@ exports.createType = async (req, res, next) => {
 exports.getAllTypes = async (req, res, next) => {
   try {
     const { restaurantId } = req;
-    const types = await Type.find({ restaurantId }).populate([
-    {
-      path: 'ingredients',
-      select: 'name' // Selects only the 'name' field for ingredients
-    },
-    {
-      path: 'products',
-      select: 'name' // Selects only the 'name' field for products
-    }
-  ]).sort({ createdAt: -1 });
+    const types = await Type.find({ restaurantId })
+      .populate("ingredients.ingredient")
+      .populate("products.product")
+      .sort({ createdAt: -1 })
+      .lean();
     res.status(200).json(types);
   } catch (error) {
     res.status(400).json({
@@ -92,10 +92,15 @@ exports.getTypeById = async (req, res, next) => {
     const type = await Type.findOne({
       _id: typeId,
       restaurantId: restaurantId,
-    });
+    }).populate([
+      { path: "ingredients.ingredient", select: "name image" },
+      { path: "products.product", select: "name image" },
+    ]);
     if (!type) {
       return res.status(404).json({ message: req.t("type.option_not_found") });
     }
+    type.ingredients.sort((a, b) => a.position - b.position);
+    type.products.sort((a, b) => a.position - b.position);
     res.status(200).json(type);
   } catch (error) {
     res.status(400).json({
@@ -113,13 +118,13 @@ exports.updateType = async (req, res, next) => {
       name,
       label,
       message,
-      min,
-      max,
       payment,
       selection,
-      mode,
       ingredients,
       products,
+      min,
+      max,
+      mode,
     } = req.body;
     const type = await Type.findOne({ _id: typeId, restaurantId });
     if (!type) {
@@ -145,15 +150,28 @@ exports.updateType = async (req, res, next) => {
         type.ingredients = [];
       }
     }
-    if (ingredients !== undefined) {
-      type.ingredients = Array.isArray(ingredients) ? ingredients : [];
+    if (Array.isArray(ingredients)) {
+      type.ingredients = ingredients.map((item, index) => ({
+        ingredient: item.ingredient || item,
+        position: item.position ?? index,
+      }));
     }
-    if (products !== undefined) {
-      type.products = Array.isArray(products) ? products : [];
+
+    if (Array.isArray(products)) {
+      type.products = products.map((item, index) => ({
+        product: item.product || item,
+        position: item.position ?? index,
+      }));
     }
 
     await type.save();
-    return res.status(200).json({ message: req.t("type.updated"), type });
+    const populatedType = await Type.findById(type._id).populate([
+      { path: "ingredients.ingredient", select: "name image suppPrice" },
+      { path: "products.product", select: "name image price" },
+    ]);
+    return res
+      .status(200)
+      .json({ message: req.t("type.updated"), type: populatedType });
   } catch (error) {
     res.status(400).json({
       message: req.t("type.update_error"),

@@ -86,9 +86,7 @@ exports.getAllIngrediants = async (req, res) => {
     const { restaurantId } = req;
 
     const ingrediants = await Ingrediant.aggregate([
-      {
-        $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId) },
-      },
+      { $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId) } },
       {
         $lookup: {
           from: "types",
@@ -97,10 +95,7 @@ exports.getAllIngrediants = async (req, res) => {
             {
               $match: {
                 $expr: {
-                  $in: [
-                    "$$ingrediantId",
-                    { $ifNull: ["$ingredients", []] } 
-                  ]
+                  $in: ["$$ingrediantId", { $ifNull: ["$ingredients.ingredient", []] }]
                 }
               }
             },
@@ -120,6 +115,7 @@ exports.getAllIngrediants = async (req, res) => {
     });
   }
 };
+
 
 
 

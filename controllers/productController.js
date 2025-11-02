@@ -308,7 +308,7 @@ exports.getProductData = async (req, res) => {
     })
       .populate({
         path: "type",
-        select: "name message payment selection max min tva",
+        select: "name message payment selection max min tva ingredients products",
       })
       .populate({
         path: "typeVariations.typeVariation",
@@ -342,7 +342,8 @@ exports.getProductData = async (req, res) => {
         const typeDoc = await Type.findOne({ _id: t._id, restaurantId })
           .populate({
             path: "ingredients",
-            select: "name image price suppPrice outOfStock visible variations",
+            select: "name image price suppPrice outOfStock visible variations position",
+            options: { sort: { position: 1 } },
             populate: {
               path: "variations",
               model: "Variation",
@@ -352,7 +353,8 @@ exports.getProductData = async (req, res) => {
           .populate({
             path: "products",
             select:
-              "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate tva formulePrice",
+              "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate tva formulePrice position",
+            options: { sort: { position: 1 } },
           })
           .lean();
 
@@ -386,9 +388,10 @@ exports.getProductData = async (req, res) => {
                 image: ing.image,
                 price,
                 outOfStock: ing.outOfStock,
+                position: ing.position ?? 0,
                 // visible: ing.visible,
               };
-            });
+            }).sort((a, b) => a.position - b.position);
           if (ingrediants.length) {
             out.ingrediants = ingrediants; // <- renamed field
           }
@@ -423,9 +426,10 @@ exports.getProductData = async (req, res) => {
                 hasDiscount: hasDiscount,
                 originalPrice: originalPrice,
                 outOfStock: p.outOfStock,
+                position: p.position ?? 0,
                 // visible: p.visible,
               };
-            });
+            }).sort((a, b) => a.position - b.position);
           if (prodDocs.length) {
             out.products = prodDocs;
           }

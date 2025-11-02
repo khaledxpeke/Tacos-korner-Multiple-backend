@@ -71,12 +71,14 @@ exports.getAllCategories = async (req, res) => {
                 path: "ingredients",
                 model: "Ingrediant",
                 select: "name image price suppPrice outOfStock visible",
+                options: { sort: { position: 1 } },
               },
               {
                 path: "products",
                 model: "Product",
                 select:
                   "name price formulePrice image outOfStock visible discountValue",
+                options: { sort: { position: 1 } },
               },
             ],
           },
@@ -203,9 +205,11 @@ exports.getAllCategories = async (req, res) => {
                         image: ing.image,
                         price: Number((basePrice ?? 0).toFixed(2)),
                         outOfStock: ing.outOfStock,
+                        position: ing.position ?? 0,
                         // visible: ing.visible,
                       };
-                    });
+                    })
+                    .sort((a, b) => a.position - b.position);
                   if (!typeOut.ingrediants.length) delete typeOut.ingrediants;
                 }
 
@@ -257,9 +261,10 @@ exports.getAllCategories = async (req, res) => {
                         hasDiscount: hasDiscount,
                         originalPrice,
                         outOfStock: pn.outOfStock,
+                        position: p.position ?? 0,
                         // visible: pn.visible,
                       };
-                    });
+                    }).sort((a, b) => a.position - b.position);
                   if (!typeOut.products.length) delete typeOut.products;
                 }
 
@@ -279,7 +284,6 @@ exports.getAllCategories = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-
 
 exports.getAllCategory = async (req, res) => {
   try {
