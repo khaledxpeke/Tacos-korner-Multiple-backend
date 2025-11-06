@@ -38,4 +38,7 @@ categorySchema.virtual("products", {
   foreignField: "categories", // match products where this category is in their categories array
 });
 
+categorySchema.set("toObject", { virtuals: true });
+categorySchema.set("toJSON", { virtuals: true });
+
 module.exports = mongoose.model("Category", categorySchema);

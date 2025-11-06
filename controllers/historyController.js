@@ -592,8 +592,15 @@ exports.addHistory = async (req, res) => {
       product: products.map((product) => {
         const productTva =
           product.tva && product.tva > 0 ? product.tva : settings?.tva || 0;
+        const categoryId = product.plat.category;
         return {
-          plat: product.plat,
+          plat: {
+            _id: product.plat._id,
+            name: product.plat.name,
+            count: product.plat.count,
+            price: product.plat.price,
+            category: categoryId,
+          },
           variation: product.variation
             ? {
                 ...product.variation,
@@ -1607,7 +1614,7 @@ exports.getStatistics = async (req, res) => {
     const especeMethodId = settings.method[0]._id.toString();
     const surPlacePackId = settings.pack[0]._id.toString();
     const emporterPackId = settings.pack[1]._id.toString();
-    let groupByFormat = "%Y-%m"; 
+    let groupByFormat = "%Y-%m";
     if (filter === "today") groupByFormat = "%Y-%m-%d %H:00";
     if (filter === "week") groupByFormat = "%Y-%U";
     if (filter === "month") groupByFormat = "%Y-%m-%d";

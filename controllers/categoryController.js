@@ -9,6 +9,7 @@ const fs = require("fs");
 const Ingrediant = require("../models/ingrediant");
 const path = require("path");
 const Product = require("../models/product");
+const { default: mongoose } = require("mongoose");
 
 const upload = multer({ storage: multerStorage });
 exports.createCategory = async (req, res) => {
@@ -56,8 +57,7 @@ exports.getAllCategories = async (req, res) => {
       .sort("position")
       .populate({
         path: "products",
-        match: { visible: true }, // only show visible products
-        options: { sort: { position: 1 } },
+        match: { visible: true },
         select:
           "name price formulePrice image type choice description categories outOfStock variations visible originalPrice discountValue discountStartDate discountEndDate tva",
         options: { sort: { position: 1 } },
@@ -68,17 +68,15 @@ exports.getAllCategories = async (req, res) => {
               "name label message min selection payment max ingredients products mode",
             populate: [
               {
-                path: "ingredients",
+                path: "ingredients.ingredient",
                 model: "Ingrediant",
                 select: "name image price suppPrice outOfStock visible",
-                options: { sort: { position: 1 } },
               },
               {
-                path: "products",
+                path: "products.product",
                 model: "Product",
                 select:
                   "name price formulePrice image outOfStock visible discountValue",
-                options: { sort: { position: 1 } },
               },
             ],
           },
@@ -104,52 +102,52 @@ exports.getAllCategories = async (req, res) => {
         ],
       });
 
-    const populatedCategories = categories
-      .map((category) => {
-        const categoryObj = category.toObject();
-        categoryObj.products = category.products
-          .filter((product) => product.visible)
-          .map((product) => {
-            const productObj = product.toObject();
+    const populatedCategories = categories.map((category) =>
+      category.toObject({ virtuals: true })
+    );
+    populatedCategories.forEach((category) => {
+      category.products = category.products.filter(
+        (product) => product.visible
+      );
 
-            // Discount logic
-            let now = new Date();
-            let hasDiscount = false;
-            if (
-              typeof productObj.discountValue === "number" &&
-              productObj.discountValue > 0
-            ) {
-              const start = productObj.discountStartDate
-                ? new Date(productObj.discountStartDate)
-                : null;
-              const end = productObj.discountEndDate
-                ? new Date(productObj.discountEndDate)
-                : null;
-              if ((!start || now >= start) && (!end || now <= end)) {
-                hasDiscount = true;
-              }
-            }
-            if (hasDiscount) {
-              productObj.originalPrice = productObj.price;
-              productObj.price = Number(
-                (productObj.price - productObj.discountValue).toFixed(2)
-              );
-            } else {
-              productObj.originalPrice = null;
-            }
+      category.products.forEach((product) => {
+        const now = new Date();
 
-            // TypeVariations logic
-            if (
-              productObj.typeVariations &&
-              productObj.typeVariations.variations
-            ) {
-              const { typeVariation, variations } = productObj.typeVariations;
-              const validVariations = variations.filter(
-                (v) =>
-                  v?._id?._id && v._id?.name && typeof v._id._id === "object"
-              );
-              if (validVariations?.length > 0) {
-                productObj.typeVariations = {
+        let hasDiscount = false;
+        if (
+          typeof product.discountValue === "number" &&
+          product.discountValue > 0
+        ) {
+          const start = product.discountStartDate
+            ? new Date(product.discountStartDate)
+            : null;
+          const end = product.discountEndDate
+            ? new Date(product.discountEndDate)
+            : null;
+          if ((!start || now >= start) && (!end || now <= end))
+            hasDiscount = true;
+        }
+        if (hasDiscount) {
+          product.originalPrice = product.price;
+          product.price = Number(
+            (product.price - product.discountValue).toFixed(2)
+          );
+        } else {
+          product.originalPrice = null;
+        }
+
+        delete product.discountStartDate;
+        delete product.discountEndDate;
+        delete product.visible;
+
+        if (product.typeVariations && product.typeVariations.variations) {
+          const { typeVariation, variations } = product.typeVariations;
+          const validVariations = variations.filter(
+            (v) => v?._id?._id && v._id?.name && typeof v._id._id === "object"
+          );
+          product.typeVariations =
+            validVariations.length > 0
+              ? {
                   _id: typeVariation._id,
                   name: typeVariation.name,
                   label: typeVariation.label,
@@ -159,127 +157,99 @@ exports.getAllCategories = async (req, res) => {
                     name: v._id.name,
                     price: v.price || 0,
                   })),
-                };
-              } else {
-                productObj.typeVariations = null;
-              }
+                }
+              : null;
+        }
+
+        if (product.type) {
+          product.type.forEach((t) => {
+            if (t.ingredients) {
+              t.ingrediants = t.ingredients
+                .filter(
+                  (ing) =>
+                    ing.ingredient &&
+                    ing.ingredient.visible &&
+                    !ing.ingredient.outOfStock
+                )
+                .map((ing) => {
+                  const basePrice = !t.payment
+                    ? ing.ingredient.suppPrice
+                    : ing.ingredient.price;
+                  return {
+                    _id: ing.ingredient._id,
+                    name: ing.ingredient.name,
+                    image: ing.ingredient.image,
+                    price: Number((basePrice ?? 0).toFixed(2)),
+                    outOfStock: ing.ingredient.outOfStock,
+                    position: ing.position ?? 0,
+                  };
+                })
+                .sort((a, b) => a.position - b.position);
+              if (!t.ingrediants.length) delete t.ingrediants;
+              delete t.ingredients;
             }
 
-            delete productObj.discountStartDate;
-            delete productObj.discountEndDate;
-            delete productObj.visible;
-            // New Type and Ingredients logic
-            productObj.type = (productObj.type || [])
-              .map((type) => {
-                const hasIngredients =
-                  Array.isArray(type.ingredients) &&
-                  type.ingredients.length > 0;
+            if (t.products) {
+              t.products = t.products
+                .filter(
+                  (p) => p.product && p.product.visible && !p.product.outOfStock
+                )
+                .map((p) => {
+                  const pn = p.product;
+                  let finalPrice = pn.price;
+                  let hasDiscount = false;
+                  let originalPrice = null;
 
-                const hasProducts =
-                  Array.isArray(type.products) && type.products.length > 0;
+                  if (pn.formulePrice && pn.formulePrice > 0) {
+                    finalPrice = pn.formulePrice;
+                  } else if (pn.discountValue > 0) {
+                    const start = pn.discountStartDate
+                      ? new Date(pn.discountStartDate)
+                      : null;
+                    const end = pn.discountEndDate
+                      ? new Date(pn.discountEndDate)
+                      : null;
+                    if ((!start || now >= start) && (!end || now <= end)) {
+                      hasDiscount = true;
+                      originalPrice = pn.price;
+                      finalPrice = Number(
+                        (pn.price - pn.discountValue).toFixed(2)
+                      );
+                    }
+                  }
+                  return {
+                    _id: pn._id,
+                    name: pn.name,
+                    image: pn.image,
+                    price: finalPrice,
+                    hasDiscount,
+                    originalPrice,
+                    outOfStock: pn.outOfStock,
+                    position: p.position ?? 0,
+                  };
+                })
+                .sort((a, b) => a.position - b.position);
 
-                if (!hasIngredients && !hasProducts) return null;
-
-                const typeOut = {
-                  _id: type._id,
-                  name: type.name,
-                  label: type.label,
-                  message: type.message,
-                  min: type.min,
-                  max: type.max,
-                  selection: type.selection,
-                  payment: type.payment,
-                  mode: type.mode,
-                };
-
-                if (hasIngredients) {
-                  typeOut.ingrediants = type.ingredients
-                    .filter((ing) => ing.visible && !ing.outOfStock)
-                    .map((ing) => {
-                      const basePrice = !type.payment
-                        ? ing.suppPrice
-                        : ing.price;
-                      return {
-                        _id: ing._id,
-                        name: ing.name,
-                        image: ing.image,
-                        price: Number((basePrice ?? 0).toFixed(2)),
-                        outOfStock: ing.outOfStock,
-                        position: ing.position ?? 0,
-                        // visible: ing.visible,
-                      };
-                    })
-                    .sort((a, b) => a.position - b.position);
-                  if (!typeOut.ingrediants.length) delete typeOut.ingrediants;
-                }
-
-                if (hasProducts) {
-                  typeOut.products = type.products
-                    .filter((p) => p.visible && !p.outOfStock)
-                    .map((p) => {
-                      // Check if formulePrice > 0, if so use it directly, otherwise calculate discount
-                      const pn = { ...p };
-                      let finalPrice,
-                        hasDiscount = false,
-                        originalPrice = null;
-
-                      if (pn.formulePrice && pn.formulePrice > 0) {
-                        // Use formule price directly without discount
-                        finalPrice = pn.formulePrice;
-                      } else {
-                        // Use regular price with discount calculation
-                        let pHasDiscount = false;
-                        if (
-                          typeof pn.discountValue === "number" &&
-                          pn.discountValue > 0
-                        ) {
-                          const ps = pn.discountStartDate
-                            ? new Date(pn.discountStartDate)
-                            : null;
-                          const pe = pn.discountEndDate
-                            ? new Date(pn.discountEndDate)
-                            : null;
-                          if ((!ps || now >= ps) && (!pe || now <= pe)) {
-                            pHasDiscount = true;
-                          }
-                        }
-                        finalPrice = pn.price;
-                        if (pHasDiscount) {
-                          hasDiscount = true;
-                          originalPrice = pn.price;
-                          finalPrice = Number(
-                            (pn.price - pn.discountValue).toFixed(2)
-                          );
-                        }
-                      }
-
-                      return {
-                        _id: pn._id,
-                        name: pn.name,
-                        image: pn.image,
-                        price: finalPrice,
-                        hasDiscount: hasDiscount,
-                        originalPrice,
-                        outOfStock: pn.outOfStock,
-                        position: p.position ?? 0,
-                        // visible: pn.visible,
-                      };
-                    }).sort((a, b) => a.position - b.position);
-                  if (!typeOut.products.length) delete typeOut.products;
-                }
-
-                if (!typeOut.ingrediants && !typeOut.products) return null;
-                return typeOut;
-              })
-              .filter((t) => t !== null);
-
-            return productObj;
+              if (!t.products.length) delete t.products;
+            }
           });
-        return categoryObj;
-      })
-      .filter((category) => category.products.length > 0);
 
-    res.status(200).json(populatedCategories);
+          product.type = product.type.filter(
+            (t) => t.ingrediants || t.products
+          );
+        }
+        product.category = category._id;
+        delete product.categories; 
+      });
+
+      category.products = category.products.filter((p) => p);
+    });
+
+    const finalCategories = populatedCategories.filter(
+      (category) => category.products && category.products.length > 0
+    );
+
+    res.status(200).json(finalCategories);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
