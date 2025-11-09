@@ -18,23 +18,48 @@ const Desert = require("../models/desert");
 const Extra = require("../models/extra");
 const Drink = require("../models/drink");
 const { USER_ROLES } = require("../enum/constants");
+const axios = require("axios");
+const FormData = require("form-data");
 
-const upload = multer({ storage: multerStorage });
+const localUpload = require("../middleware/localMulter");
+
+// const upload = multer({ storage: multerStorage });
+
+// const localUpload = multer({
+//   storage: multer.diskStorage({
+//     destination: (req, file, cb) => {
+//       const tempDir = path.join(process.cwd(), "temp");
+//       fs.mkdirSync(tempDir, { recursive: true });
+//       cb(null, tempDir);
+//     },
+//     filename: (req, file, cb) => {
+//       cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`);
+//     },
+//   }),
+//   limits: { fileSize: 5 * 1024 * 1024 },
+// });
+
+// Helper to forward to media backend
+async function forwardToMediaBackend({ filePath, restaurantId, type }) {
+  const form = new FormData();
+  form.append("file", fs.createReadStream(filePath));
+
+  const url = `${process.env.MEDIA_SERVER_URL}/api/media/upload?restaurantId=${restaurantId}&type=${type}`;
+
+  const response = await axios.post(url, form, {
+    headers: form.getHeaders(),
+  });
+
+  return response.data;
+}
 
 exports.createRestaurant = async (req, res) => {
-  req.uploadTarget = "restaurant";
-  upload.single("logo")(req, res, async (err) => {
+  const upload = localUpload.single("logo");
+  upload(req, res, async (err) => {
     if (err) {
-      return res.status(400).json({
-        message: req.t("errors.image_upload_failed"),
-        error: err.message,
-      });
-    }
-    if (!req.file) {
-      return res.status(400).json({
-        message: req.t("product.add_image"),
-        error: req.t("errors.image_required"),
-      });
+      return res
+        .status(400)
+        .json({ message: "Image upload failed", error: err.message });
     }
 
     const logo = `uploads/restaurant/${req.file?.filename}` || "";
@@ -51,11 +76,23 @@ exports.createRestaurant = async (req, res) => {
         name,
         description,
         address,
-        logo,
+        logo: "",
       });
 
       await restaurant.save();
 
+      if (req.file) {
+        const mediaResponse = await forwardToMediaBackend({
+          filePath: req.file.path,
+          restaurantId: restaurant._id.toString(),
+          type: "logos",
+        });
+
+        restaurant.logo = mediaResponse.url;
+        await restaurant.save();
+
+        fs.unlinkSync(req.file.path);
+      }
       const settings = new Settings({
         restaurantId: restaurant._id,
         tva: 10,
@@ -118,7 +155,12 @@ exports.createRestaurant = async (req, res) => {
         message: req.t("restaurant.created"),
       });
     } catch (error) {
-      res.status(500).json({ message: req.t("errors.unknown") });
+      // Cleanup on error
+      if (req.file && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+      }
+      console.error("❌ Error:", error.response?.data || error.message);
+      res.status(500).json({ message: error.message });
     }
   });
 };
@@ -301,7 +343,7 @@ exports.deleteRestaurant = async (req, res) => {
       Extra.deleteMany({ restaurantId: restaurant._id }),
       carouselMedia.deleteMany({ restaurantId: restaurant._id }),
       Settings.findByIdAndDelete(restaurant.settings),
-      Restaurant.findByIdAndDelete(req.params.restaurantId)
+      Restaurant.findByIdAndDelete(req.params.restaurantId),
     ]);
 
     res.status(200).json({ message: req.t("restaurant.deleted") });

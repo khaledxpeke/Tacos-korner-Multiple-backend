@@ -9,6 +9,7 @@ const multerStorage = require("../middleware/multerStorage");
 const fs = require("fs");
 const { default: mongoose } = require("mongoose");
 const path = require("path");
+const Type = require("../models/type");
 
 const upload = multer({ storage: multerStorage });
 exports.createIngredient = async (req, res, next) => {
@@ -254,6 +255,11 @@ exports.deleteIngredient = async (req, res, next) => {
       {
         $pull: { ingrediants: ingrediantId },
       }
+    );
+
+    await Type.updateMany(
+      { restaurantId },
+      { $pull: { ingredients: { ingredient: ingrediant._id } } }
     );
 
     return res.status(200).json({

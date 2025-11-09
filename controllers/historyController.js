@@ -18,6 +18,12 @@ const moment = require("moment-timezone");
 const mongoose = require("mongoose");
 const Restaurant = require("../models/restaurant");
 const settings = require("../models/settings");
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -413,7 +419,7 @@ async function triggerAutoPrint(orderId) {
       // Success - update print status
       await History.findByIdAndUpdate(order._id, {
         printStatus: "printed",
-        lastPrintAttempt: new Date(),
+        lastPrintAttempt: dayjs().tz("Europe/Paris").toDate(),
       });
 
       // Notify via WebSocket
@@ -428,7 +434,7 @@ async function triggerAutoPrint(orderId) {
       // Print mode is local, skip auto print
       await History.findByIdAndUpdate(order._id, {
         printStatus: "skipped",
-        lastPrintAttempt: new Date(),
+        lastPrintAttempt: dayjs().tz("Europe/Paris").toDate(),
       });
       if (io) {
         io.emit("print_skipped", {
@@ -473,7 +479,7 @@ async function queueFailedPrint(order, errorMessage) {
     // Update order status
     await History.findByIdAndUpdate(order._id, {
       printStatus: "failed",
-      lastPrintAttempt: new Date(),
+      lastPrintAttempt: dayjs().tz("Europe/Paris").toDate(),
       printError: errorMessage,
     });
 
@@ -484,9 +490,9 @@ async function queueFailedPrint(order, errorMessage) {
         commandNumber: order.commandNumber,
         restaurantId: order.restaurantId,
         attempts: 0,
-        nextRetry: new Date(Date.now() + RETRY_INTERVAL),
+        nextRetry: dayjs().tz("Europe/Paris").add(RETRY_INTERVAL, "millisecond").toDate(),
         error: errorMessage,
-        createdAt: new Date(),
+        createdAt: dayjs().tz("Europe/Paris").toDate(),
       };
 
       failedPrintQueue.push(retryJob);
@@ -499,7 +505,7 @@ async function queueFailedPrint(order, errorMessage) {
 // Background worker for print retries
 function startPrintRetryWorker() {
   setInterval(async () => {
-    const now = new Date();
+    const now = dayjs().tz("Europe/Paris").toDate();
     const jobsToRetry = failedPrintQueue.filter(
       (job) => job.nextRetry <= now && job.attempts < MAX_PRINT_RETRIES
     );
@@ -570,9 +576,8 @@ exports.addHistory = async (req, res) => {
   try {
     const restaurant = await Restaurant.findById(restaurantId);
     const settings = await Settings.findOne({ restaurantId });
-    const parisTime = moment.tz("Europe/Paris");
-    const franceDatetime = parisTime.toDate();
 
+    const now = dayjs().tz("Europe/Paris").format();
     const methodExists = settings.method.find(
       (m) => m._id.toString() === method
     );
@@ -637,7 +642,7 @@ exports.addHistory = async (req, res) => {
         label: packExists.label,
       },
       total: total,
-      boughtAt: franceDatetime,
+      boughtAt: now,
       commandNumber: parseInt(commandNumber, 10),
       restaurantId,
     });
@@ -648,7 +653,7 @@ exports.addHistory = async (req, res) => {
           historyId: result._id,
           status: "enCours",
           updatedBy: "Système",
-          updatedAt: franceDatetime,
+          updatedAt: now,
           restaurantId,
         });
 
@@ -672,7 +677,7 @@ exports.addHistory = async (req, res) => {
           io.emit("status-update", {
             id: result._id,
             status: "enCours",
-            updatedAt: franceDatetime,
+            updatedAt: now,
           });
           io.to(`restaurant-${restaurantId}`).emit("new-history", response);
           await notifyWaiters(history, req.t.bind(req));
@@ -697,7 +702,7 @@ exports.addHistory = async (req, res) => {
               io.emit("status-update", {
                 id: order._id,
                 status: "enRetard",
-                updatedAt: new Date(),
+                updatedAt: now,
               });
             }
           }
@@ -771,7 +776,6 @@ exports.getHistory = async (req, res) => {
     const skip = (page - 1) * parseInt(limit);
     let query = { restaurantId };
 
-    // Add search filter if provided
     if (search && search.trim() !== "") {
       const searchRegex = new RegExp(search, "i");
       query.$or = [
@@ -787,7 +791,8 @@ exports.getHistory = async (req, res) => {
 
     if (methodId) query["method._id"] = methodId;
 
-    const now = new Date();
+    const now = dayjs().tz("Europe/Paris").format();
+
     if (filter === "today") {
       const start = new Date(now);
       start.setHours(0, 0, 0, 0);
@@ -795,7 +800,7 @@ exports.getHistory = async (req, res) => {
       end.setHours(23, 59, 59, 999);
       query.boughtAt = { $gte: start, $lte: end };
     } else if (filter === "week") {
-      const day = now.getDay() || 7; // Monday as start
+      const day = now.getDay() || 7; 
       const start = new Date(now);
       start.setDate(now.getDate() - day + 1);
       start.setHours(0, 0, 0, 0);
@@ -865,8 +870,11 @@ exports.getHistory = async (req, res) => {
       //   totalTVA = history.total - totalHT;
       // }
       const formattedBoughtAt = history.boughtAt
-        ? moment(history.boughtAt).format("YYYY-MM-DD HH:mm:ss")
+        ? dayjs(history.boughtAt)
+            .tz("Europe/Paris")
+            .format("YYYY-MM-DD HH:mm:ss")
         : null;
+
 
       const { totalHT, tvaAmount } = history.product?.reduce(
         (acc, p) => {
@@ -956,9 +964,9 @@ const generatePDF = async (orderData) => {
     /\\/g,
     "/"
   )}`;
-  let formattedDate = moment(orderData.boughtAt)
-    .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
-    .format("D MMMM YYYY HH:mm");
+  const formattedDate = dayjs(orderData.boughtAt)
+  .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
+  .format("D MMMM YYYY HH:mm");
   const options = {
     format: "A4",
     orientation: "portrait",
@@ -1066,7 +1074,7 @@ exports.addEmail = async (req, res) => {
         .status(404)
         .json({ message: req.t("history.order_not_found") });
     }
-    let formattedDate = moment(history.boughtAt)
+    const formattedDate = dayjs(history.boughtAt)
       .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
       .format("D MMMM YYYY HH:mm");
     const restaurant = await Restaurant.findById(restaurantId);
@@ -1074,8 +1082,8 @@ exports.addEmail = async (req, res) => {
     const tva = settings?.tva || 0;
     const totalHt = (100 * history.total) / (100 + tva);
     // const tvaAmount = history.total - totalHt;
-    const orderDate = new Date(history.boughtAt).setHours(0, 0, 0, 0);
-    const today = new Date().setHours(0, 0, 0, 0);
+    const orderDate = dayjs(history.boughtAt).tz("Europe/Paris").startOf("day");
+    const today = dayjs().tz("Europe/Paris").startOf("day");
     let totalHT = 0;
     let totalTVA = 0;
     history.product.forEach((product) => {
@@ -1168,7 +1176,7 @@ exports.addEmail = async (req, res) => {
 };
 
 exports.getCommandNumber = async (req, res) => {
-  const currentDate = new Date();
+  const currentDate = dayjs().tz("Europe/Paris").startOf("day").toDate();
   currentDate.setHours(0, 0, 0, 0);
   const { restaurantId } = req;
 
@@ -1177,12 +1185,11 @@ exports.getCommandNumber = async (req, res) => {
       boughtAt: -1,
     });
 
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0); // Start of today
+    const currentDate = dayjs().tz("Europe/Paris").startOf("day").toDate();
 
     if (lastCommand) {
-      const lastCommandDate = new Date(lastCommand.boughtAt);
-      lastCommandDate.setHours(0, 0, 0, 0); // Start of last command day
+      const lastCommandDate = dayjs(lastCommand.boughtAt).tz("Europe/Paris").startOf("day").toDate();
+
 
       // Compare dates
       if (currentDate.getTime() > lastCommandDate.getTime()) {
@@ -1222,7 +1229,7 @@ exports.updateStatus = async (req, res) => {
       historyId: id,
       status,
       updatedBy: fullName,
-      updatedAt: new Date(),
+      updatedAt: dayjs().tz("Europe/Paris").toDate(),
       restaurantId,
     });
 
@@ -1231,7 +1238,7 @@ exports.updateStatus = async (req, res) => {
       id,
       status,
       updatedBy: fullName,
-      updatedAt: new Date(),
+      updatedAt: dayjs().tz("Europe/Paris").toDate(),
     });
     res.status(200).json(history);
   } catch (error) {
@@ -1263,7 +1270,7 @@ exports.getHistoriesRT = async (socket) => {
         if (status && status !== "all") {
           matchQuery.status = status;
         }
-        const currentDate = new Date();
+        const currentDate = dayjs().tz("Europe/Paris").toDate();
         if (filter === "today") {
           const startOfDay = new Date(currentDate);
           startOfDay.setHours(0, 0, 0, 0);
@@ -1514,9 +1521,7 @@ exports.getHistoriesRT = async (socket) => {
         const formattedHistories = histories.map((history) => {
           // Format boughtAt date using moment-timezone
           const formattedBoughtAt = history.boughtAt
-            ? moment(history.boughtAt)
-                .tz(restaurantTimezone)
-                .format("YYYY-MM-DD HH:mm:ss")
+            ? dayjs(history.boughtAt).tz(restaurantTimezone).format("YYYY-MM-DD HH:mm:ss")
             : null;
 
           return {
@@ -1562,7 +1567,7 @@ exports.getHistoriesRT = async (socket) => {
 };
 const checkAndUpdateDelayedOrders = async (restaurantId) => {
   try {
-    const twentyMinutesAgo = new Date(Date.now() - 20 * 60 * 1000);
+    const twentyMinutesAgo = dayjs().tz("Europe/Paris").subtract(20, "minute").toDate();
 
     const delayedOrders = await History.find({
       status: "enCours",
@@ -1580,7 +1585,7 @@ const checkAndUpdateDelayedOrders = async (restaurantId) => {
         historyId: order._id,
         status: "enRetard",
         updatedBy: "Système",
-        updatedAt: new Date(),
+        updatedAt: dayjs().tz("Europe/Paris").toDate(),
       });
 
       await statusHistory.save();
@@ -1589,7 +1594,7 @@ const checkAndUpdateDelayedOrders = async (restaurantId) => {
         io.emit("status-update", {
           id: order._id,
           status: "enRetard",
-          updatedAt: new Date(),
+          updatedAt: dayjs().tz("Europe/Paris").toDate(),
         });
       }
     }
@@ -1602,7 +1607,7 @@ exports.getStatistics = async (req, res) => {
   try {
     const { restaurantId } = req;
     const { filter = "today", startDate, endDate } = req.query;
-    const currentDate = new Date();
+    const currentDate = dayjs().tz("Europe/Paris").toDate();
     let matchQuery = {
       restaurantId: new mongoose.Types.ObjectId(restaurantId),
     };
@@ -2211,7 +2216,7 @@ exports.retryPrint = async (req, res) => {
     await History.findByIdAndUpdate(id, {
       printStatus: "pending",
       printError: null,
-      lastPrintAttempt: new Date(),
+      lastPrintAttempt: dayjs().tz("Europe/Paris").toDate(),
     });
 
     // Remove from failed queue if exists
@@ -2257,7 +2262,7 @@ exports.retryAllFailedPrints = async (req, res) => {
       {
         printStatus: "pending",
         printError: null,
-        lastPrintAttempt: new Date(),
+        lastPrintAttempt: dayjs().tz("Europe/Paris").toDate(),
       }
     );
 
@@ -2290,8 +2295,7 @@ exports.getPrintStats = async (req, res) => {
   const { restaurantId } = req;
 
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const today = dayjs().tz("Europe/Paris").startOf("day").toDate();
 
     const stats = await History.aggregate([
       {

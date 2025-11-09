@@ -6,7 +6,12 @@ const app = express();
 require("dotenv").config();
 app.use(express.json());
 const moment = require("moment-timezone");
+const dayjs = require("dayjs");
+const utc = require("dayjs/plugin/utc");
+const timezone = require("dayjs/plugin/timezone");
 const RESTAURANT_TIMEZONE = process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
+dayjs.extend(utc);
+dayjs.extend(timezone);
 
 exports.addCoupon = async (req, res) => {
   try {
@@ -62,17 +67,17 @@ exports.addCoupon = async (req, res) => {
       });
     }
 
-    const now = moment().tz(RESTAURANT_TIMEZONE);
+    const now = dayjs();
 
-    const start = startDate ? moment.tz(startDate, RESTAURANT_TIMEZONE) : now;
-    const end = endDate ? moment.tz(endDate, RESTAURANT_TIMEZONE) : null;
+    const start = startDate ? dayjs(startDate): now;
+    const end = endDate ? dayjs(endDate): null;
 
-    if (end && start.isSameOrAfter(end)) {
+    if (end && !start.isBefore(end)) {
       return res.status(400).json({
         message: req.t("coupon.end_after_start"),
       });
     }
-    // Check if coupon code already exists for this restaurant
+
     const existingCoupon = await Coupon.findOne({
       restaurantId,
       code: code.toUpperCase(),
@@ -129,8 +134,21 @@ exports.getCoupons = async (req, res) => {
       return res.status(404).json({ message: req.t("coupon.not_found") });
     }
     const couponsWithStatus = coupons.map((coupon) => {
+      const startDate = coupon.startDate
+        ? dayjs(coupon.startDate)
+            .tz(RESTAURANT_TIMEZONE)
+            .format("YYYY-MM-DD HH:mm:ss")
+        : null;
+
+      const endDate = coupon.endDate
+        ? dayjs(coupon.endDate)
+            .tz(RESTAURANT_TIMEZONE)
+            .format("YYYY-MM-DD HH:mm:ss")
+        : null;
       return {
         ...coupon.toObject(),
+        startDate,
+        endDate,
         isExpired: coupon.limit ? coupon.usageCount >= coupon.limit : false,
       };
     });
@@ -163,14 +181,14 @@ exports.getCoupon = async (req, res) => {
 
     // Convert startDate to restaurant timezone if it exists
     if (couponObj.startDate) {
-      couponObj.startDate = moment(couponObj.startDate)
+      couponObj.startDate = dayjs(couponObj.startDate)
         .tz(RESTAURANT_TIMEZONE)
         .format("YYYY-MM-DDTHH:mm");
     }
 
     // Convert endDate to restaurant timezone if it exists
     if (couponObj.endDate) {
-      couponObj.endDate = moment(couponObj.endDate)
+      couponObj.endDate = dayjs(couponObj.endDate)
         .tz(RESTAURANT_TIMEZONE)
         .format("YYYY-MM-DDTHH:mm");
     }
@@ -261,8 +279,10 @@ exports.updateCoupon = async (req, res) => {
     // If a new `startDate` is provided, parse it in the restaurant's timezone.
     // Otherwise, use the existing `startDate` from the coupon.
     const start = startDate
-      ? moment.tz(startDate, RESTAURANT_TIMEZONE)
-      : moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
+      ? dayjs.tz(startDate, RESTAURANT_TIMEZONE)
+      : coupon.startDate
+      ? dayjs.tz(coupon.startDate, RESTAURANT_TIMEZONE)
+      : null;
 
     // If `endDate` is provided in the request (even as null), use it.
     // `endDate: null` means the coupon never expires.
@@ -270,13 +290,13 @@ exports.updateCoupon = async (req, res) => {
     const end =
       endDate !== undefined
         ? endDate
-          ? moment.tz(endDate, RESTAURANT_TIMEZONE)
-          : null // A null endDate means it never expires
+          ? dayjs.tz(endDate, RESTAURANT_TIMEZONE)
+          : null
         : coupon.endDate
-        ? moment(coupon.endDate).tz(RESTAURANT_TIMEZONE)
+        ? dayjs.tz(coupon.endDate, RESTAURANT_TIMEZONE)
         : null;
 
-    if (end && start.isSameOrAfter(end)) {
+    if (end && start && !start.isBefore(end)) {
       return res.status(400).json({
         message: req.t("coupon.end_after_start"),
       });
@@ -310,7 +330,7 @@ exports.updateCoupon = async (req, res) => {
         ? couponProducts || []
         : [];
 
-        coupon.excludeProducts = excludeProducts || [];
+      coupon.excludeProducts = excludeProducts || [];
 
       if (Array.isArray(recurringDays)) {
         coupon.recurringDays = recurringDays;
@@ -382,19 +402,6 @@ exports.toggleCoupon = async (req, res) => {
   }
 };
 
-const normalizeDateString = (dateString) => {
-  if (!dateString) return null;
-  // If only YYYY-MM-DD or YYYY-MM-DDTHH:mm, add Z for UTC
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) {
-    return dateString + "T00:00:00Z";
-  }
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(dateString)) {
-    return dateString + ":00Z";
-  }
-  // If ends with Z or has timezone, return as is
-  return dateString;
-};
-
 exports.validateCoupon = async (req, res) => {
   try {
     const { restaurantId } = req;
@@ -418,7 +425,7 @@ exports.validateCoupon = async (req, res) => {
         .json({ message: req.t("coupon.invalid_or_inactive") });
     }
 
-    const now = moment().tz(RESTAURANT_TIMEZONE);
+    const now = dayjs().tz(RESTAURANT_TIMEZONE);
     const currentDay = now.day();
 
     if (coupon.recurringDays && coupon.recurringDays.length > 0) {
@@ -444,10 +451,10 @@ exports.validateCoupon = async (req, res) => {
 
     // Check if coupon has started
     if (coupon.startDate) {
-      const startMoment = moment(coupon.startDate).tz(RESTAURANT_TIMEZONE);
-      if (now.isBefore(startMoment)) {
+      const startDate = dayjs(coupon.startDate).tz(RESTAURANT_TIMEZONE);
+      if (now.isBefore(startDate)) {
         return res.status(400).json({
-          message: `Ce code promo sera valide à partir du ${startMoment.format(
+          message: `Ce code promo sera valide à partir du ${startDate.format(
             "DD/MM/YYYY à HH:mm"
           )}`,
         });
@@ -456,10 +463,10 @@ exports.validateCoupon = async (req, res) => {
 
     // Check if coupon has expired
     if (coupon.endDate) {
-      const endMoment = moment(coupon.endDate).tz(RESTAURANT_TIMEZONE);
-      if (now.isAfter(endMoment)) {
+      const endDate = dayjs(coupon.endDate).tz(RESTAURANT_TIMEZONE);
+      if (now.isAfter(endDate)) {
         return res.status(400).json({
-          message: `Ce code promo a expiré le ${endMoment.format(
+          message: `Ce code promo a expiré le ${endDate.format(
             "DD/MM/YYYY à HH:mm"
           )}`,
         });
@@ -651,7 +658,7 @@ exports.getCouponStatus = async (req, res) => {
   try {
     const { restaurantId } = req;
 
-    const now = new Date();
+    const now = dayjs().tz(RESTAURANT_TIMEZONE);
 
     const coupons = await Coupon.find({ restaurantId })
       .populate("couponCategories", "name")
@@ -664,12 +671,12 @@ exports.getCouponStatus = async (req, res) => {
         status = "inactive";
       } else if (
         coupon.startDate &&
-        now.isBefore(moment(coupon.startDate).tz(RESTAURANT_TIMEZONE))
+        now.isBefore(dayjs(coupon.startDate).tz(RESTAURANT_TIMEZONE))
       ) {
         status = "upcoming";
       } else if (
         coupon.endDate &&
-        now.isAfter(moment(coupon.endDate).tz(RESTAURANT_TIMEZONE))
+        now.isAfter(dayjs(coupon.endDate).tz(RESTAURANT_TIMEZONE))
       ) {
         status = "expired";
       } else if (coupon.usageCount >= coupon.limit) {
@@ -681,12 +688,12 @@ exports.getCouponStatus = async (req, res) => {
         status,
         // Ensure categories is empty array for "all" type
         startDateFormatted: coupon.startDate
-          ? moment(coupon.startDate)
+          ? dayjs(coupon.startDate)
               .tz(RESTAURANT_TIMEZONE)
               .format("DD/MM/YYYY HH:mm")
           : null,
         endDateFormatted: coupon.endDate
-          ? moment(coupon.endDate)
+          ? dayjs(coupon.endDate)
               .tz(RESTAURANT_TIMEZONE)
               .format("DD/MM/YYYY HH:mm")
           : null,

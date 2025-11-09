@@ -19,7 +19,7 @@ const restaurantSchema = mongoose.Schema({
   logo: {
     type: String,
     default: "uploads/default-logo.png",
-    required: true,
+    required: false,
   },
   address: {
     type: String,

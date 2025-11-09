@@ -76,7 +76,33 @@ exports.getAllTypes = async (req, res, next) => {
       .populate("products.product")
       .sort({ createdAt: -1 })
       .lean();
-    res.status(200).json(types);
+      if (!types || types.length === 0) {
+      return res.status(404).json({
+        message: req.t("type.not_found") || "Aucune option trouvée",
+      });
+    }
+
+    const formattedTypes = types.map((type) => {
+      const formattedProducts = (type.products || []).map((p) => ({
+        _id: p.product?._id || null,
+        name: p.product?.name || "Unknown",
+        position: p.position ?? 0,
+      }));
+
+      const formattedIngredients = (type.ingredients || []).map((i) => ({
+        _id: i.ingredient?._id || null,
+        name: i.ingredient?.name || "Unknown",
+        position: i.position ?? 0,
+      }));
+
+      return {
+        ...type,
+        products: formattedProducts,
+        ingredients: formattedIngredients,
+      };
+    });
+
+    res.status(200).json(formattedTypes);
   } catch (error) {
     res.status(400).json({
       message: req.t("type.not_found"),
