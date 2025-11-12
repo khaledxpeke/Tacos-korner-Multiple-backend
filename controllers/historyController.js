@@ -490,7 +490,10 @@ async function queueFailedPrint(order, errorMessage) {
         commandNumber: order.commandNumber,
         restaurantId: order.restaurantId,
         attempts: 0,
-        nextRetry: dayjs().tz("Europe/Paris").add(RETRY_INTERVAL, "millisecond").toDate(),
+        nextRetry: dayjs()
+          .tz("Europe/Paris")
+          .add(RETRY_INTERVAL, "millisecond")
+          .toDate(),
         error: errorMessage,
         createdAt: dayjs().tz("Europe/Paris").toDate(),
       };
@@ -731,8 +734,14 @@ const notifyWaiters = async (history, t) => {
     const { restaurantId } = history;
     const users = await User.find({
       fcmToken: { $ne: "" },
-      restaurants: { $elemMatch: { restaurantId } },
+      restaurants: { $elemMatch: { restaurantId, notificationsEnabled: true } },
     });
+    if (users.length === 0) {
+      console.log(
+        `No users with notifications enabled for restaurant ${restaurantId}`
+      );
+      return;
+    }
 
     const tokens = users.map((user) => user.fcmToken);
     const payload = {
@@ -800,7 +809,7 @@ exports.getHistory = async (req, res) => {
       end.setHours(23, 59, 59, 999);
       query.boughtAt = { $gte: start, $lte: end };
     } else if (filter === "week") {
-      const day = now.getDay() || 7; 
+      const day = now.getDay() || 7;
       const start = new Date(now);
       start.setDate(now.getDate() - day + 1);
       start.setHours(0, 0, 0, 0);
@@ -874,7 +883,6 @@ exports.getHistory = async (req, res) => {
             .tz("Europe/Paris")
             .format("YYYY-MM-DD HH:mm:ss")
         : null;
-
 
       const { totalHT, tvaAmount } = history.product?.reduce(
         (acc, p) => {
@@ -965,8 +973,8 @@ const generatePDF = async (orderData) => {
     "/"
   )}`;
   const formattedDate = dayjs(orderData.boughtAt)
-  .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
-  .format("D MMMM YYYY HH:mm");
+    .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
+    .format("D MMMM YYYY HH:mm");
   const options = {
     format: "A4",
     orientation: "portrait",
@@ -1188,8 +1196,10 @@ exports.getCommandNumber = async (req, res) => {
     const currentDate = dayjs().tz("Europe/Paris").startOf("day").toDate();
 
     if (lastCommand) {
-      const lastCommandDate = dayjs(lastCommand.boughtAt).tz("Europe/Paris").startOf("day").toDate();
-
+      const lastCommandDate = dayjs(lastCommand.boughtAt)
+        .tz("Europe/Paris")
+        .startOf("day")
+        .toDate();
 
       // Compare dates
       if (currentDate.getTime() > lastCommandDate.getTime()) {
@@ -1521,7 +1531,9 @@ exports.getHistoriesRT = async (socket) => {
         const formattedHistories = histories.map((history) => {
           // Format boughtAt date using moment-timezone
           const formattedBoughtAt = history.boughtAt
-            ? dayjs(history.boughtAt).tz(restaurantTimezone).format("YYYY-MM-DD HH:mm:ss")
+            ? dayjs(history.boughtAt)
+                .tz(restaurantTimezone)
+                .format("YYYY-MM-DD HH:mm:ss")
             : null;
 
           return {
@@ -1567,7 +1579,10 @@ exports.getHistoriesRT = async (socket) => {
 };
 const checkAndUpdateDelayedOrders = async (restaurantId) => {
   try {
-    const twentyMinutesAgo = dayjs().tz("Europe/Paris").subtract(20, "minute").toDate();
+    const twentyMinutesAgo = dayjs()
+      .tz("Europe/Paris")
+      .subtract(20, "minute")
+      .toDate();
 
     const delayedOrders = await History.find({
       status: "enCours",

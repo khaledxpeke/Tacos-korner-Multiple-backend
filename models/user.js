@@ -33,7 +33,8 @@ const UserSchema = new mongoose.Schema({
             type: String,
             enum: Object.values(USER_ROLES),
             default: USER_ROLES.WAITER
-        }
+        },
+        notificationsEnabled: { type: Boolean, default: true }
     }]
 
 }, { timestamps: true });

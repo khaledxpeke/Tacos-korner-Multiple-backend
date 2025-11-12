@@ -1,5 +1,5 @@
 // models/media.js
-import mongoose from "mongoose";
+const mongoose = require("mongoose");
 
 const mediaSchema = new mongoose.Schema(
   {
@@ -7,11 +7,12 @@ const mediaSchema = new mongoose.Schema(
     url: { type: String, required: true },
     mimeType: { type: String, required: true },
     size: { type: Number, required: true },
+    hash: { type: String, index: true },
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    targetType: { type: String, required: true }, // e.g., "restaurant", "product", "category"
-    targetId: { type: mongoose.Schema.Types.ObjectId, refPath: "targetType" }, // e.g., restaurant._id
+    targetType: { type: String }, // e.g., "restaurant", "product", "category"
+    targetId: { type: mongoose.Schema.Types.ObjectId, refPath: "targetType" },
   },
   { timestamps: true }
 );
-
-export default mongoose.model("Media", mediaSchema);
+mediaSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
+module.exports = mongoose.model("Media", mediaSchema);

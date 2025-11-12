@@ -421,3 +421,66 @@ exports.logout = async (req, res) => {
   await user.save();
   res.status(200).json({ message: req.t('user.token_updated') });
 };
+
+
+exports.getUserRestaurants = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId)
+      .populate("restaurants.restaurantId", "name")
+      .select("fullName restaurants");
+
+    if (!user) {
+      return res.status(404).json({ message: req.t("user.not_found") });
+    }
+
+    const restaurants = user.restaurants.map(r => ({
+      restaurantId: r.restaurantId._id,
+      name: r.restaurantId.name,
+      role: r.role,
+      notificationsEnabled: r.notificationsEnabled
+    }));
+
+    res.json({ userId: user._id, fullName: user.fullName, restaurants });
+  } catch (error) {
+    res.status(500).json({ message: req.t("user.get_restaurants_error"), error: error.message });
+  }
+};
+
+exports.updateUserRestaurantNotifications = async (req, res) => {
+  try {
+    const { userId, restaurantId } = req.params;
+    const { notificationsEnabled } = req.body;
+    const loggedInUserRole = req.user.user.role;
+    const loggedInUserId = req.user.user._id;
+
+    if (loggedInUserRole !== USER_ROLES.ADMIN && userId !== loggedInUserId.toString()) {
+      return res.status(403).json({ message: req.t("user.permission_denied") });
+    }
+
+    const user = await User.findOne({
+      _id: userId,
+      "restaurants.restaurantId": restaurantId
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: req.t("user.not_assigned_to_restaurant") });
+    }
+
+    const restaurant = user.restaurants.find(r => 
+      r.restaurantId.toString() === restaurantId
+    );
+    
+    if (restaurant) {
+      restaurant.notificationsEnabled = notificationsEnabled;
+      await user.save();
+    }
+
+    res.json({
+      message: req.t("user.notifications_updated_successfully"),
+      restaurant: { restaurantId, notificationsEnabled: restaurant.notificationsEnabled }
+    });
+  } catch (error) {
+    res.status(500).json({ message: req.t("user.notifications_update_error"), error: error.message });
+  }
+};

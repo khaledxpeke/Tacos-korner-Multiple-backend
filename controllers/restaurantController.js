@@ -2,10 +2,8 @@ const Restaurant = require("../models/restaurant");
 const User = require("../models/user");
 const Settings = require("../models/settings");
 const mongoose = require("mongoose");
-const fs = require("fs");
+const fs = require("fs").promises;
 const path = require("path");
-const multer = require("multer");
-const multerStorage = require("../middleware/multerStorage");
 const Category = require("../models/category");
 const carouselMedia = require("../models/carouselMedia");
 const Product = require("../models/product");
@@ -18,40 +16,9 @@ const Desert = require("../models/desert");
 const Extra = require("../models/extra");
 const Drink = require("../models/drink");
 const { USER_ROLES } = require("../enum/constants");
-const axios = require("axios");
-const FormData = require("form-data");
-
 const localUpload = require("../middleware/localMulter");
-
-// const upload = multer({ storage: multerStorage });
-
-// const localUpload = multer({
-//   storage: multer.diskStorage({
-//     destination: (req, file, cb) => {
-//       const tempDir = path.join(process.cwd(), "temp");
-//       fs.mkdirSync(tempDir, { recursive: true });
-//       cb(null, tempDir);
-//     },
-//     filename: (req, file, cb) => {
-//       cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`);
-//     },
-//   }),
-//   limits: { fileSize: 5 * 1024 * 1024 },
-// });
-
-// Helper to forward to media backend
-async function forwardToMediaBackend({ filePath, restaurantId, type }) {
-  const form = new FormData();
-  form.append("file", fs.createReadStream(filePath));
-
-  const url = `${process.env.MEDIA_SERVER_URL}/api/media/upload?restaurantId=${restaurantId}&type=${type}`;
-
-  const response = await axios.post(url, form, {
-    headers: form.getHeaders(),
-  });
-
-  return response.data;
-}
+const { forwardToMediaBackend } = require("../utils/mediaHelper");
+const Media = require("../models/media");
 
 exports.createRestaurant = async (req, res) => {
   const upload = localUpload.single("logo");
@@ -61,9 +28,7 @@ exports.createRestaurant = async (req, res) => {
         .status(400)
         .json({ message: "Image upload failed", error: err.message });
     }
-
-    const logo = `uploads/restaurant/${req.file?.filename}` || "";
-
+    let tempFilePath = null;
     try {
       const { name, description, address } = req.body;
       if (!name || !description || !address) {
@@ -82,16 +47,35 @@ exports.createRestaurant = async (req, res) => {
       await restaurant.save();
 
       if (req.file) {
+        tempFilePath = req.file.path;
         const mediaResponse = await forwardToMediaBackend({
-          filePath: req.file.path,
+          filePath: tempFilePath,
           restaurantId: restaurant._id.toString(),
           type: "logos",
+          originalname: req.file.originalname,
         });
+
+        const mediaDoc = new Media({
+          filename: req.file.originalname,
+          url: mediaResponse.url,
+          mimeType: mediaResponse.mimeType || req.file.mimetype,
+          size: mediaResponse.size || req.file.size,
+          hash: mediaResponse.hash,
+          uploadedBy: req.user?.user?._id,
+          targetType: "restaurant",
+          targetId: restaurant._id,
+        });
+        await mediaDoc.save();
 
         restaurant.logo = mediaResponse.url;
         await restaurant.save();
 
-        fs.unlinkSync(req.file.path);
+        try {
+        await fs.unlink(tempFilePath);
+        } catch (cleanupErr) {
+          console.error("Error deleting temp file:", cleanupErr);
+        }
+        tempFilePath = null;
       }
       const settings = new Settings({
         restaurantId: restaurant._id,
@@ -140,7 +124,6 @@ exports.createRestaurant = async (req, res) => {
       restaurant.settings = settings._id;
       await restaurant.save();
 
-      // Add restaurant to admin user
       await User.findByIdAndUpdate(req.user.user._id, {
         $push: {
           restaurants: {
@@ -156,8 +139,13 @@ exports.createRestaurant = async (req, res) => {
       });
     } catch (error) {
       // Cleanup on error
-      if (req.file && fs.existsSync(req.file.path)) {
-        fs.unlinkSync(req.file.path);
+      if (req.file) {
+        try {
+        await fs.access(req.file.path); 
+        await fs.unlink(req.file.path);
+        } catch (cleanupErr) {
+          console.error("Error deleting temp file:", cleanupErr);
+        }
       }
       console.error("❌ Error:", error.response?.data || error.message);
       res.status(500).json({ message: error.message });
@@ -249,8 +237,8 @@ exports.getRestaurantById = async (req, res) => {
 };
 
 exports.updateRestaurant = async (req, res) => {
-  req.uploadTarget = "restaurant";
-  upload.single("logo")(req, res, async (err) => {
+  const upload = localUpload.single("logo");
+  upload(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         message: req.t("errors.image_upload_failed"),
@@ -263,7 +251,7 @@ exports.updateRestaurant = async (req, res) => {
         error: req.t("errors.image_required"),
       });
     }
-
+    let tempFilePath = null;
     try {
       const { name, description, active, address } = req.body;
       const existedRestaurant = await Restaurant.findById(
@@ -272,41 +260,36 @@ exports.updateRestaurant = async (req, res) => {
       if (!existedRestaurant) {
         return res.status(404).json({ message: req.t("restaurant.not_found") });
       }
-      let logo = existedRestaurant.logo;
-      if (
-        existedRestaurant.logo &&
-        !existedRestaurant.logo.startsWith("uploads/restaurant/")
-      ) {
-        const oldImagePath = path.join(__dirname, "..", existedRestaurant.logo);
-        const newImagePath = path.join(
-          __dirname,
-          "..",
-          "uploads",
-          "restaurant",
-          path.basename(existedRestaurant.logo)
-        );
-
-        if (fs.existsSync(oldImagePath)) {
-          fs.renameSync(oldImagePath, newImagePath);
-        }
-        logo = `uploads/restaurant/${path.basename(existedRestaurant.logo)}`;
-      }
-
-      // Handle new logo upload
       if (req.file) {
-        logo = `uploads/restaurant/${req.file.filename}`;
-        const oldImagePath = path.join(__dirname, "..", existedRestaurant.logo);
-
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
+        tempFilePath = req.file.path;
+        const mediaResponse = await forwardToMediaBackend({
+          filePath: tempFilePath,
+          restaurantId: existedRestaurant._id.toString(),
+          type: "logos",
+          originalname: req.file.originalname,
+        });
+         const mediaDoc = new Media({
+          filename: req.file.originalname,
+          url: mediaResponse.url,
+          mimeType: mediaResponse.mimeType || req.file.mimetype,
+          size: mediaResponse.size || req.file.size,
+          hash: mediaResponse.hash,
+          uploadedBy: req.user?.user?._id,
+          targetType: "restaurant",
+          targetId: existedRestaurant._id,
+        });
+        await mediaDoc.save();
+        existedRestaurant.logo = mediaResponse.url;
+         try {
+        await fs.unlink(tempFilePath);
+        } catch (cleanupErr) {
+          console.error("Error deleting temp file:", cleanupErr);
         }
-
-        existedRestaurant.logo = logo;
+        tempFilePath = null;
       }
 
       if (name) existedRestaurant.name = name;
       if (address) existedRestaurant.address = address;
-      if (logo) existedRestaurant.logo = logo;
       if (description !== undefined)
         existedRestaurant.description = description;
       if (active !== undefined) existedRestaurant.active = active;
@@ -318,6 +301,12 @@ exports.updateRestaurant = async (req, res) => {
         message: req.t("restaurant.updated"),
       });
     } catch (error) {
+       if (tempFilePath) {
+        try {
+          await fs.unlink(tempFilePath);
+        } catch {}
+      }
+      console.error("❌ Update restaurant error:", error.message);
       res.status(500).json({ message: req.t("errors.unknown") });
     }
   });
