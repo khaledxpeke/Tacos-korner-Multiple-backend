@@ -1,11 +1,9 @@
-const Restaurant = require("../models/restaurant");
 const Category = require("../models/category");
 const Coupon = require("../models/coupon");
 const express = require("express");
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const moment = require("moment-timezone");
 const dayjs = require("dayjs");
 const utc = require("dayjs/plugin/utc");
 const timezone = require("dayjs/plugin/timezone");

@@ -28,10 +28,6 @@ const packSchema = new mongoose.Schema(
 
 const settingsSchema = new mongoose.Schema(
   {
-    currencies: {
-      type: [String],
-      default: ["€", "$", "£"],
-    },
     defaultCurrency: {
       type: String,
       uppercase: true,

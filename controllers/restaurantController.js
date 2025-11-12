@@ -92,7 +92,6 @@ exports.createRestaurant = async (req, res) => {
             isActive: true,
           },
         ],
-        currencies: ["€", "$"],
         defaultCurrency: "€",
         maxExtras: 5,
         maxDessert: 5,

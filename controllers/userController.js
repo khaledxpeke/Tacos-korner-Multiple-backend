@@ -6,42 +6,37 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const jwtSecret = process.env.JWT_SECRET;
 app.use(express.json());
-const { USER_ROLES, APP_TYPES } = require('../enum/constants');
+const { USER_ROLES, APP_TYPES } = require("../enum/constants");
 
 exports.register = async (req, res, next) => {
-  const { email, password, fullName, role: roleFromBody } = req.body; // Added roleFromBody
-  const { restaurantId } = req; // restaurantId is set by middleware
+  const { email, password, fullName, role: roleFromBody } = req.body;
+  const { restaurantId } = req;
 
   const userExists = await User.findOne({ email });
   if (userExists) {
-    return res.status(400).json({ message: req.t('user.already_exists') });
+    return res.status(400).json({ message: req.t("user.already_exists") });
   }
 
   let determinedUserRole;
   let determinedRestaurantRoleForStaff;
 
   if (restaurantId) {
-    // Staff registration (e.g., from Dashboard)
     const allowedStaffRoles = [USER_ROLES.MANAGER, USER_ROLES.WAITER];
     if (roleFromBody && allowedStaffRoles.includes(roleFromBody)) {
       determinedUserRole = roleFromBody;
       determinedRestaurantRoleForStaff = roleFromBody;
     } else if (roleFromBody) {
-      // Role provided but not in allowedStaffRoles
       return res.status(400).json({
-        message: req.t('user.invalid_staff_role', { 
-          role: roleFromBody, 
-          validRoles: allowedStaffRoles.join(", ") 
+        message: req.t("user.invalid_staff_role", {
+          role: roleFromBody,
+          validRoles: allowedStaffRoles.join(", "),
         }),
       });
     } else {
-      // No role provided for staff, default to 'waiter'
       determinedUserRole = USER_ROLES.WAITER;
       determinedRestaurantRoleForStaff = USER_ROLES.WAITER;
     }
   } else {
-    // Client registration (e.g., from Client app, Borne app)
-    // restaurantId is null due to X-App-Type handling in middleware
     determinedUserRole = USER_ROLES.CLIENT;
   }
 
@@ -52,22 +47,22 @@ exports.register = async (req, res, next) => {
         password: hash,
         fullName,
         isBlocked: false,
-        role: determinedUserRole, // Use the determined role
+        role: determinedUserRole,
       };
 
       if (restaurantId) {
         newUser.restaurants = [
           {
             restaurantId: restaurantId,
-            role: determinedRestaurantRoleForStaff, // Use determined role for restaurant association
+            role: determinedRestaurantRoleForStaff,
           },
         ];
       }
 
       await User.create(newUser)
-        .then((createdUser) => { // Renamed user to createdUser to avoid conflict
+        .then((createdUser) => {
           const maxAge = 8 * 60 * 60;
-          const token = jwt.sign({ id: createdUser._id, email }, jwtSecret, { // Use createdUser
+          const token = jwt.sign({ id: createdUser._id, email }, jwtSecret, {
             expiresIn: maxAge,
           });
           res.cookie("jwt", token, {
@@ -75,46 +70,104 @@ exports.register = async (req, res, next) => {
             maxAge: maxAge * 1000,
           });
           res.status(201).json({
-            user: createdUser, // Use createdUser
+            user: createdUser,
             token: token,
           });
         })
         .catch((error) =>
           res.status(400).json({
-            // Consider a more generic error message for user creation failure
-            message: req.t('user.creation_error'),
+            message: req.t("user.creation_error"),
             error: error.message,
           })
         );
     });
-  } catch (error) { // Catch for bcrypt or other synchronous errors before the .then()
+  } catch (error) {
     res.status(400).json({
-      message: req.t('user.password_hash_error'),
+      message: req.t("user.password_hash_error"),
       error: error.message,
     });
   }
 };
 
+exports.createUser = async (req, res, next) => {
+  const { email, password, fullName, role } = req.body;
+  const userExists = await User.findOne({ email });
+  const allowedStaffRoles = [USER_ROLES.MANAGER, USER_ROLES.WAITER];
+  if (userExists) {
+    return res.status(400).json({ message: req.t("user.already_exists") });
+  }
+
+  if (role && !allowedStaffRoles.includes(role)) {
+    return res.status(400).json({
+      message: req.t("user.invalid_staff_role", {
+        role: role,
+        validRoles: allowedStaffRoles.join(", "),
+      }),
+    });
+  }
+  try {
+    bcrypt.hash(password, 10).then(async (hash) => {
+      const newUser = {
+        email,
+        password: hash,
+        fullName,
+        isBlocked: false,
+        role: role,
+      };
+      await User.create(newUser)
+        .then((createdUser) => {
+          const maxAge = 8 * 60 * 60;
+          const token = jwt.sign({ id: createdUser._id, email }, jwtSecret, {
+            expiresIn: maxAge,
+          });
+          res.cookie("jwt", token, {
+            httpOnly: true,
+            maxAge: maxAge * 1000,
+          });
+          res.status(201).json({
+            user: createdUser,
+            token: token,
+          });
+        })
+        .catch((error) =>
+          res.status(400).json({
+            message: req.t("user.creation_error"),
+            error: error.message,
+          })
+        );
+    });
+  } catch (error) {
+    res.status(400).json({
+      message: req.t("user.password_hash_error"),
+      error: error.message,
+    });
+  }
+};
 
 exports.login = async (req, res, next) => {
   const { email, password, fcmToken } = req.body;
-  const appType = req.headers['app-type'] || req.body.appType;
+  const appType = req.headers["app-type"] || req.body.appType;
 
   if (!email || !password) {
     return res.status(400).json({
-      message: req.t('user.invalid_credentials'),
+      message: req.t("user.invalid_credentials"),
     });
   }
   try {
     const user = await User.findOne({ email });
     if (!user) {
       res.status(401).json({
-        message: req.t('user.not_found'),
-        error: req.t('user.not_found'),
+        message: req.t("user.not_found"),
+        error: req.t("user.not_found"),
       });
     } else {
       const appTypeRoles = {
-        mobile: [USER_ROLES.ADMIN, USER_ROLES.MANAGER, USER_ROLES.WAITER, USER_ROLES.CLIENT],
+        mobile: [
+          USER_ROLES.ADMIN,
+          USER_ROLES.MANAGER,
+          USER_ROLES.WAITER,
+          USER_ROLES.CLIENT,
+        ],
         borne: [USER_ROLES.MANAGER, USER_ROLES.ADMIN, USER_ROLES.WAITER],
         cashier: [USER_ROLES.ADMIN, USER_ROLES.MANAGER, USER_ROLES.WAITER],
         dashboard: [USER_ROLES.ADMIN, USER_ROLES.MANAGER],
@@ -126,18 +179,18 @@ exports.login = async (req, res, next) => {
         const allowedRoles = appTypeRoles[appType];
         if (!allowedRoles) {
           return res.status(400).json({
-            message: req.t('user.invalid_app_type'),
+            message: req.t("user.invalid_app_type"),
           });
         }
         if (!allowedRoles.includes(user.role)) {
           return res.status(403).json({
-            message: req.t('user.unauthorized_for_app', { appType }),
+            message: req.t("user.unauthorized_for_app", { appType }),
           });
         }
       }
       if (user.isBlocked) {
         return res.status(403).json({
-          message: req.t('user.account_blocked'),
+          message: req.t("user.account_blocked"),
           error: "Compte bloqué",
         });
       }
@@ -165,15 +218,13 @@ exports.login = async (req, res, next) => {
             token: token,
           });
         } else {
-          res
-            .status(400)
-            .json({ message: req.t('user.invalid_credentials') });
+          res.status(400).json({ message: req.t("user.invalid_credentials") });
         }
       });
     }
   } catch (error) {
     res.status(400).json({
-      message: req.t('user.login_error'),
+      message: req.t("user.login_error"),
       error: error.message,
     });
   }
@@ -184,36 +235,56 @@ exports.getUsers = async (req, res, next) => {
     const { restaurantId } = req;
     const users = await User.find({
       restaurants: { $elemMatch: { restaurantId } },
-    }).select("-password").sort({ createdAt: -1 });
+    })
+      .select("-password")
+      .sort({ createdAt: -1 });
 
     res.status(200).json(users);
   } catch (error) {
     res.status(400).json({
-      message: req.t('user.get_users_error'),
+      message: req.t("user.get_users_error"),
       error: error.message,
     });
   }
 };
+
+exports.getAllUsers = async (req, res, next) => {
+  try {
+    const users = await User.find()
+      .select("-password -restaurants -createdAt -updatedAt -fcmToken -__v")
+      .sort({ createdAt: -1 });
+    if (!users) {
+      return res.status(404).json({ message: req.t("user.not_found") });
+    }
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(400).json({
+      message: req.t("user.get_users_error"),
+      error: error.message,
+    });
+  }
+};
+
 exports.getAssignableUsers = async (req, res, next) => {
   try {
     const { restaurantId } = req;
     const { search, role } = req.query;
-     const loggedInUserRole = req.user.user.role; // Get the logged-in user's role
+    const loggedInUserRole = req.user.user.role;
 
-     let query = {
+    let query = {
       "restaurants.restaurantId": { $ne: restaurantId },
-      role: { $nin: [USER_ROLES.ADMIN, USER_ROLES.CLIENT] }, // Exclude admins and clients
+      role: { $nin: [USER_ROLES.ADMIN, USER_ROLES.CLIENT] },
     };
 
     if (loggedInUserRole === USER_ROLES.MANAGER) {
-      query.role = { $nin: [USER_ROLES.ADMIN, USER_ROLES.CLIENT, USER_ROLES.MANAGER] };
+      query.role = {
+        $nin: [USER_ROLES.ADMIN, USER_ROLES.CLIENT, USER_ROLES.MANAGER],
+      };
     }
-    // Filter by role
     if (role) {
       query["role"] = role;
     }
 
-    // Search by name or email
     if (search) {
       query["$or"] = [
         { fullName: { $regex: search, $options: "i" } },
@@ -226,7 +297,7 @@ exports.getAssignableUsers = async (req, res, next) => {
     res.status(200).json(users);
   } catch (error) {
     res.status(400).json({
-      message: req.t('user.get_users_error'),
+      message: req.t("user.get_users_error"),
       error: error.message,
     });
   }
@@ -240,26 +311,26 @@ exports.assignUserToRestaurant = async (req, res, next) => {
 
     if (![USER_ROLES.MANAGER, USER_ROLES.WAITER].includes(role)) {
       return res.status(400).json({
-        message: req.t('user.invalid_role'),
+        message: req.t("user.invalid_role"),
       });
     }
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: req.t('user.not_found') });
+      return res.status(404).json({ message: req.t("user.not_found") });
     }
- 
+
     user.restaurants.push({ restaurantId, role });
     await user.save();
 
     res.status(200).json({
-      message: req.t('user.assigned_successfully'),
+      message: req.t("user.assigned_successfully"),
       user,
     });
   } catch (error) {
     console.error("Error in assignUserToRestaurant:", error);
     res.status(500).json({
-      message: req.t('user.assignment_error'),
+      message: req.t("user.assignment_error"),
       error: error.message,
     });
   }
@@ -271,7 +342,7 @@ exports.unassignUserFromRestaurant = async (req, res, next) => {
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: req.t('user.not_found') });
+      return res.status(404).json({ message: req.t("user.not_found") });
     }
 
     user.restaurants = user.restaurants.filter(
@@ -280,13 +351,13 @@ exports.unassignUserFromRestaurant = async (req, res, next) => {
     await user.save();
 
     res.status(200).json({
-      message: req.t('user.unassigned_successfully'),
+      message: req.t("user.unassigned_successfully"),
       user,
     });
   } catch (error) {
     console.error("Error in unassignUserFromRestaurant:", error);
     res.status(500).json({
-      message: req.t('user.unassignment_error'),
+      message: req.t("user.unassignment_error"),
       error: error.message,
     });
   }
@@ -296,16 +367,16 @@ exports.getUserbyId = async (req, res, next) => {
   const userId = req.user.user._id;
   // const { restaurantId } = req;
   if (!userId) {
-    res.status(400).json({ message: req.t('user.id_not_found') });
+    res.status(400).json({ message: req.t("user.id_not_found") });
   } else {
     const user = await User.findById(
       userId
       // restaurants: { $elemMatch: { restaurantId } },
     ).select("-password");
     if (!user) {
-      return res.status(404).json({ message: req.t('user.not_found') });
+      return res.status(404).json({ message: req.t("user.not_found") });
     }
-    
+
     res.status(200).json(user);
   }
 };
@@ -319,38 +390,41 @@ exports.updateUser = async (req, res, next) => {
       restaurants: { $elemMatch: { restaurantId } },
     });
     if (!user) {
-      return res.status(404).json({ message: req.t('user.not_found') });
+      return res.status(404).json({ message: req.t("user.not_found") });
     }
     const { fullName, email, role } = req.body;
     user.fullName = fullName || user.fullName;
     user.email = email || user.email;
 
-    if (role) { // If a role is being provided for update
+    if (role) {
       const allowedUpdateRoles = [USER_ROLES.MANAGER, USER_ROLES.WAITER];
       if (allowedUpdateRoles.includes(role)) {
         user.role = role;
-        // Also update the role in the user.restaurants array if it's a staff role
         if (user.restaurants && user.restaurants.length > 0) {
-          const restaurantIndexOfUser = user.restaurants.findIndex(r => r.restaurantId.toString() === restaurantId); // restaurantId from req
+          const restaurantIndexOfUser = user.restaurants.findIndex(
+            (r) => r.restaurantId.toString() === restaurantId
+          ); 
           if (restaurantIndexOfUser !== -1) {
             user.restaurants[restaurantIndexOfUser].role = role;
           }
         }
       } else {
         return res.status(400).json({
-          message: req.t('user.invalid_update_role', { validRoles: allowedUpdateRoles.join(", ") }),
+          message: req.t("user.invalid_update_role", {
+            validRoles: allowedUpdateRoles.join(", "),
+          }),
         });
       }
     }
     const savedUser = await user.save();
     return res
       .status(200)
-      .json({ message: req.t('user.updated_successfully'), savedUser });
+      .json({ message: req.t("user.updated_successfully"), savedUser });
   } catch (error) {
     console.error("Erreur dans updateUser:", error);
     return res
       .status(500)
-      .json({ message: req.t('user.update_error'), error: error.message });
+      .json({ message: req.t("user.update_error"), error: error.message });
   }
 };
 
@@ -364,7 +438,7 @@ exports.blockUser = async (req, res, next) => {
       restaurants: { $elemMatch: { restaurantId } },
     }).select("-password");
     if (!user) {
-      return res.status(404).json({ message: req.t('user.not_found') });
+      return res.status(404).json({ message: req.t("user.not_found") });
     }
     if (userRole == USER_ROLES.MANAGER) {
       const user = await User.findOne({
@@ -373,22 +447,22 @@ exports.blockUser = async (req, res, next) => {
       }).select("-password");
       if (user.role === USER_ROLES.MANAGER) {
         return res.status(403).json({
-          message: req.t('user.cannot_block_admin_manager'),
+          message: req.t("user.cannot_block_admin_manager"),
         });
       }
     }
     user.isBlocked = !user.isBlocked;
     await user.save();
     return res.status(200).json({
-      message: req.t('user.blocked_successfully', { 
-        action: user.isBlocked ? "bloqué" : "débloqué" 
+      message: req.t("user.blocked_successfully", {
+        action: user.isBlocked ? "bloqué" : "débloqué",
       }),
     });
   } catch (error) {
     console.error("Error in blockUser:", error);
     return res
       .status(500)
-      .json({ message: req.t('user.block_error'), error: error.message });
+      .json({ message: req.t("user.block_error"), error: error.message });
   }
 };
 
@@ -402,15 +476,17 @@ exports.deleteUser = async (req, res, next) => {
     });
 
     if (!deletedUser) {
-      return res.status(404).json({ message: req.t('user.not_found') });
+      return res.status(404).json({ message: req.t("user.not_found") });
     }
 
-    return res.status(200).json({ message: req.t('user.deleted_successfully') });
+    return res
+      .status(200)
+      .json({ message: req.t("user.deleted_successfully") });
   } catch (error) {
     console.error("Erreur dans deleteUser:", error);
     return res
       .status(500)
-      .json({ message: req.t('user.delete_error'), error: error.message });
+      .json({ message: req.t("user.delete_error"), error: error.message });
   }
 };
 
@@ -419,9 +495,8 @@ exports.logout = async (req, res) => {
   const user = await User.findById(userId);
   user.fcmToken = "";
   await user.save();
-  res.status(200).json({ message: req.t('user.token_updated') });
+  res.status(200).json({ message: req.t("user.token_updated") });
 };
-
 
 exports.getUserRestaurants = async (req, res) => {
   try {
@@ -434,53 +509,61 @@ exports.getUserRestaurants = async (req, res) => {
       return res.status(404).json({ message: req.t("user.not_found") });
     }
 
-    const restaurants = user.restaurants.map(r => ({
+    const restaurants = user.restaurants.map((r) => ({
       restaurantId: r.restaurantId._id,
       name: r.restaurantId.name,
-      role: r.role,
-      notificationsEnabled: r.notificationsEnabled
+      notificationsEnabled: r.notificationsEnabled,
     }));
 
-    res.json({ userId: user._id, fullName: user.fullName, restaurants });
+    res.json(restaurants);
   } catch (error) {
-    res.status(500).json({ message: req.t("user.get_restaurants_error"), error: error.message });
+    res.status(500).json({
+      message: req.t("user.get_restaurants_error"),
+      error: error.message,
+    });
   }
 };
 
 exports.updateUserRestaurantNotifications = async (req, res) => {
   try {
     const { userId, restaurantId } = req.params;
-    const { notificationsEnabled } = req.body;
     const loggedInUserRole = req.user.user.role;
     const loggedInUserId = req.user.user._id;
 
-    if (loggedInUserRole !== USER_ROLES.ADMIN && userId !== loggedInUserId.toString()) {
+    if (
+      loggedInUserRole !== USER_ROLES.ADMIN &&
+      userId !== loggedInUserId.toString()
+    ) {
       return res.status(403).json({ message: req.t("user.permission_denied") });
     }
 
     const user = await User.findOne({
       _id: userId,
-      "restaurants.restaurantId": restaurantId
+      "restaurants.restaurantId": restaurantId,
     });
 
     if (!user) {
-      return res.status(404).json({ message: req.t("user.not_assigned_to_restaurant") });
+      return res
+        .status(404)
+        .json({ message: req.t("user.not_assigned_to_restaurant") });
     }
 
-    const restaurant = user.restaurants.find(r => 
-      r.restaurantId.toString() === restaurantId
+    const restaurant = user.restaurants.find(
+      (r) => r.restaurantId.toString() === restaurantId
     );
-    
+
     if (restaurant) {
-      restaurant.notificationsEnabled = notificationsEnabled;
+      restaurant.notificationsEnabled = !restaurant.notificationsEnabled;
       await user.save();
     }
 
     res.json({
-      message: req.t("user.notifications_updated_successfully"),
-      restaurant: { restaurantId, notificationsEnabled: restaurant.notificationsEnabled }
+      notificationsEnabled: restaurant.notificationsEnabled,
     });
   } catch (error) {
-    res.status(500).json({ message: req.t("user.notifications_update_error"), error: error.message });
+    res.status(500).json({
+      message: req.t("user.notifications_update_error"),
+      error: error.message,
+    });
   }
 };
