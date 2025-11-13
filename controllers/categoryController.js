@@ -100,7 +100,7 @@ exports.getAllCategories = async (req, res) => {
         path: "products",
         match: { visible: true },
         select:
-          "name price formulePrice image type choice description categories outOfStock variations visible originalPrice discountValue discountStartDate discountEndDate tva",
+          "name price formulePrice image type choice description categories outOfStock variations visible originalPrice discountValue discountStartDate discountEndDate tva allergies",
         options: { sort: { position: 1 } },
         populate: [
           {
@@ -140,6 +140,11 @@ exports.getAllCategories = async (req, res) => {
               },
             ],
           },
+          {
+            path: "allergies",
+            model: "Allergy",
+            select: "name icon",
+          },  
         ],
       });
 

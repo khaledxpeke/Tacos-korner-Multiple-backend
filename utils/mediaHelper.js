@@ -2,6 +2,7 @@
 const fs = require("fs");
 const axios = require("axios");
 const FormData = require("form-data");
+const path = require("path");
 
 async function forwardToMediaBackend({ filePath, restaurantId, type , originalname}) {
   const form = new FormData();
@@ -9,13 +10,18 @@ async function forwardToMediaBackend({ filePath, restaurantId, type , originalna
     filename: originalname || path.basename(filePath),
   });
 
-  const url = `${process.env.MEDIA_SERVER_URL}/api/media/upload?restaurantId=${restaurantId}&type=${type}`;
+  const params = new URLSearchParams();
+  params.append("type", type);
+  if (restaurantId) {
+    params.append("restaurantId", restaurantId);
+  }
+
+  const url = `${process.env.MEDIA_SERVER_URL}/api/media/upload?${params.toString()}`;
 
   try {
     const response = await axios.post(url, form, {
       headers: form.getHeaders(),
       timeout: 30000,
-      // optional: timeout: 30_000,
     });
     return response.data;
   } catch (err) {

@@ -17,6 +17,18 @@ const Restaurant = require("../models/restaurant");
 const moment = require("moment-timezone");
 const RESTAURANT_TIMEZONE = process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
 
+const parseArrayField = (field) => {
+  if (!field) return [];
+  if (Array.isArray(field)) return field;
+  if (typeof field === "string") {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return field.split(",").filter(Boolean);
+    }
+  }
+  return [];
+};
 // Helper function to get the final price (formule price or regular price with discount)
 const getFinalPrice = (product, useFormulePrice = false) => {
   // If formule price should be used and is greater than 0, return it directly
@@ -113,6 +125,7 @@ exports.addProductToCategory = async (req, res, next) => {
         tva,
       } = req.body;
       const typeIds = req.body.type || [];
+      const allergyIds = parseArrayField(req.body.allergies);
 
       if (!name || !restaurantId) {
         await cleanupTempFile(req.file.path);
@@ -206,6 +219,7 @@ exports.addProductToCategory = async (req, res, next) => {
         restaurantId,
         image: mediaResponse.url,
         tva: tva ? Number(tva) : 0,
+        allergies: allergyIds,
       });
       const savedProduct = await product.save();
 
@@ -286,6 +300,10 @@ exports.getAllProducts = async (req, res, next) => {
         {
           path: "categories",
           select: "name",
+        },
+        {
+          path: "allergies",
+          select: "name icon",
         },
       ])
       .sort({ createdAt: -1 });
@@ -553,9 +571,12 @@ exports.updateProduct = async (req, res) => {
       } = req.body;
 
       const typeFromBody = req.body.type || [];
-      const parsedTypeIds = Array.isArray(typeFromBody) 
-        ? typeFromBody 
-        : (typeof typeFromBody === 'string' ? JSON.parse(typeFromBody) : []);
+      const parsedTypeIds = Array.isArray(typeFromBody)
+        ? typeFromBody
+        : typeof typeFromBody === "string"
+        ? JSON.parse(typeFromBody)
+        : [];
+      const allergyIds = parseArrayField(req.body.allergies);
       const product = await Product.findOne({ _id: productId, restaurantId });
       if (!product) {
         if (req.file) await cleanupTempFile(req.file.path);
@@ -623,7 +644,7 @@ exports.updateProduct = async (req, res) => {
           };
         }
       }
-      
+
       if (req.file) {
         tempFilePath = req.file.path;
 
@@ -680,6 +701,7 @@ exports.updateProduct = async (req, res) => {
       product.price = price || product.price;
       product.discountValue = Number(discountValue) || 0;
       product.tva = tva ? Number(tva) : product.tva;
+      product.allergies = allergyIds;
       product.discountStartDate = discountStartDate
         ? moment(addTimezoneZ(discountStartDate))
             .tz(RESTAURANT_TIMEZONE)
@@ -701,7 +723,7 @@ exports.updateProduct = async (req, res) => {
       product.supplements = supplements ? supplements.split(",") : [];
 
       product.ingrediants = ingrediants ? ingrediants.split(",") : [];
-       product.type = parsedTypeIds;
+      product.type = parsedTypeIds;
       product.typeVariations = typeVariationsData || product.typeVariations;
 
       const updatedProduct = await product.save();
