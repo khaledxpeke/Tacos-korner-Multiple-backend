@@ -10,7 +10,7 @@ router.post("/",  roleAuth(USER_ROLES.ADMIN), currencyController.createCurrency)
 
 router.put("/:currencyId",  roleAuth(USER_ROLES.ADMIN), currencyController.updateCurrency);
 
-router.delete("/:code",  roleAuth(USER_ROLES.ADMIN), currencyController.deleteCurrency);
+router.delete("/:currencyId",  roleAuth(USER_ROLES.ADMIN), currencyController.deleteCurrency);
 
 
 module.exports = router;

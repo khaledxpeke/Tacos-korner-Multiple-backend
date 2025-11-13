@@ -62,8 +62,8 @@ exports.updateCurrency = async (req, res) => {
 
 exports.deleteCurrency = async (req, res) => {
   try {
-    const { code } = req.params;
-    await Currency.findOneAndDelete({ code: code.toUpperCase() });
+    const { currencyId } = req.params;
+    await Currency.findOneAndDelete({ _id: currencyId });
     res.json({ message: "Currency deleted successfully" });
   } catch (error) {
     res
