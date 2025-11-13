@@ -8,7 +8,7 @@ router.get("/", roleAuth(USER_ROLES.ADMIN), currencyController.getCurrencies);
 
 router.post("/",  roleAuth(USER_ROLES.ADMIN), currencyController.createCurrency);
 
-router.put("/:code",  roleAuth(USER_ROLES.ADMIN), currencyController.updateCurrency);
+router.put("/:currencyId",  roleAuth(USER_ROLES.ADMIN), currencyController.updateCurrency);
 
 router.delete("/:code",  roleAuth(USER_ROLES.ADMIN), currencyController.deleteCurrency);
 

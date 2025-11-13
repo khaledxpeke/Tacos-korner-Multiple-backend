@@ -3,19 +3,25 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const multer = require("multer");
-const multerStorage = require("../middleware/multerStorage");
-const fs = require("fs");
-const Ingrediant = require("../models/ingrediant");
+const fs = require("fs").promises;
 const path = require("path");
 const Product = require("../models/product");
-const { default: mongoose } = require("mongoose");
+const { forwardToMediaBackend } = require("../utils/mediaHelper");
+const localUpload = require("../middleware/localMulter");
+const Media = require("../models/media");
 
-const upload = multer({ storage: multerStorage });
+async function cleanupTempFile(filePath) {
+  if (!filePath) return;
+  try {
+    await fs.access(filePath);
+    await fs.unlink(filePath);
+  } catch (cleanupErr) {
+    console.error("Error deleting temp file:", cleanupErr);
+  }
+}
 exports.createCategory = async (req, res) => {
-  req.uploadTarget = "category";
-  const { restaurantId } = req;
-  upload.single("image")(req, res, async (err) => {
+  const upload = localUpload.single("image");
+  upload(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         message: req.t("errors.image_upload_failed"),
@@ -28,20 +34,55 @@ exports.createCategory = async (req, res) => {
         error: req.t("errors.image_required"),
       });
     }
-
+    let tempFilePath = null;
     const userId = req.user.user._id;
+    const { name } = req.body;
+    const { restaurantId } = req;
     const image = `uploads/category/${req.file?.filename}` || "";
     try {
-      const category = await Category.create({
+      if (!name || !restaurantId) {
+        await cleanupTempFile(req.file.path);
+        return res.status(400).json({
+          message: req.t("category.fields_required"),
+        });
+      }
+      tempFilePath = req.file.path;
+
+      const mediaResponse = await forwardToMediaBackend({
+        filePath: tempFilePath,
+        restaurantId: restaurantId.toString(),
+        type: "categories",
+        originalname: req.file.originalname,
+      });
+
+      const category = new Category({
         createdBy: userId,
-        name: req.body.name,
-        image,
+        name,
+        image: mediaResponse.url,
         restaurantId,
       });
 
-      const newCategory = await category.save();
-      res.status(201).json({ newCategory, message: req.t("category.created") });
+      const mediaDoc = new Media({
+        filename: req.file.originalname,
+        url: mediaResponse.url,
+        mimeType: mediaResponse.mimeType || req.file.mimetype,
+        size: mediaResponse.size || req.file.size,
+        hash: mediaResponse.hash,
+        uploadedBy: userId,
+        targetType: "category",
+        targetId: null,
+      });
+
+      mediaDoc.targetId = category._id;
+      await mediaDoc.save();
+
+      await cleanupTempFile(tempFilePath);
+      tempFilePath = null;
+
+      await category.save();
+      res.status(201).json({ category, message: req.t("category.created") });
     } catch (error) {
+      await cleanupTempFile(tempFilePath || req.file?.path);
       res.status(400).json({
         message: req.t("errors.unknown"),
         error: error.message,
@@ -239,7 +280,7 @@ exports.getAllCategories = async (req, res) => {
           );
         }
         product.category = category._id;
-        delete product.categories; 
+        delete product.categories;
       });
 
       category.products = category.products.filter((p) => p);
@@ -268,60 +309,65 @@ exports.getAllCategory = async (req, res) => {
 };
 
 exports.updateCategory = async (req, res) => {
-  const categoryId = req.params.categoryId;
-  req.uploadTarget = "category";
-  const { restaurantId } = req;
-  upload.single("image")(req, res, async (err) => {
+  const upload = localUpload.single("image");
+  upload(req, res, async (err) => {
     if (err) {
       console.log(err);
       return res
         .status(500)
         .json({ message: req.t("errors.image_upload_failed") });
     }
-    const category = await Category.findOne({ _id: categoryId, restaurantId });
-    if (!category) {
-      return res.status(404).json({ message: req.t("category.not_found") });
-    }
-    if (category.image && !category.image.startsWith("uploads/category/")) {
-      const oldImagePath = path.join(__dirname, "..", category.image);
-      const newImagePath = path.join(
-        __dirname,
-        "..",
-        "uploads",
-        "category",
-        path.basename(category.image)
-      );
-
-      if (fs.existsSync(oldImagePath)) {
-        fs.renameSync(oldImagePath, newImagePath);
-      }
-      category.image = `uploads/category/${path.basename(category.image)}`;
-    }
-
-    if (req.file) {
-      const image = `uploads/category/${req.file.filename}`;
-      const oldImagePath = path.join(__dirname, "..", category.image);
-
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-
-      category.image = image;
-    }
+    let tempFilePath = null;
+    const categoryId = req.params.categoryId;
+    const { restaurantId } = req;
+    const { name } = req.body;
     try {
-      const updatedcategory = await Category.findOneAndUpdate(
-        { _id: categoryId, restaurantId },
-        {
-          name: req.body.name || category.name,
-          image: category.image,
-        },
-        { new: true }
-      );
+      const category = await Category.findOne({
+        _id: categoryId,
+        restaurantId,
+      });
+      if (!category) {
+        return res.status(404).json({ message: req.t("category.not_found") });
+      }
 
-      res
-        .status(200)
-        .json({ updatedcategory, message: req.t("category.updated") });
+      if (req.file) {
+        tempFilePath = req.file.path;
+
+        const mediaResponse = await forwardToMediaBackend({
+          filePath: tempFilePath,
+          restaurantId: restaurantId.toString(),
+          type: "categories",
+          originalname: req.file.originalname,
+        });
+
+        const mediaDoc = new Media({
+          filename: req.file.originalname,
+          url: mediaResponse.url,
+          mimeType: mediaResponse.mimeType || req.file.mimetype,
+          size: mediaResponse.size || req.file.size,
+          hash: mediaResponse.hash,
+          uploadedBy: req.user?.user?._id,
+          targetType: "category",
+          targetId: category._id,
+        });
+        await mediaDoc.save();
+
+        category.image = mediaResponse.url;
+
+        await cleanupTempFile(tempFilePath);
+        tempFilePath = null;
+      }
+
+      if (name) category.name = name;
+
+      await category.save();
+
+      res.status(200).json({
+        category,
+        message: req.t("category.updated"),
+      });
     } catch (error) {
+      await cleanupTempFile(tempFilePath || req.file?.path);
       res.status(500).json({ message: req.t("errors.unknown") });
     }
   });
