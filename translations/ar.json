@@ -50,6 +50,7 @@
   "errors.restaurant_id_required_for_role": "مطلوب معرف المطعم لهذه العملية ({{role}}).",
   "errors.not_authorized_for_restaurant": "غير مصرح لهذا المطعم.",
   "errors.image_upload_failed": "فشل رفع الصورة.",
+  "errors.no_files_uploaded": "لم يتم رفع أي ملفات.",
   "errors.image_required": "يرجى رفع صورة.",
   "auth.token_missing": "رمز المصادقة مفقود.",
   "auth.token_invalid": "رمز المصادقة غير صالح.",

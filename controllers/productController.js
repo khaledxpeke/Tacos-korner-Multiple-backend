@@ -6,12 +6,10 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const fs = require("fs").promises;
 const { forwardToMediaBackend } = require("../utils/mediaHelper");
 const localUpload = require("../middleware/localMulter");
 const Media = require("../models/media");
 const cleanupTempFile = require("../utils/cleanupTempFiles");
-const path = require("path");
 const Settings = require("../models/settings");
 const Restaurant = require("../models/restaurant");
 const moment = require("moment-timezone");
@@ -513,12 +511,6 @@ exports.deleteProduct = async (req, res, next) => {
     const product = await Product.findOne({ _id: productId, restaurantId });
     if (!product) {
       return res.status(404).json({ message: req.t("product.not_found") });
-    }
-    if (product.image) {
-      const imagePath = path.join(__dirname, "..", product.image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
     }
     await Product.findOneAndDelete({ _id: productId, restaurantId });
     await Category.updateMany(

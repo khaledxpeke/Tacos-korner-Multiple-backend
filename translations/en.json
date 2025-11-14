@@ -50,6 +50,7 @@
   "errors.restaurant_id_required_for_role": "Restaurant ID is required for this action ({{role}}).",
   "errors.not_authorized_for_restaurant": "Not authorized for this restaurant.",
   "errors.image_upload_failed": "Image upload failed.",
+  "errors.no_files_uploaded": "No files were uploaded.",
   "errors.image_required": "Please upload an image.",
   "auth.token_missing": "Authentication token missing.",
   "auth.token_invalid": "Authentication token is invalid.",

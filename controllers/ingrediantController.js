@@ -4,18 +4,16 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const multer = require("multer");
-const multerStorage = require("../middleware/multerStorage");
-const fs = require("fs");
 const { default: mongoose } = require("mongoose");
-const path = require("path");
 const Type = require("../models/type");
+const { forwardToMediaBackend } = require("../utils/mediaHelper");
+const localUpload = require("../middleware/localMulter");
+const Media = require("../models/media");
+const cleanupTempFile = require("../utils/cleanupTempFiles");
 
-const upload = multer({ storage: multerStorage });
 exports.createIngredient = async (req, res, next) => {
-  req.uploadTarget = "ingrediants";
-  const { restaurantId } = req;
-  upload.single("image")(req, res, async (err) => {
+  const upload = localUpload.single("image");
+  upload(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         message: req.t("errors.image_upload_failed"),
@@ -28,17 +26,19 @@ exports.createIngredient = async (req, res, next) => {
         error: req.t("errors.image_required"),
       });
     }
+    const { restaurantId } = req;
 
     const { name, typeIds, price, outOfStock, visible, suppPrice, variations } =
       req.body;
     const userId = req.user.user._id;
-    const image = `uploads/ingrediants/${req.file?.filename}` || "";
+    let tempFilePath = null;
     try {
       const nameAlreadyExist = await Ingrediant.findOne({
         name: name,
         restaurantId,
       });
       if (nameAlreadyExist) {
+        await cleanupTempFile(req.file.path);
         return res.status(400).json({ message: req.t("ingrediant.exists") });
       }
       let typesArray = [];
@@ -54,10 +54,18 @@ exports.createIngredient = async (req, res, next) => {
           ? variations
           : JSON.parse(variations);
       }
+      tempFilePath = req.file.path;
 
-      const ingredient = await Ingrediant.create({
+      const mediaResponse = await forwardToMediaBackend({
+        filePath: tempFilePath,
+        restaurantId: restaurantId.toString(),
+        type: "ingrediants",
+        originalname: req.file.originalname,
+      });
+
+      const ingredient = new Ingrediant({
         name,
-        image,
+        image: mediaResponse.url,
         types: typesArray,
         variations: variationsArray || [],
         outOfStock,
@@ -69,11 +77,26 @@ exports.createIngredient = async (req, res, next) => {
       if (price) {
         ingredient.price = price;
       }
+      const mediaDoc = new Media({
+        filename: req.file.originalname,
+        url: mediaResponse.url,
+        mimeType: mediaResponse.mimeType || req.file.mimetype,
+        size: mediaResponse.size || req.file.size,
+        hash: mediaResponse.hash,
+        uploadedBy: userId,
+        targetType: "ingredient",
+        targetId: ingredient._id,
+      });
+      await mediaDoc.save();
+
+      await cleanupTempFile(tempFilePath);
+      tempFilePath = null;
       await ingredient.save();
       res
         .status(201)
         .json({ ingredient, message: req.t("ingrediant.created") });
     } catch (error) {
+      await cleanupTempFile(tempFilePath || req.file?.path);
       return res.status(400).json({
         message: req.t("product.error"),
         error: error.message,
@@ -96,16 +119,19 @@ exports.getAllIngrediants = async (req, res) => {
             {
               $match: {
                 $expr: {
-                  $in: ["$$ingrediantId", { $ifNull: ["$ingredients.ingredient", []] }]
-                }
-              }
+                  $in: [
+                    "$$ingrediantId",
+                    { $ifNull: ["$ingredients.ingredient", []] },
+                  ],
+                },
+              },
             },
-            { $project: { _id: 1, name: 1 } }
+            { $project: { _id: 1, name: 1 } },
           ],
-          as: "types"
-        }
+          as: "types",
+        },
       },
-      { $sort: { createdAt: -1 } }
+      { $sort: { createdAt: -1 } },
     ]);
 
     return res.status(200).json(ingrediants);
@@ -117,14 +143,11 @@ exports.getAllIngrediants = async (req, res) => {
   }
 };
 
-
-
-
 exports.updateIngrediant = async (req, res) => {
-  const ingrediantId = req.params.ingrediantId;
-  req.uploadTarget = "ingrediants";
   const { restaurantId } = req;
-  upload.single("image")(req, res, async (err) => {
+  const ingrediantId = req.params.ingrediantId;
+  const upload = localUpload.single("image");
+  upload(req, res, async (err) => {
     const { name, types, price, outOfStock, visible, suppPrice, variations } =
       req.body;
     let variationsArray = [];
@@ -137,47 +160,42 @@ exports.updateIngrediant = async (req, res) => {
       console.log(err);
       return res.status(500).json({ message: req.t("product.error") });
     }
-    const ingrediant = await Ingrediant.findOne({
-      _id: ingrediantId,
-      restaurantId,
-    });
-    if (!ingrediant) {
-      return res.status(404).json({ message: req.t("ingrediant.not_found") });
-    }
-    if (
-      ingrediant.image &&
-      !ingrediant.image.startsWith("uploads/ingrediants/")
-    ) {
-      const oldImagePath = path.join(__dirname, "..", ingrediant.image);
-      const newImagePath = path.join(
-        __dirname,
-        "..",
-        "uploads",
-        "ingrediants",
-        path.basename(ingrediant.image)
-      );
-
-      if (fs.existsSync(oldImagePath)) {
-        fs.renameSync(oldImagePath, newImagePath);
-      }
-      ingrediant.image = `uploads/ingrediants/${path.basename(
-        ingrediant.image
-      )}`;
-    }
-
-    if (req.file) {
-      const image = `uploads/ingrediants/${req.file.filename}`;
-      const oldImagePath = path.join(__dirname, "..", ingrediant.image);
-
-      if (fs.existsSync(oldImagePath)) {
-        fs.unlinkSync(oldImagePath);
-      }
-
-      ingrediant.image = image;
-    } else if (req.body.image && req.body.image !== ingrediant.image) {
-      ingrediant.image = req.body.image;
-    }
+    let tempFilePath = null;
     try {
+      const ingrediant = await Ingrediant.findOne({
+        _id: ingrediantId,
+        restaurantId,
+      });
+      if (!ingrediant) {
+        return res.status(404).json({ message: req.t("ingrediant.not_found") });
+      }
+
+      if (req.file) {
+        tempFilePath = req.file.path;
+        const mediaResponse = await forwardToMediaBackend({
+          filePath: tempFilePath,
+          restaurantId: restaurantId.toString(),
+          type: "ingrediants",
+          originalname: req.file.originalname,
+        });
+
+        const mediaDoc = new Media({
+          filename: req.file.originalname,
+          url: mediaResponse.url,
+          mimeType: mediaResponse.mimeType || req.file.mimetype,
+          size: mediaResponse.size || req.file.size,
+          hash: mediaResponse.hash,
+          uploadedBy: req.user?.user?._id,
+          targetType: "ingredient",
+          targetId: ingrediant._id,
+        });
+        await mediaDoc.save();
+
+        ingrediant.image = mediaResponse.url;
+
+        await cleanupTempFile(tempFilePath);
+        tempFilePath = null;
+      } 
       ingrediant.name = name || ingrediant.name;
       ingrediant.types = types || ingrediant.types;
       ingrediant.outOfStock = outOfStock || ingrediant.outOfStock;
@@ -210,8 +228,7 @@ exports.updateIngrediant = async (req, res) => {
           }
           return unique;
         }, []);
-        // product.type = uniqueTypes;
-        // await product.save();
+
         await Product.findOneAndUpdate(
           { _id: product._id, restaurantId },
           { type: uniqueTypes }
@@ -220,6 +237,7 @@ exports.updateIngrediant = async (req, res) => {
 
       return res.status(200).json({ message: req.t("ingrediant.updated") });
     } catch (error) {
+      await cleanupTempFile(tempFilePath || req.file?.path);
       return res
         .status(500)
         .json({ message: req.t("product.error"), error: error.message });
@@ -241,15 +259,9 @@ exports.deleteIngredient = async (req, res, next) => {
         message: req.t("ingrediant.not_found"),
       });
     }
-    if (ingrediant.image) {
-      const imagePath = path.join(__dirname, "..", ingrediant.image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
+
     await Ingrediant.deleteOne({ _id: ingrediant._id, restaurantId });
 
-    // Remove the ingredient from the product's ingredients array
     await Product.findOneAndUpdate(
       { _id: ingrediant.product, restaurantId },
       {

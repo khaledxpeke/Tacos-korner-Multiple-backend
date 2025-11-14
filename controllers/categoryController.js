@@ -3,22 +3,12 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const fs = require("fs").promises;
-const path = require("path");
 const Product = require("../models/product");
 const { forwardToMediaBackend } = require("../utils/mediaHelper");
 const localUpload = require("../middleware/localMulter");
 const Media = require("../models/media");
+const cleanupTempFile = require("../utils/cleanupTempFiles");
 
-async function cleanupTempFile(filePath) {
-  if (!filePath) return;
-  try {
-    await fs.access(filePath);
-    await fs.unlink(filePath);
-  } catch (cleanupErr) {
-    console.error("Error deleting temp file:", cleanupErr);
-  }
-}
 exports.createCategory = async (req, res) => {
   const upload = localUpload.single("image");
   upload(req, res, async (err) => {
@@ -38,7 +28,6 @@ exports.createCategory = async (req, res) => {
     const userId = req.user.user._id;
     const { name } = req.body;
     const { restaurantId } = req;
-    const image = `uploads/category/${req.file?.filename}` || "";
     try {
       if (!name || !restaurantId) {
         await cleanupTempFile(req.file.path);
@@ -436,12 +425,6 @@ exports.deleteCategory = async (req, res) => {
 
     await Product.deleteMany({ category: categoryId, restaurantId });
 
-    if (category.image) {
-      const imagePath = path.join(__dirname, "..", category.image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
-      }
-    }
     await Category.findOneAndDelete({ _id: categoryId, restaurantId });
 
     res.status(200).json({ message: req.t("category.deleted") });

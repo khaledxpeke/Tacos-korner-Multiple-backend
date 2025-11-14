@@ -1,50 +1,61 @@
 const CarouselMedia = require("../models/carouselMedia");
-const multer = require("multer");
+const fs = require("fs").promises;
 const path = require("path");
-const fs = require("fs");
 const Settings = require("../models/settings");
-const uploadDir = path.join(__dirname, "..", "uploads", "carousel");
+const { forwardToMediaBackend } = require("../utils/mediaHelper");
+const localUpload = require("../middleware/localMulter");
+const Media = require("../models/media");
 const url = process.env.CAROUSEL_URL;
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
-  },
-});
 
-const upload = multer({
-  storage,
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "video/mp4",
-    ];
-    if (!allowedTypes.includes(file.mimetype)) {
-      return cb(new Error("Type de fichier non valide"), false);
-    }
-    cb(null, true);
-  },
-  limits: {
-    fileSize: 100 * 1024 * 1024, // 100MB limit
-  },
-}).array("files", 10);
-
-// Add new media
 exports.addMedia = async (req, res) => {
+  const upload = localUpload.array("files", 10);
   upload(req, res, async (err) => {
-  if (err) return res.status(400).json({ message: req.t('errors.image_upload_failed'), error: err.message });
-
+    if (err) {
+      return res.status(400).json({
+        message: req.t("errors.image_upload_failed"),
+        error: err.message,
+      });
+    }
+    if (!req.files || req.files.length === 0) {
+      return res
+        .status(400)
+        .json({ message: req.t("errors.no_files_uploaded") });
+    }
     try {
       const { restaurantId } = req;
       const { duration, mediaType } = req.body;
+      if (!restaurantId) {
+        await Promise.all(
+          req.files.map((f) => fs.unlink(f.path).catch(() => {}))
+        );
+        return res.status(400).json({ message: "Restaurant ID is required" });
+      }
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "video/mp4",
+      ];
+      for (const file of req.files) {
+        if (!allowedTypes.includes(file.mimetype)) {
+          await Promise.all(
+            req.files.map((f) => fs.unlink(f.path).catch(() => {}))
+          );
+          return res.status(400).json({
+            message: `Invalid file type: ${file.mimetype}`,
+          });
+        }
+
+        if (file.mimetype === "video/mp4" && file.size > 100 * 1024 * 1024) {
+          await Promise.all(
+            req.files.map((f) => fs.unlink(f.path).catch(() => {}))
+          );
+          return res.status(400).json({
+            message: `Video ${file.originalname} exceeds 100MB limit`,
+          });
+        }
+      }
       const lastMedia = await CarouselMedia.findOne({ restaurantId }).sort(
         "-order"
       );
@@ -52,24 +63,48 @@ exports.addMedia = async (req, res) => {
 
       const savedMedia = await Promise.all(
         req.files.map(async (file, index) => {
-          const media = new CarouselMedia({
-            mediaType: mediaType,
-            fileUrl: `uploads/carousel/${file.filename}`,
-            duration: mediaType === "image" ? duration : null,
+          const mediaResponse = await forwardToMediaBackend({
+            filePath: file.path,
+            restaurantId: restaurantId.toString(),
+            type: "carousel",
+            originalname: file.originalname,
+          });
+
+          const mediaDoc = new Media({
+            filename: file.originalname,
+            url: mediaResponse.url,
+            mimeType: mediaResponse.mimeType || file.mimetype,
+            size: mediaResponse.size || file.size,
+            hash: mediaResponse.hash,
+            uploadedBy: req.user?.user?._id,
+            targetType: "carousel",
+            targetId: null,
+          });
+
+          const isVideo = file.mimetype.startsWith("video/");
+          const carouselMedia = new CarouselMedia({
+            mediaType: mediaType || (isVideo ? "video" : "image"),
+            fileUrl: mediaResponse.url,
+            duration: isVideo ? null : (duration || 5),
             order: startOrder + index + 1,
             restaurantId,
           });
-          return media.save();
+
+          mediaDoc.targetId = carouselMedia._id;
+          await mediaDoc.save();
+
+          return carouselMedia.save();
         })
       );
+
+       await Promise.all(
+        req.files.map(f => fs.unlink(f.path).catch(() => {}))
+      );
+
       res.status(201).json(savedMedia);
     } catch (error) {
-      if (req.files) {
-        req.files.forEach((file) => {
-          fs.unlinkSync(
-            path.join(__dirname, "..", "uploads", "carousel", file.filename)
-          );
-        });
+       if (req.files) {
+        await Promise.all(req.files.map(f => fs.unlink(f.path).catch(() => {})));
       }
       res.status(500).json({ error: error.message });
     }
@@ -89,7 +124,7 @@ exports.updateOrder = async (req, res) => {
       )
     );
 
-res.status(200).json({ message: req.t('carousel.order_updated') });
+    res.status(200).json({ message: req.t("carousel.order_updated") });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -138,17 +173,21 @@ exports.deleteMedia = async (req, res) => {
       restaurantId,
     });
     if (!media) {
-      return res.status(404).json({ message: req.t('carousel.not_found') });
+      return res.status(404).json({ message: req.t("carousel.not_found") });
     }
 
-     try {
+    try {
       fs.unlinkSync(path.join(__dirname, "..", media.fileUrl));
     } catch (err) {
-      console.error("Failed to delete carousel file:", media.fileUrl, err.message);
+      console.error(
+        "Failed to delete carousel file:",
+        media.fileUrl,
+        err.message
+      );
     }
     await CarouselMedia.findOneAndDelete({ _id: req.params.id, restaurantId });
 
-res.status(200).json({ message: req.t('carousel.deleted') });
+    res.status(200).json({ message: req.t("carousel.deleted") });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

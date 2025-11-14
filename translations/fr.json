@@ -50,6 +50,7 @@
   "errors.restaurant_id_required_for_role": "Identifiant du restaurant requis pour cette action ({{role}}).",
   "errors.not_authorized_for_restaurant": "Non autorisé pour ce restaurant.",
   "errors.image_upload_failed": "Le téléchargement de l'image a échoué.",
+  "errors.no_files_uploaded": "Aucun fichier n'a été téléchargé.",
   "errors.image_required": "Veuillez télécharger une image.",
   "auth.token_missing": "Jeton d'authentification manquant.",
   "auth.token_invalid": "Le jeton d'authentification est invalide.",

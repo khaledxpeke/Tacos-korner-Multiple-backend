@@ -4,122 +4,23 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const fs = require("fs");
-const path = require("path");
-const multer = require("multer");
-const multerStorage = require("../middleware/multerStorage");
-const upload = multer({ storage: multerStorage });
 const { default: mongoose } = require("mongoose");
 const { encrypt } = require("../middleware/crypto");
 const Currency = require("../models/currency");
+const { forwardToMediaBackend } = require("../utils/mediaHelper");
+const localUpload = require("../middleware/localMulter");
+const Media = require("../models/media");
+const cleanupTempFile = require("../utils/cleanupTempFiles");
 let io;
 
 exports.setIO = (socketIO) => {
   io = socketIO;
 };
 
-// exports.addSettings = async (req, res) => {
-//   try {
-//     const { restaurantId } = req;
-
-//     const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
-//       "settings"
-//     );
-
-//     if (!restaurant) {
-//       return res.status(404).json({ message: req.t("restaurant.not_found") });
-//     }
-
-//     const { currency } = req.body;
-//     if (!currency) {
-//       return res
-//         .status(400)
-//         .json({ message: req.t("settings.currency_required") });
-//     }
-//     let existing = null;
-//     if (restaurant.settings) {
-//       existing = await Settings.findOne({
-//         _id: restaurant.settings,
-//         restaurantId: restaurantId,
-//       });
-//     }
-//     if (existing) {
-//       if (existing.currencies.includes(currency.toUpperCase())) {
-//         return res
-//           .status(400)
-//           .json({ message: req.t("settings.currency_exists") });
-//       }
-
-//       existing.currencies.push(currency.toUpperCase());
-
-//       await existing.save();
-//       return res
-//         .status(200)
-//         .json({ existing, message: req.t("settings.currency_added") });
-//     } else {
-//       if (currency === undefined) {
-//         return res
-//           .status(400)
-//           .json({ message: req.t("settings.currency_required") });
-//       }
-//       const newSettings = new Settings({
-//         restaurantId: restaurantId,
-//         currencies: [currency.toUpperCase()],
-//         defaultCurrency: currency.toUpperCase(),
-//         tva: 10,
-//         method: [
-//           {
-//             _id: new mongoose.Types.ObjectId(),
-//             label: "Carte bancaire",
-//             isActive: true,
-//           },
-//           {
-//             _id: new mongoose.Types.ObjectId(),
-//             label: "Espèce",
-//             isActive: true,
-//           },
-//         ],
-//         maxExtras: 5,
-//         maxDessert: 5,
-//         maxDrink: 5,
-//         pack: [
-//           {
-//             _id: new mongoose.Types.ObjectId(),
-//             label: "Sur Place",
-//             isActive: true,
-//           },
-//           {
-//             _id: new mongoose.Types.ObjectId(),
-//             label: "À emporter",
-//             isActive: true,
-//           },
-//         ],
-//         carouselDuration: 5,
-//         carouselTiming: 120,
-//         qrCode: "https://www.google.com",
-//         host: process.env.EMAIL_HOST || "smtp.example.com",
-//         port: process.env.EMAIL_PORT || 587,
-//         emailPass: process.env.EMAIL_PASSWORD || "",
-//         emailSender: process.env.EMAIL_SENDER || "",
-//         emailName: process.env.EMAIL_NAME || "Restaurant",
-//       });
-//       await newSettings.save();
-//       restaurant.settings = newSettings._id;
-//       await restaurant.save();
-//       return res
-//         .status(201)
-//         .json({ newSettings, message: "La devise ajoutée avec succées" });
-//     }
-//   } catch (error) {
-//     return res.status(500).json({ error: error.message });
-//   }
-// };
-
 exports.getSettings = async (req, res) => {
   try {
     const { restaurantId } = req;
 
-    // Find the restaurant first
     const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
       "settings"
     );
@@ -191,100 +92,6 @@ exports.getSettings = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
-
-// exports.getSettingsRT = async (socket, req) => {
-//   try {
-//     const { restaurantId } = req;
-//     const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
-//       "settings"
-//     );
-
-//     if (!restaurant) {
-//       return res.status(404).json({ message: req.t("restaurant.not_found") });
-//     }
-
-//     let settings = null;
-//     if (restaurant.settings) {
-//       settings = await Settings.findOne({
-//         _id: restaurant.settings,
-//         restaurantId: restaurantId,
-//       });
-//     }
-
-//     if (!settings) {
-//       // Create default settings if none exist (same as getSettings)
-//       settings = new Settings({
-//         restaurantId: restaurantId,
-//         tva: 10,
-//         method: [
-//           {
-//             _id: new mongoose.Types.ObjectId(),
-//             label: "Espèce",
-//             isActive: true,
-//           },
-//           {
-//             _id: new mongoose.Types.ObjectId(),
-//             label: "Carte bancaire",
-//             isActive: true,
-//           },
-//         ],
-//         currencies: ["€", "$"],
-//         defaultCurrency: "€",
-//         maxExtras: 5,
-//         maxDessert: 5,
-//         maxDrink: 5,
-//         pack: [
-//           {
-//             _id: new mongoose.Types.ObjectId(),
-//             label: "Sur Place",
-//             isActive: true,
-//           },
-//           {
-//             _id: new mongoose.Types.ObjectId(),
-//             label: "À emporter",
-//             isActive: true,
-//           },
-//         ],
-//         carouselDuration: 5,
-//         carouselTiming: 120,
-//         qrCode: "https://www.google.com",
-//         host: process.env.EMAIL_HOST || "smtp.example.com",
-//         port: process.env.EMAIL_PORT || 587,
-//         emailPass: process.env.EMAIL_PASSWORD || "",
-//         emailSender: process.env.EMAIL_SENDER || "",
-//         emailUser: process.env.EMAIL_USER || "",
-//         emailName: process.env.EMAIL_NAME || "Restaurant",
-//       });
-//       await settings.save();
-//       restaurant.settings = settings._id;
-//       await restaurant.save();
-//     }
-
-//     socket.emit("join-restaurant", restaurantId);
-
-//     // Send initial settings
-//     const settingsObject = settings.toObject();
-//     settingsObject.isPasswordSet = !!settingsObject.emailPass;
-//     delete settingsObject.emailPass;
-
-//     socket.emit("settings-realtime-fetched", settingsObject);
-
-//     socket.on("settings-updated", (data) => {
-//       socket.emit("settings-realtime-update", data);
-//     });
-
-//     socket.on("settings-fetched", (data) => {
-//       socket.emit("settings-realtime-fetched", data);
-//     });
-
-//     // res.status(200).json(settingsObject);
-//   } catch (error) {
-//     socket.emit("error", {
-//       message: "Failed to fetch settings",
-//       error: error.message,
-//     });
-//   }
-// };
 
 exports.getAllCurrencies = async (req, res) => {
   try {
@@ -368,75 +175,20 @@ exports.updateDefaultCurrency = async (req, res) => {
     return res.status(500).json({ error: error.message });
   }
 };
-// exports.deleteCurrency = async (req, res) => {
-//   try {
-//     const { restaurantId } = req;
-
-//     const restaurant = await Restaurant.findOne({ _id: restaurantId }).populate(
-//       "settings"
-//     );
-
-//     if (!restaurant || !restaurant.settings) {
-//       return res
-//         .status(404)
-//         .json({ message: req.t("settings.param_not_found") });
-//     }
-
-//     const { currency } = req.body;
-//     if (!currency) {
-//       return res
-//         .status(400)
-//         .json({ message: req.t("settings.currency_required") });
-//     }
-
-//     const currencyDoc = await Settings.findOne({
-//       _id: restaurant.settings,
-//       restaurantId: restaurantId,
-//     });
-//     if (
-//       !currencyDoc ||
-//       !currencyDoc.currencies.includes(currency.toUpperCase())
-//     ) {
-//       return res
-//         .status(400)
-//         .json({ message: req.t("settings.currency_not_found") });
-//     }
-
-//     if (currencyDoc.currencies.length <= 1) {
-//       return res.status(400).json({
-//         message: req.t("settings.currency_last_delete_error"),
-//       });
-//     }
-//     currencyDoc.currencies = currencyDoc.currencies.filter(
-//       (c) => c !== currency.toUpperCase()
-//     );
-//     if (currencyDoc.defaultCurrency === currency.toUpperCase()) {
-//       currencyDoc.defaultCurrency = currencyDoc.currencies[0];
-//     }
-
-//     await currencyDoc.save();
-//     return res.status(200).json({
-//       message: req.t("settings.currency_deleted"),
-//       currencies: currencyDoc.currencies,
-//       defaultCurrency: currencyDoc.defaultCurrency,
-//     });
-//   } catch (error) {
-//     return res.status(500).json({ error: error.message });
-//   }
-// };
 
 exports.updateSettings = async (req, res) => {
-  upload.single("banner")(req, res, async (err) => {
+  const upload = localUpload.single("banner");
+  upload(req, res, async (err) => {
     if (err) {
       return res.status(400).json({
         message: req.t("settings.image_upload_failed"),
         error: err.message,
       });
     }
+    let tempFilePath = null;
 
     try {
       const { restaurantId } = req;
-      // Find the restaurant first
       const restaurant = await Restaurant.findOne({ _id: restaurantId });
 
       if (!restaurant) {
@@ -545,14 +297,31 @@ exports.updateSettings = async (req, res) => {
         });
       }
       if (req.file) {
-        const banner = `uploads\\${req.file.filename}`;
-        const oldImagePath = path.join(__dirname, "..", settings.banner);
+        tempFilePath = req.file.path;
 
-        if (fs.existsSync(oldImagePath)) {
-          fs.unlinkSync(oldImagePath);
-        }
+        const mediaResponse = await forwardToMediaBackend({
+          filePath: tempFilePath,
+          restaurantId: restaurantId.toString(),
+          type: "banners",
+          originalname: req.file.originalname,
+        });
 
-        settings.banner = banner;
+        const mediaDoc = new Media({
+          filename: req.file.originalname,
+          url: mediaResponse.url,
+          mimeType: mediaResponse.mimeType || req.file.mimetype,
+          size: mediaResponse.size || req.file.size,
+          hash: mediaResponse.hash,
+          uploadedBy: req.user?.user?._id,
+          targetType: "settings",
+          targetId: settings._id,
+        });
+        await mediaDoc.save();
+
+        settings.banner = mediaResponse.url;
+
+        await cleanupTempFile(tempFilePath);
+        tempFilePath = null;
       }
 
       if (address) {
@@ -625,15 +394,7 @@ exports.updateSettings = async (req, res) => {
         settings,
       });
     } catch (error) {
-      if (req.files) {
-        Object.values(req.files).forEach((files) => {
-          files.forEach((file) => {
-            fs.unlinkSync(
-              path.join(__dirname, "..", `uploads\\${file.filename}`)
-            );
-          });
-        });
-      }
+      await cleanupTempFile(tempFilePath);
       return res.status(500).json({ error: error.message });
     }
   });

@@ -3,7 +3,6 @@ const User = require("../models/user");
 const Settings = require("../models/settings");
 const mongoose = require("mongoose");
 const fs = require("fs").promises;
-const path = require("path");
 const Category = require("../models/category");
 const carouselMedia = require("../models/carouselMedia");
 const Product = require("../models/product");
