@@ -151,14 +151,15 @@ exports.getCarouselStream = async (req, res) => {
       restaurantId,
     })
       .sort("order")
-      .select("mediaType fileUrl duration");
+      .select("mediaType fileUrl duration filename");
     const settings = await Settings.findOne({ restaurantId });
+    const mediaBaseUrl = process.env.CAROUSEL_URL || "http://localhost:4000";
     const STATIC_DURATION = settings.carouselDuration || 5;
     res.render("carousel-viewer", {
       media: activeMedia,
       mediaDurations: activeMedia.map(() => STATIC_DURATION).join(","),
       mediaTypes: activeMedia.map((m) => m.mediaType),
-      apiUrl: url,
+      apiUrl: mediaBaseUrl,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

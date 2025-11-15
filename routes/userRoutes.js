@@ -32,7 +32,7 @@ router.get("/user", roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER, USER_ROLES.W
 router.get("/:userId/restaurants", roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), getUserRestaurants);
 router.put("/:userId", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),updateUser );
 router.put("/block/:userId", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),blockUser );
-router.put("/:userId/restaurants/:restaurantId/notif", roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), updateUserRestaurantNotifications);
+router.put("/:userId/notif", roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]), updateUserRestaurantNotifications);
 router.delete("/:userId", restaurantAuth(),roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),deleteUser );
 router.post("/logout",roleAuth([USER_ROLES.WAITER, USER_ROLES.ADMIN, USER_ROLES.MANAGER]), logout);
 

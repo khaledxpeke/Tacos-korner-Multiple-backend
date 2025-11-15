@@ -403,7 +403,7 @@ exports.updateUser = async (req, res, next) => {
         if (user.restaurants && user.restaurants.length > 0) {
           const restaurantIndexOfUser = user.restaurants.findIndex(
             (r) => r.restaurantId.toString() === restaurantId
-          ); 
+          );
           if (restaurantIndexOfUser !== -1) {
             user.restaurants[restaurantIndexOfUser].role = role;
           }
@@ -526,9 +526,16 @@ exports.getUserRestaurants = async (req, res) => {
 
 exports.updateUserRestaurantNotifications = async (req, res) => {
   try {
-    const { userId, restaurantId } = req.params;
+    const { userId } = req.params;
+    const { restaurantIds } = req.body;
     const loggedInUserRole = req.user.user.role;
     const loggedInUserId = req.user.user._id;
+
+    if (!Array.isArray(restaurantIds) || restaurantIds.length === 0) {
+      return res.status(400).json({
+        message: req.t("user.invalid_restaurant_ids"),
+      });
+    }
 
     if (
       loggedInUserRole !== USER_ROLES.ADMIN &&
@@ -537,28 +544,48 @@ exports.updateUserRestaurantNotifications = async (req, res) => {
       return res.status(403).json({ message: req.t("user.permission_denied") });
     }
 
-    const user = await User.findOne({
-      _id: userId,
-      "restaurants.restaurantId": restaurantId,
-    });
-
+    const user = await User.findById(userId);
     if (!user) {
-      return res
-        .status(404)
-        .json({ message: req.t("user.not_assigned_to_restaurant") });
+      return res.status(404).json({ message: req.t("user.not_found") });
     }
 
-    const restaurant = user.restaurants.find(
-      (r) => r.restaurantId.toString() === restaurantId
-    );
+    const results = {
+      success: [],
+      failed: [],
+      notFound: [],
+    };
 
-    if (restaurant) {
-      restaurant.notificationsEnabled = !restaurant.notificationsEnabled;
-      await user.save();
+    for (const restaurantId of restaurantIds) {
+      const restaurant = user.restaurants.find(
+        (r) => r.restaurantId?.toString() === restaurantId.toString()
+      );
+
+      if (!restaurant) {
+        results.notFound.push({
+          restaurantId,
+          message: req.t("user.not_assigned_to_restaurant"),
+        });
+        continue;
+      }
+
+      try {
+        restaurant.notificationsEnabled = !restaurant.notificationsEnabled;
+        results.success.push({
+          restaurantId,
+          notificationsEnabled: restaurant.notificationsEnabled,
+        });
+      } catch (error) {
+        results.failed.push({
+          restaurantId,
+          message: error.message,
+        });
+      }
     }
+
+    await user.save();
 
     res.json({
-      notificationsEnabled: restaurant.notificationsEnabled,
+      message: req.t("user.notifications_updated_successfully"),
     });
   } catch (error) {
     res.status(500).json({

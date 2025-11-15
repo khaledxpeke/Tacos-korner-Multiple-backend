@@ -38,7 +38,6 @@ settingsController.setIO(io);
 io.on("connection", (socket) => {
   console.log(`New client connected: ${socket.id}`);
 
-  // Test event every 5 seconds
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
   });
@@ -48,15 +47,8 @@ io.on("connection", (socket) => {
     console.log(`Socket ${socket.id} joined restaurant ${restaurantId}`);
     getHistoriesRT(socket, restaurantId);
 
-    // const mockReq = { restaurantId }; // Define mockReq here
-    // settingsController.getSettingsRT(socket, mockReq);
   });
 
-  // socket.on("get-settings-rt", (data) => {
-  //   // Assume data contains restaurantId and other req-like info
-  //   const mockReq = { restaurantId: data.restaurantId }; // Mock req object
-  //   settingsController.getSettingsRT(socket, mockReq);
-  // });
 
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
