@@ -105,6 +105,7 @@
   "user.login_error": "Une erreur s'est produite",
   "user.get_users_error": "Une erreur s'est produite",
   "user.invalid_role": "Le rôle doit être 'manager' ou 'waiter'",
+  "user.invalid_restaurant_ids":"Les identifiants de restaurant fournis ne sont pas valides.",
   "user.assigned_successfully": "Utilisateur assigné au restaurant avec succès",
   "user.assignment_error": "Erreur du serveur",
   "user.unassigned_successfully": "Utilisateur désassigné du restaurant avec succès",

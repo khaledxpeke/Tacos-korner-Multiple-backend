@@ -105,6 +105,7 @@
   "user.login_error": "An error occurred during login",
   "user.get_users_error": "An error occurred while fetching users",
   "user.invalid_role": "Role must be 'manager' or 'waiter'",
+  "user.invalid_restaurant_ids":"Invalid restaurant IDs provided.",
   "user.assigned_successfully": "User assigned to restaurant successfully",
   "user.assignment_error": "Server error during assignment",
   "user.unassigned_successfully": "User unassigned from restaurant successfully",

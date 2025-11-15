@@ -968,7 +968,7 @@ const generatePDF = async (orderData) => {
   const safeRestaurantName = restaurant.name
     .replace(/[\s'"]/g, "-")
     .replace(/--+/g, "-");
-  const logoUrl = `${process.env.BASE_URL}/${restaurant.logo.replace(
+  const logoUrl = `${process.env.MEDIA_SERVER_URL}/${restaurant.logo.replace(
     /\\/g,
     "/"
   )}`;
@@ -1109,7 +1109,7 @@ exports.addEmail = async (req, res) => {
         message: req.t("history.email_past_order_error"),
       });
     }
-    const logoUrl = `${process.env.BASE_URL}/api/${restaurant.logo.replace(
+    const logoUrl = `${process.env.MEDIA_SERVER_URL}/${restaurant.logo.replace(
       /\\/g,
       "/"
     )}`;
