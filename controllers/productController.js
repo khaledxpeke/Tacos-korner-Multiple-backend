@@ -27,9 +27,7 @@ const parseArrayField = (field) => {
   }
   return [];
 };
-// Helper function to get the final price (formule price or regular price with discount)
 const getFinalPrice = (product, useFormulePrice = false) => {
-  // If formule price should be used and is greater than 0, return it directly
   if (useFormulePrice && product.formulePrice > 0) {
     return {
       price: product.formulePrice,
@@ -42,11 +40,9 @@ const getFinalPrice = (product, useFormulePrice = false) => {
     };
   }
 
-  // Otherwise, use regular discount calculation
   return calculateDiscountInfo(product);
 };
 
-// Helper function to calculate discount information
 const calculateDiscountInfo = (product) => {
   const now = moment().tz(RESTAURANT_TIMEZONE);
   let hasActiveDiscount = false;
@@ -55,7 +51,6 @@ const calculateDiscountInfo = (product) => {
   let discountAmount = 0;
 
   if (product.discountValue > 0) {
-    // Check if discount is within active period
     const isAfterStart =
       !product.discountStartDate ||
       now.isAfter(moment(product.discountStartDate).tz(RESTAURANT_TIMEZONE));
@@ -206,7 +201,6 @@ exports.addProductToCategory = async (req, res, next) => {
         originalPrice: price || null,
         supplements: [],
         ingrediants: [],
-        // category: categoryId,
         categories: categoryIds,
         outOfStock,
         visible,
@@ -222,14 +216,16 @@ exports.addProductToCategory = async (req, res, next) => {
       const savedProduct = await product.save();
 
       const mediaDoc = new Media({
-        filename: req.file.originalname,
+        filename: mediaResponse.filename || req.file.originalname,
         url: mediaResponse.url,
         mimeType: mediaResponse.mimeType || req.file.mimetype,
         size: mediaResponse.size || req.file.size,
         hash: mediaResponse.hash,
         uploadedBy: userId,
-        targetType: "product",
+        targetType: "Product",
         targetId: product._id,
+        type: "product",
+        restaurantId: restaurantId.toString(),
       });
       await mediaDoc.save();
       await cleanupTempFile(tempFilePath);
@@ -574,25 +570,6 @@ exports.updateProduct = async (req, res) => {
         if (req.file) await cleanupTempFile(req.file.path);
         return res.status(404).json({ message: req.t("product.not_found") });
       }
-
-      // if (category && category !== product.category.toString()) {
-      //   await Category.findOneAndUpdate(
-      //     { _id: product.category, restaurantId },
-      //     {
-      //       $pull: { products: product._id },
-      //     }
-      //   );
-
-      //   await Category.findOneAndUpdate(
-      //     { _id: category, restaurantId },
-      //     {
-      //       $push: { products: product._id },
-      //     }
-      //   );
-
-      //   product.category = category;
-      // }
-
       const oldCategories = product.categories.map((id) => id.toString());
       const newCategories = Array.isArray(categories) ? categories : [];
 
@@ -639,6 +616,7 @@ exports.updateProduct = async (req, res) => {
 
       if (req.file) {
         tempFilePath = req.file.path;
+        const oldImageUrl = product.image;
 
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
@@ -648,16 +626,26 @@ exports.updateProduct = async (req, res) => {
         });
 
         const mediaDoc = new Media({
-          filename: req.file.originalname,
+          filename: mediaResponse.filename || req.file.originalname,
           url: mediaResponse.url,
           mimeType: mediaResponse.mimeType || req.file.mimetype,
           size: mediaResponse.size || req.file.size,
           hash: mediaResponse.hash,
           uploadedBy: req.user?.user?._id,
-          targetType: "product",
+          targetType: "Product", // Use capitalized model name for refPath
           targetId: product._id,
+          type: "product", // Consistent singular type
+          restaurantId: restaurantId.toString(),
         });
         await mediaDoc.save();
+        if (oldImageUrl) {
+          await Media.deleteOne({
+            url: oldImageUrl,
+            targetType: "Product",
+            targetId: product._id,
+            type: "product",
+          });
+        }
 
         product.image = mediaResponse.url;
 

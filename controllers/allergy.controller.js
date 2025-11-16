@@ -1,11 +1,9 @@
 const Allergy = require("../models/allergy");
 const Product = require("../models/product");
-const fs = require("fs").promises;
 const { forwardToMediaBackend } = require("../utils/mediaHelper");
 const localUpload = require("../middleware/localMulter");
 const Media = require("../models/media");
 const cleanupTempFile = require("../utils/cleanupTempFiles");
-
 
 exports.createAllergy = async (req, res) => {
   const upload = localUpload.single("icon");
@@ -39,7 +37,7 @@ exports.createAllergy = async (req, res) => {
 
       const mediaResponse = await forwardToMediaBackend({
         filePath: tempFilePath,
-        type: "allergies", 
+        type: "allergies",
         originalname: req.file.originalname,
       });
 
@@ -51,14 +49,15 @@ exports.createAllergy = async (req, res) => {
       await allergy.save();
 
       const mediaDoc = new Media({
-        filename: req.file.originalname,
+        filename: mediaResponse.filename || req.file.originalname,
         url: mediaResponse.url,
         mimeType: mediaResponse.mimeType || req.file.mimetype,
         size: mediaResponse.size || req.file.size,
         hash: mediaResponse.hash,
         uploadedBy: userId,
-        targetType: "allergy",
+        targetType: "Allergy",
         targetId: allergy._id,
+        type: "allergy_icon",
       });
       await mediaDoc.save();
 
@@ -71,7 +70,10 @@ exports.createAllergy = async (req, res) => {
       });
     } catch (error) {
       await cleanupTempFile(tempFilePath || req.file?.path);
-      console.error("❌ Error creating allergy:", error.response?.data || error.message);
+      console.error(
+        "❌ Error creating allergy:",
+        error.response?.data || error.message
+      );
       res.status(500).json({
         message: req.t("errors.unknown"),
         error: error.message,
@@ -79,7 +81,6 @@ exports.createAllergy = async (req, res) => {
     }
   });
 };
-
 
 exports.getAllergies = async (req, res) => {
   try {
@@ -114,6 +115,7 @@ exports.updateAllergy = async (req, res) => {
 
       if (req.file) {
         tempFilePath = req.file.path;
+        const oldIconUrl = allergy.icon;
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
           type: "allergies",
@@ -121,16 +123,26 @@ exports.updateAllergy = async (req, res) => {
         });
 
         const mediaDoc = new Media({
-          filename: req.file.originalname,
+          filename: mediaResponse.filename || req.file.originalname,
           url: mediaResponse.url,
           mimeType: mediaResponse.mimeType || req.file.mimetype,
           size: mediaResponse.size || req.file.size,
           hash: mediaResponse.hash,
           uploadedBy: req.user?.user?._id,
-          targetType: "allergy",
+          targetType: "Allergy",
           targetId: allergy._id,
+          type: "allergy_icon",
         });
         await mediaDoc.save();
+
+        if (oldIconUrl) {
+          await Media.deleteOne({
+            url: oldIconUrl,
+            targetType: "Allergy",
+            targetId: allergy._id,
+            type: "allergy_icon",
+          });
+        }
 
         allergy.icon = mediaResponse.url;
         await cleanupTempFile(tempFilePath);
@@ -146,7 +158,10 @@ exports.updateAllergy = async (req, res) => {
       });
     } catch (error) {
       if (tempFilePath) await cleanupTempFile(tempFilePath);
-      console.error("❌ Error updating allergy:", error.response?.data || error.message);
+      console.error(
+        "❌ Error updating allergy:",
+        error.response?.data || error.message
+      );
       res.status(500).json({ message: req.t("errors.unknown") });
     }
   });

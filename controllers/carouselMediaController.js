@@ -21,6 +21,7 @@ exports.addMedia = async (req, res) => {
         .status(400)
         .json({ message: req.t("errors.no_files_uploaded") });
     }
+    const tempFilePaths = req.files.map((f) => f.path);
     try {
       const { restaurantId } = req;
       const { duration, mediaType } = req.body;
@@ -37,6 +38,7 @@ exports.addMedia = async (req, res) => {
         "image/gif",
         "video/mp4",
       ];
+      const MAX_VIDEO_SIZE = 100 * 1024 * 1024;
       for (const file of req.files) {
         if (!allowedTypes.includes(file.mimetype)) {
           await Promise.all(
@@ -47,7 +49,7 @@ exports.addMedia = async (req, res) => {
           });
         }
 
-        if (file.mimetype === "video/mp4" && file.size > 100 * 1024 * 1024) {
+        if (file.mimetype === "video/mp4" && file.size > MAX_VIDEO_SIZE) {
           await Promise.all(
             req.files.map((f) => fs.unlink(f.path).catch(() => {}))
           );
@@ -70,41 +72,42 @@ exports.addMedia = async (req, res) => {
             originalname: file.originalname,
           });
 
+          const isVideo = file.mimetype.startsWith("video/");
+          const carouselMedia = new CarouselMedia({
+            mediaType: mediaType || (isVideo ? "video" : "image"),
+            fileUrl: mediaResponse.url,
+            duration: isVideo ? null : duration || 5,
+            order: startOrder + index + 1,
+            restaurantId,
+          });
+
+          const savedCarouselMedia = await carouselMedia.save();
           const mediaDoc = new Media({
-            filename: file.originalname,
+            filename: mediaResponse.filename || file.originalname,
             url: mediaResponse.url,
             mimeType: mediaResponse.mimeType || file.mimetype,
             size: mediaResponse.size || file.size,
             hash: mediaResponse.hash,
             uploadedBy: req.user?.user?._id,
-            targetType: "carousel",
-            targetId: null,
+            targetType: "CarouselMedia",
+            targetId: savedCarouselMedia._id,
+            type: "carousel",
+            restaurantId: restaurantId.toString(),
           });
-
-          const isVideo = file.mimetype.startsWith("video/");
-          const carouselMedia = new CarouselMedia({
-            mediaType: mediaType || (isVideo ? "video" : "image"),
-            fileUrl: mediaResponse.url,
-            duration: isVideo ? null : (duration || 5),
-            order: startOrder + index + 1,
-            restaurantId,
-          });
-
-          mediaDoc.targetId = carouselMedia._id;
           await mediaDoc.save();
 
-          return carouselMedia.save();
+          return savedCarouselMedia;
         })
       );
 
-       await Promise.all(
-        req.files.map(f => fs.unlink(f.path).catch(() => {}))
+      await Promise.all(
+        tempFilePaths.map(path => fs.unlink(path).catch(() => {}))
       );
 
       res.status(201).json(savedMedia);
     } catch (error) {
-       if (req.files) {
-        await Promise.all(req.files.map(f => fs.unlink(f.path).catch(() => {})));
+      if (req.files) {
+        await Promise.all(tempFilePaths.map(path => fs.unlink(path).catch(() => {})));
       }
       res.status(500).json({ error: error.message });
     }

@@ -298,6 +298,7 @@ exports.updateSettings = async (req, res) => {
       }
       if (req.file) {
         tempFilePath = req.file.path;
+        const oldBannerUrl = settings.banner;
 
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
@@ -307,17 +308,27 @@ exports.updateSettings = async (req, res) => {
         });
 
         const mediaDoc = new Media({
-          filename: req.file.originalname,
+          filename: mediaResponse.filename || req.file.originalname,
           url: mediaResponse.url,
           mimeType: mediaResponse.mimeType || req.file.mimetype,
           size: mediaResponse.size || req.file.size,
           hash: mediaResponse.hash,
           uploadedBy: req.user?.user?._id,
-          targetType: "settings",
+          targetType: "Settings", 
           targetId: settings._id,
+          type: "banner", 
+          restaurantId: restaurantId.toString(),
         });
         await mediaDoc.save();
 
+        if (oldBannerUrl) {
+          await Media.deleteOne({
+            url: oldBannerUrl,
+            targetType: "Settings",
+            targetId: settings._id,
+            type: "banner",
+          });
+        }
         settings.banner = mediaResponse.url;
 
         await cleanupTempFile(tempFilePath);

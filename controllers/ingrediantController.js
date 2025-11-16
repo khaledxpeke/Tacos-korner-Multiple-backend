@@ -78,14 +78,16 @@ exports.createIngredient = async (req, res, next) => {
         ingredient.price = price;
       }
       const mediaDoc = new Media({
-        filename: req.file.originalname,
+        filename: mediaResponse.filename || req.file.originalname,
         url: mediaResponse.url,
         mimeType: mediaResponse.mimeType || req.file.mimetype,
         size: mediaResponse.size || req.file.size,
         hash: mediaResponse.hash,
         uploadedBy: userId,
-        targetType: "ingredient",
+        targetType: "Ingrediant",
         targetId: ingredient._id,
+        type: "ingredient",
+        restaurantId: restaurantId.toString(),
       });
       await mediaDoc.save();
 
@@ -172,6 +174,7 @@ exports.updateIngrediant = async (req, res) => {
 
       if (req.file) {
         tempFilePath = req.file.path;
+        const oldImageUrl = ingrediant.image;
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
           restaurantId: restaurantId.toString(),
@@ -180,22 +183,33 @@ exports.updateIngrediant = async (req, res) => {
         });
 
         const mediaDoc = new Media({
-          filename: req.file.originalname,
+          filename: mediaResponse.filename || req.file.originalname,
           url: mediaResponse.url,
           mimeType: mediaResponse.mimeType || req.file.mimetype,
           size: mediaResponse.size || req.file.size,
           hash: mediaResponse.hash,
           uploadedBy: req.user?.user?._id,
-          targetType: "ingredient",
+          targetType: "Ingrediant",
           targetId: ingrediant._id,
+          type: "ingredient",
+          restaurantId: restaurantId.toString(),
         });
         await mediaDoc.save();
+
+        if (oldImageUrl) {
+          await Media.deleteOne({
+            url: oldImageUrl,
+            targetType: "Ingrediant",
+            targetId: ingrediant._id,
+            type: "ingredient",
+          });
+        }
 
         ingrediant.image = mediaResponse.url;
 
         await cleanupTempFile(tempFilePath);
         tempFilePath = null;
-      } 
+      }
       ingrediant.name = name || ingrediant.name;
       ingrediant.types = types || ingrediant.types;
       ingrediant.outOfStock = outOfStock || ingrediant.outOfStock;

@@ -50,7 +50,7 @@ exports.createRestaurant = async (req, res) => {
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
           restaurantId: restaurant._id.toString(),
-          type: "logos",
+          type: "logo",
           originalname: req.file.originalname,
         });
 
@@ -61,8 +61,10 @@ exports.createRestaurant = async (req, res) => {
           size: mediaResponse.size || req.file.size,
           hash: mediaResponse.hash,
           uploadedBy: req.user?.user?._id,
-          targetType: "restaurant",
+          targetType: "Restaurant",
           targetId: restaurant._id,
+          type: "logo",
+          restaurantId: restaurant._id.toString(),
         });
         await mediaDoc.save();
 
@@ -70,7 +72,7 @@ exports.createRestaurant = async (req, res) => {
         await restaurant.save();
 
         try {
-        await fs.unlink(tempFilePath);
+          await fs.unlink(tempFilePath);
         } catch (cleanupErr) {
           console.error("Error deleting temp file:", cleanupErr);
         }
@@ -136,11 +138,10 @@ exports.createRestaurant = async (req, res) => {
         message: req.t("restaurant.created"),
       });
     } catch (error) {
-      // Cleanup on error
       if (req.file) {
         try {
-        await fs.access(req.file.path); 
-        await fs.unlink(req.file.path);
+          await fs.access(req.file.path);
+          await fs.unlink(req.file.path);
         } catch (cleanupErr) {
           console.error("Error deleting temp file:", cleanupErr);
         }
@@ -243,12 +244,6 @@ exports.updateRestaurant = async (req, res) => {
         error: err.message,
       });
     }
-    if (!req.file) {
-      return res.status(400).json({
-        message: req.t("product.add_image"),
-        error: req.t("errors.image_required"),
-      });
-    }
     let tempFilePath = null;
     try {
       const { name, description, active, address } = req.body;
@@ -258,28 +253,45 @@ exports.updateRestaurant = async (req, res) => {
       if (!existedRestaurant) {
         return res.status(404).json({ message: req.t("restaurant.not_found") });
       }
+
       if (req.file) {
         tempFilePath = req.file.path;
+        const oldLogoUrl = existedRestaurant.logo;
+
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
           restaurantId: existedRestaurant._id.toString(),
-          type: "logos",
+          type: "logo",
           originalname: req.file.originalname,
         });
-         const mediaDoc = new Media({
-          filename: req.file.originalname,
+
+        const mediaDoc = new Media({
+          filename: mediaResponse.filename || req.file.originalname,
           url: mediaResponse.url,
           mimeType: mediaResponse.mimeType || req.file.mimetype,
           size: mediaResponse.size || req.file.size,
           hash: mediaResponse.hash,
           uploadedBy: req.user?.user?._id,
-          targetType: "restaurant",
+          targetType: "Restaurant",
           targetId: existedRestaurant._id,
+          type: "logo",
+          restaurantId: existedRestaurant._id.toString(),
         });
         await mediaDoc.save();
+
+        if (oldLogoUrl) {
+          await Media.deleteOne({
+            url: oldLogoUrl,
+            targetType: "Restaurant",
+            targetId: existedRestaurant._id,
+            type: "logo",
+          });
+        }
+
         existedRestaurant.logo = mediaResponse.url;
-         try {
-        await fs.unlink(tempFilePath);
+
+        try {
+          await fs.unlink(tempFilePath);
         } catch (cleanupErr) {
           console.error("Error deleting temp file:", cleanupErr);
         }
@@ -299,7 +311,7 @@ exports.updateRestaurant = async (req, res) => {
         message: req.t("restaurant.updated"),
       });
     } catch (error) {
-       if (tempFilePath) {
+      if (tempFilePath) {
         try {
           await fs.unlink(tempFilePath);
         } catch {}
@@ -317,6 +329,14 @@ exports.deleteRestaurant = async (req, res) => {
       return res.status(404).json({ message: req.t("restaurant.not_found") });
     }
 
+    await User.updateMany(
+      { "restaurants.restaurantId": req.params.restaurantId },
+      {
+        $pull: {
+          restaurants: { restaurantId: req.params.restaurantId },
+        },
+      }
+    );
     await Promise.all([
       Product.deleteMany({ restaurantId: restaurant._id }),
       History.deleteMany({ restaurantId: restaurant._id }),
