@@ -100,6 +100,10 @@ exports.getAllCategories = async (req, res) => {
     const categories = await Category.find({ restaurantId })
       .sort("position")
       .populate({
+        path: "image", 
+        select: "url",
+      })
+      .populate({
         path: "products",
         match: { visible: true },
         select:
@@ -171,6 +175,9 @@ exports.getAllCategories = async (req, res) => {
       category.toObject({ virtuals: true })
     );
     populatedCategories.forEach((category) => {
+      if (category.image && typeof category.image === "object") {
+        category.image = category.image.url || null;
+      }
       category.products = category.products.filter(
         (product) => product.visible
       );
