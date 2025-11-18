@@ -246,7 +246,6 @@ exports.getMobileRestaurants = async (req, res) => {
           },
         });
     } else {
-      // For managers and waiters, find their specific restaurants
       const user = await User.findById(req.user.user._id);
 
       if (!user.restaurants || user.restaurants.length === 0) {
@@ -274,12 +273,10 @@ exports.getMobileRestaurants = async (req, res) => {
     const transformedRestaurants = restaurants.map(restaurant => {
       const restaurantObj = restaurant.toObject();
       
-      // Transform logo
       if (restaurantObj.logo && typeof restaurantObj.logo === 'object') {
         restaurantObj.logo = restaurantObj.logo.url || null;
       }
 
-      // Transform settings.banner
       if (restaurantObj.settings && restaurantObj.settings.banner) {
         if (typeof restaurantObj.settings.banner === 'object') {
           restaurantObj.settings.banner = restaurantObj.settings.banner.url || null;
