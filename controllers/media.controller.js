@@ -88,11 +88,16 @@ exports.addMedia = async (req, res) => {
 exports.listMedia = async (req, res) => {
   try {
     const { targetType, targetId, q, limit = 50, page = 1 } = req.query;
-    const filter = {};
+    
+    // 1️⃣ Default filter to show only shared media
+    const filter = { scope: "shared" };
+    
     if (targetType) filter.targetType = targetType;
     if (targetId) filter.targetId = targetId;
     if (q) filter.filename = new RegExp(q, "i");
+    
     const skip = (Number(page) - 1) * Number(limit);
+    
     const medias = await Media.find(filter)
       .sort({ createdAt: -1 })
       .limit(Number(limit))
@@ -104,7 +109,6 @@ exports.listMedia = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 exports.getMediaById = async (req, res) => {
   try {
     const media = await Media.findById(req.params.id).populate(

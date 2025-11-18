@@ -274,12 +274,12 @@ exports.getMobileRestaurants = async (req, res) => {
       const restaurantObj = restaurant.toObject();
       
       if (restaurantObj.logo && typeof restaurantObj.logo === 'object') {
-        restaurantObj.logo = restaurantObj.logo.url || null;
+        restaurantObj.logo = restaurantObj.logo.url.replace(/\\/g, "/") || null;
       }
 
       if (restaurantObj.settings && restaurantObj.settings.banner) {
         if (typeof restaurantObj.settings.banner === 'object') {
-          restaurantObj.settings.banner = restaurantObj.settings.banner.url || null;
+          restaurantObj.settings.banner = restaurantObj.settings.banner.url.replace(/\\/g, "/") || null;
         }
       }
       

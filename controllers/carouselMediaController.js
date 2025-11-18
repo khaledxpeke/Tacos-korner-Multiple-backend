@@ -75,13 +75,14 @@ exports.addMedia = async (req, res) => {
           const isVideo = file.mimetype.startsWith("video/");
           const carouselMedia = new CarouselMedia({
             mediaType: mediaType || (isVideo ? "video" : "image"),
-            fileUrl: mediaResponse.url,
+            fileUrl: null,
             duration: isVideo ? null : duration || 5,
             order: startOrder + index + 1,
             restaurantId,
           });
 
           const savedCarouselMedia = await carouselMedia.save();
+
           const mediaDoc = new Media({
             filename: mediaResponse.filename || file.originalname,
             url: mediaResponse.url,
@@ -93,21 +94,26 @@ exports.addMedia = async (req, res) => {
             targetId: savedCarouselMedia._id,
             type: "carousel",
             restaurantId: restaurantId.toString(),
+            scope: "restaurant",
           });
           await mediaDoc.save();
+          savedCarouselMedia.fileUrl = mediaDoc._id;
+          await savedCarouselMedia.save();
 
           return savedCarouselMedia;
         })
       );
 
       await Promise.all(
-        tempFilePaths.map(path => fs.unlink(path).catch(() => {}))
+        tempFilePaths.map((path) => fs.unlink(path).catch(() => {}))
       );
 
       res.status(201).json(savedMedia);
     } catch (error) {
       if (req.files) {
-        await Promise.all(tempFilePaths.map(path => fs.unlink(path).catch(() => {})));
+        await Promise.all(
+          tempFilePaths.map((path) => fs.unlink(path).catch(() => {}))
+        );
       }
       res.status(500).json({ error: error.message });
     }
@@ -132,15 +138,30 @@ exports.updateOrder = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 exports.getAllMedia = async (req, res) => {
   try {
     const { restaurantId } = req;
     const media = await CarouselMedia.find({
       isActive: true,
       restaurantId,
-    }).sort("order");
-    res.status(200).json(media);
+    })
+      .sort("order")
+      .populate({
+        path: "fileUrl", 
+        select: "url",
+      });
+
+    const transformedMedia = media.map(item => {
+      const itemObj = item.toObject();
+      
+      if (itemObj.fileUrl && typeof itemObj.fileUrl === 'object') {
+        itemObj.fileUrl = itemObj.fileUrl.url || null;
+      }
+      
+      return itemObj;
+    });
+
+    res.status(200).json(transformedMedia);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -154,14 +175,30 @@ exports.getCarouselStream = async (req, res) => {
       restaurantId,
     })
       .sort("order")
+      .populate({
+        path: "fileUrl", 
+        select: "url",
+      })
       .select("mediaType fileUrl duration filename");
     const settings = await Settings.findOne({ restaurantId });
     const mediaBaseUrl = process.env.CAROUSEL_URL || "http://localhost:4000";
     const STATIC_DURATION = settings.carouselDuration || 5;
+    const transformedMedia = activeMedia.map(item => {
+      const itemObj = item.toObject();
+      
+      if (itemObj.fileUrl && typeof itemObj.fileUrl === 'object') {
+        itemObj.fileUrl = itemObj.fileUrl.url || '';
+      }
+      if (!itemObj.fileUrl) {
+        console.warn(`Media item ${itemObj._id} has no fileUrl after population`);
+      }
+      
+      return itemObj;
+    });
     res.render("carousel-viewer", {
-      media: activeMedia,
-      mediaDurations: activeMedia.map(() => STATIC_DURATION).join(","),
-      mediaTypes: activeMedia.map((m) => m.mediaType),
+      media: transformedMedia,
+      mediaDurations: transformedMedia.map(() => STATIC_DURATION).join(","),
+      mediaTypes: transformedMedia.map((m) => m.mediaType),
       apiUrl: mediaBaseUrl,
     });
   } catch (error) {
@@ -180,16 +217,9 @@ exports.deleteMedia = async (req, res) => {
       return res.status(404).json({ message: req.t("carousel.not_found") });
     }
 
-    try {
-      fs.unlinkSync(path.join(__dirname, "..", media.fileUrl));
-    } catch (err) {
-      console.error(
-        "Failed to delete carousel file:",
-        media.fileUrl,
-        err.message
-      );
-    }
     await CarouselMedia.findOneAndDelete({ _id: req.params.id, restaurantId });
+
+    await Media.findOneAndDelete({ _id: media.fileUrl, restaurantId })
 
     res.status(200).json({ message: req.t("carousel.deleted") });
   } catch (error) {

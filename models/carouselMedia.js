@@ -1,32 +1,38 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
-const carouselMediaSchema = new mongoose.Schema({
-  mediaType: {
-    type: String,
-    enum: ['image', 'video'],
-    required: true
+const carouselMediaSchema = new mongoose.Schema(
+  {
+    mediaType: {
+      type: String,
+      enum: ["image", "video"],
+      required: true,
+    },
+    fileUrl: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Media",
+      default: null,
+    },
+    duration: {
+      type: Number,
+      default: 5,
+      required: function () {
+        return this.mediaType === "image";
+      },
+    },
+    order: {
+      type: Number,
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    restaurantId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Restaurant",
+      required: true,
+    },
   },
-  fileUrl: {
-    type: String,
-    required: true
-  },
-  duration: {
-    type: Number,
-    default: 5, 
-    required: function() { return this.mediaType === 'image'; }
-  },
-  order: {
-    type: Number,
-  },
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  restaurantId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Restaurant",
-    required: true
-  }
-}, { timestamps: true });
+  { timestamps: true }
+);
 
-module.exports = mongoose.model('CarouselMedia', carouselMediaSchema);
+module.exports = mongoose.model("CarouselMedia", carouselMediaSchema);
