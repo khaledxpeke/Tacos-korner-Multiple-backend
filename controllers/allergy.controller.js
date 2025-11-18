@@ -84,8 +84,24 @@ exports.createAllergy = async (req, res) => {
 
 exports.getAllergies = async (req, res) => {
   try {
-    const allergies = await Allergy.find().sort("name");
-    res.status(200).json(allergies);
+    const allergies = await Allergy.find()
+      .sort("name")
+      .populate({
+        path: "icon",
+        select: "url",
+      })
+      .lean()
+      .select("name icon");
+
+    const transformedAllergies = allergies.map((allergy) => ({
+      ...allergy,
+      icon:
+        allergy.icon && typeof allergy.icon === "object"
+          ? allergy.icon.url
+          : allergy.icon,
+    }));
+
+    res.status(200).json(transformedAllergies);
   } catch (error) {
     console.error("❌ Error fetching allergies:", error.message);
     res.status(500).json({ message: req.t("errors.unknown") });

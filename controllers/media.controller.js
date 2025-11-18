@@ -39,26 +39,30 @@ exports.addMedia = async (req, res) => {
         const mediaResponse = await forwardToMediaBackend({
           filePath: file.path,
           restaurantId: restaurantId?.toString(),
-          type: "image",
+          type: type || "image",
           originalname: file.originalname,
         });
 
-        const mediaDoc = new Media({
-          filename: mediaResponse.filename || file.originalname,
-          url: mediaResponse.url,
-          mimeType: mediaResponse.mimeType || file.mimetype,
-          size: mediaResponse.size || file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: req.user?.user?._id,
-          targetType: targetType,
-          targetId: targetId,
-          type: type,
-          restaurantId: restaurantId?.toString(),
-        });
+        let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
+        if (!mediaDoc) {
+          mediaDoc = new Media({
+            filename: mediaResponse.filename || file.originalname,
+            url: mediaResponse.url,
+            mimeType: mediaResponse.mimeType || file.mimetype,
+            size: mediaResponse.size || file.size,
+            hash: mediaResponse.hash,
+            uploadedBy: req.user?.user?._id,
+            targetType: targetType,
+            targetId: targetId,
+            type: type,
+            restaurantId: restaurantId?.toString(),
+            scope: "shared",
+          });
 
-        const savedDoc = await mediaDoc.save();
-        createdMediaDocs.push(savedDoc);
-        return savedDoc;
+           await mediaDoc.save();
+          createdMediaDocs.push(savedDoc);
+        } 
+        return mediaDoc;
       });
 
       const savedMedia = await Promise.all(mediaPromises);

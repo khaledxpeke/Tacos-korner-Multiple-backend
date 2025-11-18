@@ -18,10 +18,9 @@ const ProductSchema = new mongoose.Schema(
       default: 0,
     },
     image: {
-      type: String,
-      required: true,
-      default:
-        "https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Media",
+      default: null,
     },
     // currency: {
     //   type: String,

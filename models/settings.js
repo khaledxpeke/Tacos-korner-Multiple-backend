@@ -51,8 +51,9 @@ const settingsSchema = new mongoose.Schema(
       default: 1,
     },
     banner: {
-      type: String,
-      default: "uploads/default-banner.png",
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Media",
+      default: null,
     },
     address: {
       type: String,

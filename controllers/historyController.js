@@ -958,7 +958,7 @@ const generatePDF = async (orderData) => {
     "utf8"
   );
   const settings = await Settings.findOne({ restaurantId });
-  const restaurant = await Restaurant.findById(restaurantId);
+  const restaurant = await Restaurant.findById(restaurantId).populate({ path: 'logo', select: 'url' });
   const tva = settings?.tva || 0;
   const address = restaurant?.address;
   // const totalHt = (100 * orderData.total) / (100 + tva);
@@ -968,7 +968,7 @@ const generatePDF = async (orderData) => {
   const safeRestaurantName = restaurant.name
     .replace(/[\s'"]/g, "-")
     .replace(/--+/g, "-");
-  const logoUrl = `${process.env.MEDIA_SERVER_URL}/${restaurant.logo.replace(
+  const logoUrl = `${process.env.MEDIA_SERVER_URL}/${restaurant.logo.url.replace(
     /\\/g,
     "/"
   )}`;
@@ -1085,7 +1085,7 @@ exports.addEmail = async (req, res) => {
     const formattedDate = dayjs(history.boughtAt)
       .tz(process.env.RESTAURANT_TIMEZONE || "Europe/Paris")
       .format("D MMMM YYYY HH:mm");
-    const restaurant = await Restaurant.findById(restaurantId);
+    const restaurant = await Restaurant.findById(restaurantId).populate({ path: 'logo', select: 'url' });
     const settings = await Settings.findOne({ restaurantId });
     const tva = settings?.tva || 0;
     const totalHt = (100 * history.total) / (100 + tva);
@@ -1109,7 +1109,7 @@ exports.addEmail = async (req, res) => {
         message: req.t("history.email_past_order_error"),
       });
     }
-    const logoUrl = `${process.env.MEDIA_SERVER_URL}/${restaurant.logo.replace(
+    logoUrl = `${process.env.MEDIA_SERVER_URL}/${restaurant.logo?.url.replace(
       /\\/g,
       "/"
     )}`;

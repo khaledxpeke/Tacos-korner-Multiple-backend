@@ -6,9 +6,9 @@ const categorySchema = mongoose.Schema({
     required: true,
   },
   image: {
-    type: String,
-    default:
-      "https://images.pexels.com/photos/1640774/pexels-photo-1640774.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "Media",
+    default: null 
   },
   // products: [
   //   {
@@ -35,7 +35,7 @@ const categorySchema = mongoose.Schema({
 categorySchema.virtual("products", {
   ref: "Product",
   localField: "_id",
-  foreignField: "categories", // match products where this category is in their categories array
+  foreignField: "categories", 
 });
 
 categorySchema.set("toObject", { virtuals: true });

@@ -63,9 +63,10 @@ exports.createIngredient = async (req, res, next) => {
         originalname: req.file.originalname,
       });
 
+      let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
       const ingredient = new Ingrediant({
         name,
-        image: mediaResponse.url,
+        image: null,
         types: typesArray,
         variations: variationsArray || [],
         outOfStock,
@@ -77,23 +78,29 @@ exports.createIngredient = async (req, res, next) => {
       if (price) {
         ingredient.price = price;
       }
-      const mediaDoc = new Media({
-        filename: mediaResponse.filename || req.file.originalname,
-        url: mediaResponse.url,
-        mimeType: mediaResponse.mimeType || req.file.mimetype,
-        size: mediaResponse.size || req.file.size,
-        hash: mediaResponse.hash,
-        uploadedBy: userId,
-        targetType: "Ingrediant",
-        targetId: ingredient._id,
-        type: "ingredient",
-        restaurantId: restaurantId.toString(),
-      });
-      await mediaDoc.save();
+      await ingredient.save();
+      if (!mediaDoc) {
+        mediaDoc = new Media({
+          filename: mediaResponse.filename || req.file.originalname,
+          url: mediaResponse.url,
+          mimeType: mediaResponse.mimeType || req.file.mimetype,
+          size: mediaResponse.size || req.file.size,
+          hash: mediaResponse.hash,
+          uploadedBy: userId,
+          targetType: "Ingrediant",
+          targetId: ingredient._id,
+          type: "ingredient",
+          restaurantId: restaurantId.toString(),
+          scope: "shared",
+        });
+        await mediaDoc.save();
+      }
+
+      ingredient.image = mediaDoc._id;
+      await ingredient.save();
 
       await cleanupTempFile(tempFilePath);
       tempFilePath = null;
-      await ingredient.save();
       res
         .status(201)
         .json({ ingredient, message: req.t("ingrediant.created") });
@@ -113,6 +120,22 @@ exports.getAllIngrediants = async (req, res) => {
 
     const ingrediants = await Ingrediant.aggregate([
       { $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId) } },
+
+      {
+        $lookup: {
+          from: "media",
+          localField: "image",
+          foreignField: "_id",
+          as: "image",
+          pipeline: [{ $project: { url: 1 } }],
+        },
+      },
+      {
+        $addFields: {
+          image: { $arrayElemAt: ["$image.url", 0] },
+        },
+      },
+
       {
         $lookup: {
           from: "types",
@@ -174,7 +197,6 @@ exports.updateIngrediant = async (req, res) => {
 
       if (req.file) {
         tempFilePath = req.file.path;
-        const oldImageUrl = ingrediant.image;
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
           restaurantId: restaurantId.toString(),
@@ -182,30 +204,25 @@ exports.updateIngrediant = async (req, res) => {
           originalname: req.file.originalname,
         });
 
-        const mediaDoc = new Media({
-          filename: mediaResponse.filename || req.file.originalname,
-          url: mediaResponse.url,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: req.user?.user?._id,
-          targetType: "Ingrediant",
-          targetId: ingrediant._id,
-          type: "ingredient",
-          restaurantId: restaurantId.toString(),
-        });
-        await mediaDoc.save();
+        let newMediaDoc = await Media.findOne({ hash: mediaResponse.hash });
 
-        if (oldImageUrl) {
-          await Media.deleteOne({
-            url: oldImageUrl,
+        if (!newMediaDoc) {
+          newMediaDoc = new Media({
+            filename: mediaResponse.filename || req.file.originalname,
+            url: mediaResponse.url,
+            mimeType: mediaResponse.mimeType || req.file.mimetype,
+            size: mediaResponse.size || req.file.size,
+            hash: mediaResponse.hash,
+            uploadedBy: req.user?.user?._id,
             targetType: "Ingrediant",
             targetId: ingrediant._id,
             type: "ingredient",
+            restaurantId: restaurantId.toString(),
           });
+          await mediaDoc.save();
         }
 
-        ingrediant.image = mediaResponse.url;
+        ingrediant.image = newMediaDoc._id;
 
         await cleanupTempFile(tempFilePath);
         tempFilePath = null;

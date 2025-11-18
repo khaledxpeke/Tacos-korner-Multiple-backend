@@ -298,7 +298,7 @@ exports.updateSettings = async (req, res) => {
       }
       if (req.file) {
         tempFilePath = req.file.path;
-        const oldBannerUrl = settings.banner;
+        const oldBannerId = settings.banner;
 
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
@@ -318,18 +318,15 @@ exports.updateSettings = async (req, res) => {
           targetId: settings._id,
           type: "banner", 
           restaurantId: restaurantId.toString(),
+          scope: "restaurant",
         });
         await mediaDoc.save();
 
-        if (oldBannerUrl) {
-          await Media.deleteOne({
-            url: oldBannerUrl,
-            targetType: "Settings",
-            targetId: settings._id,
-            type: "banner",
-          });
+        if (oldBannerId) {
+          await Media.findByIdAndDelete(oldBannerId);
         }
-        settings.banner = mediaResponse.url;
+
+        settings.banner = mediaDoc._id;
 
         await cleanupTempFile(tempFilePath);
         tempFilePath = null;

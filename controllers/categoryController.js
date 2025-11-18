@@ -8,6 +8,7 @@ const { forwardToMediaBackend } = require("../utils/mediaHelper");
 const localUpload = require("../middleware/localMulter");
 const Media = require("../models/media");
 const cleanupTempFile = require("../utils/cleanupTempFiles");
+const { default: mongoose } = require("mongoose");
 
 exports.createCategory = async (req, res) => {
   const upload = localUpload.single("image");
@@ -49,26 +50,31 @@ exports.createCategory = async (req, res) => {
       const category = new Category({
         createdBy: userId,
         name,
-        image: mediaResponse.url,
+        image: null,
         restaurantId,
       });
 
       await category.save();
 
-      const mediaDoc = new Media({
-        filename: mediaResponse.filename || req.file.originalname,
-        url: mediaResponse.url,
-        mimeType: mediaResponse.mimeType || req.file.mimetype,
-        size: mediaResponse.size || req.file.size,
-        hash: mediaResponse.hash,
-        uploadedBy: userId,
-        targetType: "Category",
-        targetId: category._id,
-        type: "category",
-        restaurantId: restaurantId.toString(),
-      });
+      let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
+      if (!mediaDoc) {
+        mediaDoc = new Media({
+          filename: mediaResponse.filename || req.file.originalname,
+          url: mediaResponse.url,
+          mimeType: mediaResponse.mimeType || req.file.mimetype,
+          size: mediaResponse.size || req.file.size,
+          hash: mediaResponse.hash,
+          uploadedBy: userId,
+          targetType: "Category",
+          targetId: category._id,
+          type: "category",
+          restaurantId: restaurantId.toString(),
+        });
+        await mediaDoc.save();
+      }
 
-      await mediaDoc.save();
+      category.image = mediaDoc._id;
+      await category.save();
 
       await cleanupTempFile(tempFilePath);
       tempFilePath = null;
@@ -101,6 +107,10 @@ exports.getAllCategories = async (req, res) => {
         options: { sort: { position: 1 } },
         populate: [
           {
+            path: "image",
+            select: "url",
+          },
+          {
             path: "type",
             select:
               "name label message min selection payment max ingredients products mode",
@@ -109,12 +119,20 @@ exports.getAllCategories = async (req, res) => {
                 path: "ingredients.ingredient",
                 model: "Ingrediant",
                 select: "name image price suppPrice outOfStock visible",
+                populate: {
+                  path: "image",
+                  select: "url",
+                },
               },
               {
                 path: "products.product",
                 model: "Product",
                 select:
                   "name price formulePrice image outOfStock visible discountValue",
+                populate: {
+                  path: "image",
+                  select: "url",
+                },
               },
             ],
           },
@@ -141,6 +159,10 @@ exports.getAllCategories = async (req, res) => {
             path: "allergies",
             model: "Allergy",
             select: "name icon",
+            populate: {
+              path: "icon",
+              select: "url",
+            },
           },
         ],
       });
@@ -154,6 +176,9 @@ exports.getAllCategories = async (req, res) => {
       );
 
       category.products.forEach((product) => {
+        if (product.image && typeof product.image === "object") {
+          product.image = product.image.url || null;
+        }
         const now = new Date();
 
         let hasDiscount = false;
@@ -218,10 +243,15 @@ exports.getAllCategories = async (req, res) => {
                   const basePrice = !t.payment
                     ? ing.ingredient.suppPrice
                     : ing.ingredient.price;
+                  const ingredientImage = ing.ingredient.image;
+                  const imageUrl =
+                    ingredientImage && typeof ingredientImage === "object"
+                      ? ingredientImage.url
+                      : ingredientImage;
                   return {
                     _id: ing.ingredient._id,
                     name: ing.ingredient.name,
-                    image: ing.ingredient.image,
+                    image: imageUrl,
                     price: Number((basePrice ?? 0).toFixed(2)),
                     outOfStock: ing.ingredient.outOfStock,
                     position: ing.position ?? 0,
@@ -242,6 +272,11 @@ exports.getAllCategories = async (req, res) => {
                   let finalPrice = pn.price;
                   let hasDiscount = false;
                   let originalPrice = null;
+                  const productImage = pn.image;
+                  const imageUrl =
+                    productImage && typeof productImage === "object"
+                      ? productImage.url
+                      : productImage;
 
                   if (pn.formulePrice && pn.formulePrice > 0) {
                     finalPrice = pn.formulePrice;
@@ -263,7 +298,7 @@ exports.getAllCategories = async (req, res) => {
                   return {
                     _id: pn._id,
                     name: pn.name,
-                    image: pn.image,
+                    image: imageUrl,
                     price: finalPrice,
                     hasDiscount,
                     originalPrice,
@@ -280,6 +315,19 @@ exports.getAllCategories = async (req, res) => {
           product.type = product.type.filter(
             (t) => t.ingrediants || t.products
           );
+        }
+        if (product.allergies && Array.isArray(product.allergies)) {
+          product.allergies = product.allergies.map((allergy) => {
+            const iconObj = allergy.icon;
+            const iconUrl =
+              iconObj && typeof iconObj === "object" ? iconObj.url : iconObj;
+
+            return {
+              _id: allergy._id,
+              name: allergy.name,
+              icon: iconUrl,
+            };
+          });
         }
         product.category = category._id;
         delete product.categories;
@@ -301,9 +349,33 @@ exports.getAllCategories = async (req, res) => {
 exports.getAllCategory = async (req, res) => {
   try {
     const { restaurantId } = req;
-    const categories = await Category.find({ restaurantId })
-      .populate("products")
-      .sort("position");
+
+    const categories = await Category.aggregate([
+      { $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId) } },
+      { $sort: { position: 1 } },
+      {
+        $lookup: {
+          from: "products",
+          localField: "products",
+          foreignField: "_id",
+          as: "products",
+        },
+      },
+      {
+        $lookup: {
+          from: "media",
+          localField: "image",
+          foreignField: "_id",
+          as: "image",
+        },
+      },
+      {
+        $addFields: {
+          image: { $arrayElemAt: ["$image.url", 0] },
+        },
+      },
+    ]);
+
     res.status(200).json(categories);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -333,9 +405,10 @@ exports.updateCategory = async (req, res) => {
       if (!category) {
         return res.status(404).json({ message: req.t("category.not_found") });
       }
+      if (name) category.name = name;
+
       if (req.file) {
         tempFilePath = req.file.path;
-        const oldImageUrl = category.image;
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
           restaurantId: restaurantId.toString(),
@@ -343,36 +416,29 @@ exports.updateCategory = async (req, res) => {
           originalname: req.file.originalname,
         });
 
-        const mediaDoc = new Media({
-          filename: mediaResponse.filename || req.file.originalname,
-          url: mediaResponse.url,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: req.user?.user?._id,
-          targetType: "Category",
-          targetId: category._id,
-          type: "category",
-          restaurantId: restaurantId.toString(),
-        });
-        await mediaDoc.save();
+        let newMediaDoc = await Media.findOne({ hash: mediaResponse.hash });
 
-        if (oldImageUrl) {
-          await Media.deleteOne({
-            url: oldImageUrl,
+        if (!newMediaDoc) {
+          newMediaDoc = new Media({
+            filename: mediaResponse.filename || req.file.originalname,
+            url: mediaResponse.url,
+            mimeType: mediaResponse.mimeType || req.file.mimetype,
+            size: mediaResponse.size || req.file.size,
+            hash: mediaResponse.hash,
+            uploadedBy: req.user?.user?._id,
             targetType: "Category",
             targetId: category._id,
             type: "category",
+            restaurantId: restaurantId.toString(),
           });
+          await newMediaDoc.save();
         }
 
-        category.image = mediaResponse.url;
+        category.image = newMediaDoc._id;
 
         await cleanupTempFile(tempFilePath);
         tempFilePath = null;
       }
-
-      if (name) category.name = name;
 
       await category.save();
 

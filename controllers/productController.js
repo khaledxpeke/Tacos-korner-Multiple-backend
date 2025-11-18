@@ -13,6 +13,7 @@ const cleanupTempFile = require("../utils/cleanupTempFiles");
 const Settings = require("../models/settings");
 const Restaurant = require("../models/restaurant");
 const moment = require("moment-timezone");
+const { default: mongoose } = require("mongoose");
 const RESTAURANT_TIMEZONE = process.env.RESTAURANT_TIMEZONE || "Europe/Paris";
 
 const parseArrayField = (field) => {
@@ -143,6 +144,26 @@ exports.addProductToCategory = async (req, res, next) => {
         type: "products",
         originalname: req.file.originalname,
       });
+
+      let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
+
+      if (!mediaDoc) {
+        mediaDoc = new Media({
+          filename: mediaResponse.filename || req.file.originalname,
+          url: mediaResponse.url,
+          mimeType: mediaResponse.mimeType || req.file.mimetype,
+          size: mediaResponse.size || req.file.size,
+          hash: mediaResponse.hash,
+          uploadedBy: userId,
+          targetType: "Product",
+          targetId: null,
+          type: "product",
+          restaurantId: restaurantId.toString(),
+          scope: "shared",
+        });
+        await mediaDoc.save();
+      }
+
       let typeVariationsData = null;
       if (typeVariation && variations) {
         const parsedVariations = Array.isArray(variations)
@@ -209,25 +230,16 @@ exports.addProductToCategory = async (req, res, next) => {
         createdBy: userId,
         choice,
         restaurantId,
-        image: mediaResponse.url,
+        image: mediaDoc._id,
         tva: tva ? Number(tva) : 0,
         allergies: allergyIds,
       });
       const savedProduct = await product.save();
 
-      const mediaDoc = new Media({
-        filename: mediaResponse.filename || req.file.originalname,
-        url: mediaResponse.url,
-        mimeType: mediaResponse.mimeType || req.file.mimetype,
-        size: mediaResponse.size || req.file.size,
-        hash: mediaResponse.hash,
-        uploadedBy: userId,
-        targetType: "Product",
-        targetId: product._id,
-        type: "product",
-        restaurantId: restaurantId.toString(),
+      await Media.findByIdAndUpdate(mediaDoc._id, {
+        targetId: savedProduct._id,
       });
-      await mediaDoc.save();
+
       await cleanupTempFile(tempFilePath);
       tempFilePath = null;
       const updatedCategories = await Category.updateMany(
@@ -260,16 +272,43 @@ exports.getProductsByCategory = async (req, res, next) => {
       categories: { $in: [categoryId] },
       restaurantId,
     })
-      .populate({
-        path: "type",
-        select: "name mode message payment selection max min tva",
-      })
+      .populate([
+        {
+          path: "type",
+          select: "name mode message payment selection max min tva",
+        },
+        {
+          path: "categories",
+          select: "name image",
+          populate: { path: "image", select: "url" },
+        },
+        {
+          path: "allergies",
+          select: "name icon",
+          populate: { path: "icon", select: "url" },
+        },
+        {
+          path: "image",
+          select: "url",
+        },
+      ])
       .sort({ position: 1 });
 
     const productsWithDiscounts = products.map((product) => {
-      const discountInfo = calculateDiscountInfo(product.toObject());
+      const productObj = product.toObject();
+      const discountInfo = calculateDiscountInfo(productObj);
+
       return {
-        ...product.toObject(),
+        ...productObj,
+        image: productObj.image?.url || productObj.image || null,
+        categories: productObj.categories?.map((cat) => ({
+          ...cat,
+          image: cat.image?.url || cat.image || null,
+        })),
+        allergies: productObj.allergies?.map((allergy) => ({
+          ...allergy,
+          icon: allergy.icon?.url || allergy.icon || null,
+        })),
         ...discountInfo,
       };
     });
@@ -285,22 +324,115 @@ exports.getProductsByCategory = async (req, res, next) => {
 exports.getAllProducts = async (req, res, next) => {
   try {
     const { restaurantId } = req;
-    const products = await Product.find({ restaurantId })
-      .populate([
-        {
-          path: "type",
-          select: "name mode message payment selection max min tva",
+
+    const products = await Product.aggregate([
+      {
+        $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId) },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $lookup: {
+          from: "types",
+          localField: "type",
+          foreignField: "_id",
+          as: "type", // This will be an array of type objects
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                mode: 1,
+                message: 1,
+                payment: 1,
+                selection: 1,
+                max: 1,
+                min: 1,
+                tva: 1,
+              },
+            },
+          ],
         },
-        {
-          path: "categories",
-          select: "name",
+      },
+
+      {
+        $lookup: {
+          from: "media",
+          localField: "image",
+          foreignField: "_id",
+          as: "image",
+          pipeline: [{ $project: { url: 1 } }],
         },
-        {
-          path: "allergies",
-          select: "name icon",
+      },
+      {
+        $addFields: {
+          image: { $arrayElemAt: ["$image.url", 0] },
         },
-      ])
-      .sort({ createdAt: -1 });
+      },
+
+      {
+        $lookup: {
+          from: "categories",
+          localField: "categories",
+          foreignField: "_id",
+          as: "categories",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                image: 1,
+              },
+            },
+            {
+              $lookup: {
+                from: "media",
+                localField: "image",
+                foreignField: "_id",
+                as: "image",
+                pipeline: [{ $project: { url: 1 } }],
+              },
+            },
+            {
+              $addFields: {
+                image: { $arrayElemAt: ["$image.url", 0] },
+              },
+            },
+          ],
+        },
+      },
+
+      {
+        $lookup: {
+          from: "allergies",
+          localField: "allergies",
+          foreignField: "_id",
+          as: "allergies",
+          pipeline: [
+            {
+              $project: {
+                name: 1,
+                icon: 1,
+              },
+            },
+            {
+              $lookup: {
+                from: "media",
+                localField: "icon",
+                foreignField: "_id",
+                as: "icon",
+                pipeline: [{ $project: { url: 1 } }],
+              },
+            },
+            {
+              $addFields: {
+                icon: { $arrayElemAt: ["$icon.url", 0] },
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
     res.status(200).json(products);
   } catch (error) {
     res.status(400).json({
@@ -316,13 +448,25 @@ exports.getSeuleProducts = async (req, res, next) => {
     const products = await Product.find({
       restaurantId,
       choice: "seul",
-    }).populate([
-      {
-        path: "type",
-        select: "name mode message payment selection max min tva",
-      },
-    ]);
-    res.status(200).json(products);
+    })
+      .populate([
+        {
+          path: "type",
+          select: "name mode message payment selection max min tva",
+        },
+        {
+          path: "image",
+          select: "url",
+        },
+      ])
+      .lean();
+
+    const transformedProducts = products.map((product) => ({
+      ...product,
+      image: product.image?.url || null,
+    }));
+
+    res.status(200).json(transformedProducts);
   } catch (error) {
     res.status(400).json({
       message: req.t("product.error"),
@@ -335,18 +479,14 @@ exports.getProductData = async (req, res) => {
   try {
     const { productId, variationId } = req.params;
     const { restaurantId } = req;
-    const restaurant = await Restaurant.findOne({
-      _id: restaurantId,
-    }).populate("settings");
-    const settings = await Settings.findOne({
-      _id: restaurant.settings,
-      restaurantId,
-    });
-    const tva = settings?.tva || 0;
     const product = await Product.findOne({
       _id: productId,
       restaurantId: restaurantId,
     })
+      .populate({
+        path: "image",
+        select: "url",
+      })
       .populate({
         path: "type",
         select:
@@ -362,6 +502,10 @@ exports.getProductData = async (req, res) => {
 
     if (!product) {
       return res.status(404).json({ message: req.t("product.not_found") });
+    }
+
+    if (product.image && typeof product.image === "object") {
+      product.image = product.image.url || null;
     }
 
     if (product.typeVariations) {
@@ -387,17 +531,27 @@ exports.getProductData = async (req, res) => {
             select:
               "name image price suppPrice outOfStock visible variations position",
             options: { sort: { position: 1 } },
-            populate: {
-              path: "variations",
-              model: "Variation",
-              select: "name price",
-            },
+            populate: [
+              {
+                path: "variations",
+                model: "Variation",
+                select: "name price",
+              },
+              {
+                path: "image",
+                select: "url",
+              },
+            ],
           })
           .populate({
             path: "products",
             select:
               "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate tva formulePrice position",
             options: { sort: { position: 1 } },
+            populate: {
+              path: "image",
+              select: "url",
+            },
           })
           .lean();
 
@@ -420,6 +574,11 @@ exports.getProductData = async (req, res) => {
           const ingrediants = typeDoc.ingredients
             .filter((ing) => ing.visible && !ing.outOfStock)
             .map((ing) => {
+              const ingredientImage = ing.image;
+              const imageUrl =
+                ingredientImage && typeof ingredientImage === "object"
+                  ? ingredientImage.url
+                  : ingredientImage;
               const variation = ing.variations?.find(
                 (v) => v._id.toString() === variationId
               );
@@ -428,7 +587,7 @@ exports.getProductData = async (req, res) => {
               return {
                 _id: ing._id,
                 name: ing.name,
-                image: ing.image,
+                image: imageUrl,
                 price,
                 outOfStock: ing.outOfStock,
                 position: ing.position ?? 0,
@@ -446,6 +605,11 @@ exports.getProductData = async (req, res) => {
           let prodDocs = typeDoc.products
             .filter((p) => p.visible && !p.outOfStock)
             .map((p) => {
+              const productImage = p.image;
+              const imageUrl =
+                productImage && typeof productImage === "object"
+                  ? productImage.url
+                  : productImage;
               // Check if formulePrice > 0, if so use it directly, otherwise calculate discount
               let finalPrice,
                 hasDiscount = false,
@@ -465,7 +629,7 @@ exports.getProductData = async (req, res) => {
               return {
                 _id: p._id,
                 name: p.name,
-                image: p.image,
+                image: imageUrl,
                 price: finalPrice,
                 hasDiscount: hasDiscount,
                 originalPrice: originalPrice,
@@ -616,7 +780,6 @@ exports.updateProduct = async (req, res) => {
 
       if (req.file) {
         tempFilePath = req.file.path;
-        const oldImageUrl = product.image;
 
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
@@ -625,29 +788,25 @@ exports.updateProduct = async (req, res) => {
           originalname: req.file.originalname,
         });
 
-        const mediaDoc = new Media({
-          filename: mediaResponse.filename || req.file.originalname,
-          url: mediaResponse.url,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: req.user?.user?._id,
-          targetType: "Product", // Use capitalized model name for refPath
-          targetId: product._id,
-          type: "product", // Consistent singular type
-          restaurantId: restaurantId.toString(),
-        });
-        await mediaDoc.save();
-        if (oldImageUrl) {
-          await Media.deleteOne({
-            url: oldImageUrl,
+        let newMediaDoc = await Media.findOne({ hash: mediaResponse.hash });
+
+        if (!newMediaDoc) {
+          const mediaDoc = new Media({
+            filename: mediaResponse.filename || req.file.originalname,
+            url: mediaResponse.url,
+            mimeType: mediaResponse.mimeType || req.file.mimetype,
+            size: mediaResponse.size || req.file.size,
+            hash: mediaResponse.hash,
+            uploadedBy: req.user?.user?._id,
             targetType: "Product",
             targetId: product._id,
             type: "product",
+            restaurantId: restaurantId.toString(),
+            scope: "shared",
           });
+          await mediaDoc.save();
         }
-
-        product.image = mediaResponse.url;
+        product.image = newMediaDoc._id;
 
         await cleanupTempFile(tempFilePath);
         tempFilePath = null;

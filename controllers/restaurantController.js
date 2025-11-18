@@ -40,7 +40,7 @@ exports.createRestaurant = async (req, res) => {
         name,
         description,
         address,
-        logo: "",
+        logo: null,
       });
 
       await restaurant.save();
@@ -65,10 +65,11 @@ exports.createRestaurant = async (req, res) => {
           targetId: restaurant._id,
           type: "logo",
           restaurantId: restaurant._id.toString(),
+          scope: "restaurant",
         });
         await mediaDoc.save();
 
-        restaurant.logo = mediaResponse.url;
+        restaurant.logo = mediaDoc._id;
         await restaurant.save();
 
         try {
@@ -154,37 +155,75 @@ exports.createRestaurant = async (req, res) => {
 
 exports.getRestaurants = async (req, res) => {
   try {
-    let restaurants;
-
+    let matchStage = {};
     if (
-      req.user.user.role === USER_ROLES.ADMIN ||
-      req.user.user.role === USER_ROLES.CLIENT
+      req.user.user.role !== USER_ROLES.ADMIN &&
+      req.user.user.role !== USER_ROLES.CLIENT
     ) {
-      restaurants = await Restaurant.find()
-        .select("name description active createdAt address logo")
-        .populate("settings");
-    } else {
-      // For managers and waiters, find their specific restaurants
       const user = await User.findById(req.user.user._id);
-
       if (!user.restaurants || user.restaurants.length === 0) {
         return res.status(200).json([]);
       }
-
       const restaurantIds = user.restaurants.map((r) => r.restaurantId);
-      restaurants = await Restaurant.find({
-        _id: { $in: restaurantIds },
-      })
-        .select("name description active createdAt address logo")
-        .populate("settings");
+      matchStage = { _id: { $in: restaurantIds } };
     }
 
-    res.status(200).json(restaurants);
+    const restaurants = await Restaurant.aggregate([
+      { $match: matchStage },
+
+      {
+        $lookup: {
+          from: "media",
+          localField: "logo",
+          foreignField: "_id",
+          as: "logoMedia",
+        },
+      },
+
+      {
+        $lookup: {
+          from: "settings",
+          localField: "settings",
+          foreignField: "_id",
+          as: "settingsData",
+        },
+      },
+      { $unwind: { path: "$settingsData", preserveNullAndEmptyArrays: true } },
+
+      {
+        $lookup: {
+          from: "media",
+          localField: "settingsData.banner",
+          foreignField: "_id",
+          as: "bannerMedia",
+        },
+      },
+
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          description: 1,
+          active: 1,
+          createdAt: 1,
+          address: 1,
+          logo: { $arrayElemAt: ["$logoMedia.url", 0] },
+          banner: { $arrayElemAt: ["$bannerMedia.url", 0] },
+        },
+      },
+    ]);
+    const normalized = restaurants.map((r) => ({
+      ...r,
+      logo: r.logo?.replace(/\\/g, "/") || null,
+      banner: r.banner?.replace(/\\/g, "/") || null,
+    }));
+
+    res.status(200).json(normalized);
   } catch (error) {
+    console.error("Error:", error);
     res.status(500).json({ message: req.t("errors.unknown") });
   }
 };
-
 exports.getMobileRestaurants = async (req, res) => {
   try {
     let restaurants;
@@ -256,7 +295,7 @@ exports.updateRestaurant = async (req, res) => {
 
       if (req.file) {
         tempFilePath = req.file.path;
-        const oldLogoUrl = existedRestaurant.logo;
+        const oldMediaId = existedRestaurant.logo;
 
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
@@ -276,19 +315,20 @@ exports.updateRestaurant = async (req, res) => {
           targetId: existedRestaurant._id,
           type: "logo",
           restaurantId: existedRestaurant._id.toString(),
+          scope: "restaurant",
         });
         await mediaDoc.save();
 
-        if (oldLogoUrl) {
-          await Media.deleteOne({
-            url: oldLogoUrl,
+        if (oldMediaId) {
+          await Media.findOneAndDelete({
+            _id: oldMediaId,
             targetType: "Restaurant",
             targetId: existedRestaurant._id,
             type: "logo",
           });
         }
 
-        existedRestaurant.logo = mediaResponse.url;
+        existedRestaurant.logo = mediaDoc._id;
 
         try {
           await fs.unlink(tempFilePath);
