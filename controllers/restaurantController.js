@@ -233,8 +233,18 @@ exports.getMobileRestaurants = async (req, res) => {
       req.user.user.role === USER_ROLES.CLIENT
     ) {
       restaurants = await Restaurant.find({ active: true })
-        .select("name description active createdAt address logo")
-        .populate("settings");
+        .select("name description active createdAt address logo settings")
+        .populate({
+          path: "logo",
+          select: "url",
+        })
+        .populate({
+          path: "settings",
+          populate: {
+            path: "banner",
+            select: "url",
+          },
+        });
     } else {
       // For managers and waiters, find their specific restaurants
       const user = await User.findById(req.user.user._id);
@@ -248,11 +258,38 @@ exports.getMobileRestaurants = async (req, res) => {
         _id: { $in: restaurantIds },
         active: true,
       })
-        .select("name description active createdAt address logo")
-        .populate("settings");
+        .select("name description active createdAt address logo settings")
+        .populate({
+          path: "logo",
+          select: "url",
+        })
+        .populate({
+          path: "settings",
+          populate: {
+            path: "banner",
+            select: "url",
+          },
+        });
     }
+    const transformedRestaurants = restaurants.map(restaurant => {
+      const restaurantObj = restaurant.toObject();
+      
+      // Transform logo
+      if (restaurantObj.logo && typeof restaurantObj.logo === 'object') {
+        restaurantObj.logo = restaurantObj.logo.url || null;
+      }
 
-    res.status(200).json(restaurants);
+      // Transform settings.banner
+      if (restaurantObj.settings && restaurantObj.settings.banner) {
+        if (typeof restaurantObj.settings.banner === 'object') {
+          restaurantObj.settings.banner = restaurantObj.settings.banner.url || null;
+        }
+      }
+      
+      return restaurantObj;
+    });
+
+    res.status(200).json(transformedRestaurants);
   } catch (error) {
     res.status(500).json({ message: req.t("errors.unknown") });
   }

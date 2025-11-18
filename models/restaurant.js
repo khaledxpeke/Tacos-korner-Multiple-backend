@@ -28,13 +28,9 @@ const restaurantSchema = mongoose.Schema(
   },
   { 
     timestamps: true,
-    toJSON: { virtuals: true }, // ✅ MUST enable this
-    toObject: { virtuals: true } // ✅ Optional but recommended
   }
 );
 
-restaurantSchema.virtual('logoUrl').get(function() {
-  return this.logo?.url || null;
-});
+
 
 module.exports = mongoose.model("Restaurant", restaurantSchema);
