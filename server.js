@@ -13,6 +13,7 @@ const { setIO, getHistoriesRT } = require("./controllers/historyController");
 const settingsController = require("./controllers/settingsController");
 const http = require("http");
 const { USER_ROLES } = require("./enum/constants");
+require("dotenv").config();
 const PORT = process.env.PORT;
 app.timeout = 300000;
 const server = http.createServer(app);
@@ -117,6 +118,7 @@ app.use("/api/currency", require("./routes/currencyRoutes"));
 app.use("/api/allergy", require("./routes/allergyRoutes"));
 app.use("/api/database", require("./routes/databaseExporterRoutes"));
 app.use("/api/images", require("./routes/generateImageHashesRoutes"));
+app.use("/api/payment", require("./routes/marketPay"));
 app.use("/api/uploads", express.static(path.join(__dirname, "uploads")));
 app.use(
   "/api/uploads/carousel",

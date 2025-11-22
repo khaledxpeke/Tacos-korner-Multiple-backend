@@ -43,23 +43,29 @@ exports.createAllergy = async (req, res) => {
 
       const allergy = new Allergy({
         name,
-        icon: mediaResponse.url,
+        icon: null,
       });
 
       await allergy.save();
 
-      const mediaDoc = new Media({
-        filename: mediaResponse.filename || req.file.originalname,
-        url: mediaResponse.url,
-        mimeType: mediaResponse.mimeType || req.file.mimetype,
-        size: mediaResponse.size || req.file.size,
-        hash: mediaResponse.hash,
-        uploadedBy: userId,
-        targetType: "Allergy",
-        targetId: allergy._id,
-        type: "allergy_icon",
-      });
-      await mediaDoc.save();
+      let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
+      if (!mediaDoc) {
+        mediaDoc = new Media({
+          filename: mediaResponse.filename || req.file.originalname,
+          url: mediaResponse.url,
+          mimeType: mediaResponse.mimeType || req.file.mimetype,
+          size: mediaResponse.size || req.file.size,
+          hash: mediaResponse.hash,
+          uploadedBy: userId,
+          targetType: "Allergy",
+          targetId: allergy._id,
+          type: "allergy_icon",
+        });
+        await mediaDoc.save();
+      }
+
+      allergy.icon = mediaDoc._id;
+      await allergy.save();
 
       await cleanupTempFile(tempFilePath);
       tempFilePath = null;
@@ -128,36 +134,30 @@ exports.updateAllergy = async (req, res) => {
         if (req.file) await cleanupTempFile(req.file.path);
         return res.status(404).json({ message: req.t("allergy.not_found") });
       }
+      if (name) allergy.name = name;
 
       if (req.file) {
         tempFilePath = req.file.path;
-        const oldIconUrl = allergy.icon;
         const mediaResponse = await forwardToMediaBackend({
           filePath: tempFilePath,
           type: "allergies",
           originalname: req.file.originalname,
         });
 
-        const mediaDoc = new Media({
-          filename: mediaResponse.filename || req.file.originalname,
-          url: mediaResponse.url,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: req.user?.user?._id,
-          targetType: "Allergy",
-          targetId: allergy._id,
-          type: "allergy_icon",
-        });
-        await mediaDoc.save();
-
-        if (oldIconUrl) {
-          await Media.deleteOne({
-            url: oldIconUrl,
+        let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
+        if (!mediaDoc) {
+          mediaDoc = new Media({
+            filename: mediaResponse.filename || req.file.originalname,
+            url: mediaResponse.url,
+            mimeType: mediaResponse.mimeType || req.file.mimetype,
+            size: mediaResponse.size || req.file.size,
+            hash: mediaResponse.hash,
+            uploadedBy: req.user?.user?._id,
             targetType: "Allergy",
             targetId: allergy._id,
             type: "allergy_icon",
           });
+          await mediaDoc.save();
         }
 
         allergy.icon = mediaResponse.url;
@@ -165,7 +165,6 @@ exports.updateAllergy = async (req, res) => {
         tempFilePath = null;
       }
 
-      if (name) allergy.name = name;
       await allergy.save();
 
       res.status(200).json({

@@ -198,8 +198,22 @@ exports.login = async (req, res, next) => {
         if (result) {
           if (fcmToken) {
             user.fcmToken = fcmToken;
-            await user.save();
+            // await user.save();
           }
+          let marketPayTokenToSend = null;
+          const isStaffUser = [
+            USER_ROLES.MANAGER,
+            USER_ROLES.WAITER,
+            USER_ROLES.ADMIN,
+          ].includes(user.role);
+          if (isStaffUser) {
+            const newMarketPayToken = crypto.randomBytes(32).toString("hex");
+
+            user.marketPayToken = newMarketPayToken;
+            marketPayTokenToSend = newMarketPayToken;
+          }
+
+          await user.save();
           let maxAge = 8 * 60 * 60 * 60;
           if (user.role == USER_ROLES.WAITER) {
             maxAge = 30 * 24 * 60 * 60;
@@ -216,6 +230,7 @@ exports.login = async (req, res, next) => {
           });
           res.status(201).json({
             token: token,
+            marketPayToken: marketPayTokenToSend,
           });
         } else {
           res.status(400).json({ message: req.t("user.invalid_credentials") });
