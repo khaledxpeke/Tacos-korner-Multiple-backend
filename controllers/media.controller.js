@@ -59,9 +59,9 @@ exports.addMedia = async (req, res) => {
             scope: "shared",
           });
 
-           await mediaDoc.save();
+          await mediaDoc.save();
           createdMediaDocs.push(savedDoc);
-        } 
+        }
         return mediaDoc;
       });
 
@@ -88,27 +88,46 @@ exports.addMedia = async (req, res) => {
 exports.listMedia = async (req, res) => {
   try {
     const { targetType, targetId, q, limit = 50, page = 1 } = req.query;
-    
-    // 1️⃣ Default filter to show only shared media
+
     const filter = { scope: "shared" };
-    
+
     if (targetType) filter.targetType = targetType;
     if (targetId) filter.targetId = targetId;
     if (q) filter.filename = new RegExp(q, "i");
-    
+
     const skip = (Number(page) - 1) * Number(limit);
-    
+    const totalCount = await Media.countDocuments(filter);
     const medias = await Media.find(filter)
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip(skip)
       .populate("uploadedBy", "name");
 
-    res.status(200).json(medias);
+    res.status(200).json({ medias, totalCount });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.listTargetTypes = async (req, res) => {
+  try {
+    const uniqueTypes = await Media.distinct("targetType", { scope: "shared" });
+
+    const formattedTypes = uniqueTypes
+      .filter((type) => type)
+      .map((type) => ({
+        value: type,
+        label: type.charAt(0).toUpperCase() + type.slice(1).toLowerCase(),
+      }));
+
+    formattedTypes.unshift({ value: "", label: "Tout" });
+
+    res.status(200).json(formattedTypes);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.getMediaById = async (req, res) => {
   try {
     const media = await Media.findById(req.params.id).populate(
