@@ -69,6 +69,7 @@ exports.createCategory = async (req, res) => {
           targetId: category._id,
           type: "category",
           restaurantId: restaurantId.toString(),
+          scope: "shared",
         });
         await mediaDoc.save();
       }
@@ -437,6 +438,7 @@ exports.updateCategory = async (req, res) => {
             targetId: category._id,
             type: "category",
             restaurantId: restaurantId.toString(),
+            scope: "shared",
           });
           await newMediaDoc.save();
         }

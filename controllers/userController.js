@@ -3,7 +3,7 @@ const express = require("express");
 const app = express();
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const crypto = require('crypto');
+const crypto = require("crypto");
 require("dotenv").config();
 const jwtSecret = process.env.JWT_SECRET;
 app.use(express.json());
@@ -155,7 +155,21 @@ exports.login = async (req, res, next) => {
     });
   }
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate({
+  path: "restaurants.restaurantId",
+  select: "name logo settings",
+   populate: [
+    {
+      path: "settings",
+      select: "defaultCurrency",
+    },
+    {
+      path: "logo",
+      select: "url",
+    },
+  ],
+});
+    console.log(user);
     if (!user) {
       res.status(401).json({
         message: req.t("user.not_found"),
@@ -195,6 +209,11 @@ exports.login = async (req, res, next) => {
           error: "Compte bloqué",
         });
       }
+      if (user.restaurants.length < 1) {
+        return res
+          .status(400)
+          .json({ message: req.t("user.not_assigned_to_any_restaurants") });
+      }
       bcrypt.compare(password, user.password).then(async function (result) {
         if (result) {
           if (fcmToken) {
@@ -207,6 +226,7 @@ exports.login = async (req, res, next) => {
             USER_ROLES.WAITER,
             USER_ROLES.ADMIN,
           ].includes(user.role);
+
           if (isStaffUser) {
             const newMarketPayToken = crypto.randomBytes(32).toString("hex");
 
@@ -219,8 +239,33 @@ exports.login = async (req, res, next) => {
           if (user.role == USER_ROLES.WAITER) {
             maxAge = 30 * 24 * 60 * 60;
           }
+          const restaurantsWithLogo = user.restaurants
+            .filter((r) => r.restaurantId !== null) 
+            .map((r) => ({
+              restaurantId: r.restaurantId._id,
+              name: r.restaurantId.name,
+              logo: r.restaurantId.logo?.url?.replace(/\\/g, "/"),
+              currency: r.restaurantId.settings?.defaultCurrency,
+              role: r.role,
+              notificationsEnabled: r.notificationsEnabled,
+            }));
+          if (!restaurantsWithLogo.length) {
+            return res.status(400).json({
+              message: req.t("user.not_assigned_to_any_restaurants"),
+            });
+          }
+
           const tokenPayload = {
-            user: user,
+            user: {
+              _id: user._id,
+              email: user.email,
+              fullName: user.fullName,
+              role: user.role,
+              fcmToken: user.fcmToken,
+              restaurants: restaurantsWithLogo,
+              isBlocked:user.isBlocked,
+              updatedAt:user.updatedAt
+            },
           };
           const token = jwt.sign(tokenPayload, jwtSecret, {
             expiresIn: maxAge, // 8hrs in sec

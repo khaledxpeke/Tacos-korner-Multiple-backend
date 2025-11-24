@@ -218,6 +218,7 @@ exports.updateIngrediant = async (req, res) => {
             targetId: ingrediant._id,
             type: "ingredient",
             restaurantId: restaurantId.toString(),
+            scope: "shared",
           });
           await mediaDoc.save();
         }

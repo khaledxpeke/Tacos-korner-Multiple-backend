@@ -60,6 +60,7 @@ exports.createAllergy = async (req, res) => {
           targetType: "Allergy",
           targetId: allergy._id,
           type: "allergy_icon",
+          scope:"shared"
         });
         await mediaDoc.save();
       }
@@ -160,7 +161,7 @@ exports.updateAllergy = async (req, res) => {
           await mediaDoc.save();
         }
 
-        allergy.icon = mediaResponse.url;
+        allergy.icon = mediaDoc._id;
         await cleanupTempFile(tempFilePath);
         tempFilePath = null;
       }

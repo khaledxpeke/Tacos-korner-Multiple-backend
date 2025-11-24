@@ -122,6 +122,7 @@
   "user.token_updated": "Token updated successfully",
   "user.notifications_updated_successfully": "User restaurant notification settings updated successfully",
   "user.not_assigned_to_restaurant": "User is not assigned to this restaurant",
+  "user.not_assigned_to_any_restaurants": "User is not assigned to any restaurant",
   "user.permission_denied": "You do not have permission to perform this action",
   "user.get_restaurants_error": "An error occurred while fetching restaurants",
   "type.already_exists": "Option already exists",
@@ -195,5 +196,6 @@
   "variation.deleted": "Variation deleted successfully",
   "variation.not_found": "Variation not found",
   "user.invalid_app_type": "Invalid application type.",
-  "user.unauthorized_for_app": "You are not authorized to access this application."
+  "user.unauthorized_for_app": "You are not authorized to access this application.",
+  "media.in_use":"Media is in use and cannot be deleted"
 }

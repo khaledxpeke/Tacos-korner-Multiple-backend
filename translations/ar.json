@@ -122,6 +122,7 @@
   "user.token_updated": "تم تحديث الرمز بنجاح",
   "user.notifications_updated_successfully": "تم تحديث إعدادات إشعارات مطعم المستخدم بنجاح",
   "user.not_assigned_to_restaurant": "المستخدم غير معين لهذا المطعم",
+  "user.not_assigned_to_any_restaurants": "المستخدم غير مُعيّن لأي مطعم.",
   "user.permission_denied": "ليس لديك إذن لتنفيذ هذا الإجراء",
   "user.get_restaurants_error": "حدث خطأ أثناء جلب المطاعم",
   "type.already_exists": "الخيار موجود بالفعل",
@@ -195,5 +196,6 @@
   "variation.deleted": "تم حذف الاختيار بنجاح",
   "variation.not_found": "الاختيار غير موجود",
   "user.invalid_app_type": "نوع التطبيق غير صالح.",
-  "user.unauthorized_for_app": "غير مصرح لك بالوصول إلى هذا التطبيق."
+  "user.unauthorized_for_app": "غير مصرح لك بالوصول إلى هذا التطبيق.",
+  "media.in_use":"الوسائط قيد الاستخدام ولا يمكن حذفها."
 }

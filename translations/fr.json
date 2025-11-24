@@ -122,6 +122,7 @@
   "user.token_updated": "mise à jour du jeton réussie",
   "user.notifications_updated_successfully": "Paramètres de notification du restaurant utilisateur mis à jour avec succès",
   "user.not_assigned_to_restaurant": "Utilisateur non assigné à ce restaurant",
+  "user.not_assigned_to_any_restaurants": "L'utilisateur n'est assigné à aucun restaurant.",
   "user.permission_denied": "Vous n'avez pas la permission d'effectuer cette action",
   "user.get_restaurants_error": "Une erreur s'est produite lors de la récupération des restaurants",
   "type.already_exists": "Option déjà existante",
@@ -195,5 +196,6 @@
   "variation.deleted": "Variation supprimée avec succès",
   "variation.not_found": "Variation non trouvée",
   "user.invalid_app_type": "Type d'application invalide.",
-  "user.unauthorized_for_app": "Vous n'êtes pas autorisé à accéder à cette application."
+  "user.unauthorized_for_app": "Vous n'êtes pas autorisé à accéder à cette application.",
+  "media.in_use":"Le média est utilisé et ne peut être supprimé."
 }

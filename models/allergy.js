@@ -7,9 +7,10 @@ const AllergySchema = new mongoose.Schema({
     trim: true,
   },
   icon: {
-    type: String,
-    required: true,
-  },
+      type: mongoose.Schema.Types.ObjectId, 
+      ref: "Media",
+      default: null 
+    },
 }, { timestamps: true });
 
 module.exports = mongoose.model("Allergy", AllergySchema);

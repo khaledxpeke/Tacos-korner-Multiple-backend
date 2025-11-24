@@ -1,5 +1,9 @@
 // controllers/mediaController.js
 const Media = require("../models/media");
+const Product = require("../models/product");
+const Category = require("../models/category");
+const Ingrediant = require("../models/ingrediant");
+const Allergy = require("../models/allergy");
 const fs = require("fs").promises;
 const localUpload = require("../middleware/localMulter");
 const { forwardToMediaBackend } = require("../utils/mediaHelper");
@@ -60,7 +64,7 @@ exports.addMedia = async (req, res) => {
           });
 
           await mediaDoc.save();
-          createdMediaDocs.push(savedDoc);
+          createdMediaDocs.push(mediaDoc);
         }
         return mediaDoc;
       });
@@ -167,7 +171,26 @@ exports.deleteMedia = async (req, res) => {
     if (!media) {
       return res.status(404).json({ message: "Media not found" });
     }
-    res.json({ message: "Media reference deleted" });
+    if (media.scope === "shared") {
+
+      const usageCount = await Promise.all([
+        Product.countDocuments({ image: media._id }),
+        Category.countDocuments({ image: media._id }),
+        Ingrediant.countDocuments({ image: media._id }),
+        Allergy.countDocuments({ icon: media._id }),
+      ]);
+
+      const totalUsage = usageCount.reduce((sum, count) => sum + count, 0);
+
+      if (totalUsage > 1) {
+        return res.status(400).json({
+          message:
+            req.t("media.in_use") || "Media is in use and cannot be deleted",
+        });
+      }
+    }
+     await Media.findByIdAndDelete(req.params.id);
+    res.status(200).json({ message: req.t("media.deleted") || "Media deleted successfully" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
