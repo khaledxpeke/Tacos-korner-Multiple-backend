@@ -197,5 +197,6 @@
   "variation.not_found": "Variation non trouvée",
   "user.invalid_app_type": "Type d'application invalide.",
   "user.unauthorized_for_app": "Vous n'êtes pas autorisé à accéder à cette application.",
-  "media.in_use":"Le média est utilisé et ne peut être supprimé."
+  "media.in_use":"Le média est utilisé et ne peut être supprimé.",
+  "media.deleted":"Média supprimé avec succès."
 }

@@ -169,7 +169,6 @@ exports.login = async (req, res, next) => {
         },
       ],
     });
-    console.log(user);
     if (!user) {
       res.status(401).json({
         message: req.t("user.not_found"),
@@ -209,11 +208,11 @@ exports.login = async (req, res, next) => {
           error: "Compte bloqué",
         });
       }
-      if (user.restaurants.length < 1 && user.role != USER_ROLES.ADMIN) {
-        return res
-          .status(400)
-          .json({ message: req.t("user.not_assigned_to_any_restaurants") });
-      }
+      // if (user.restaurants.length < 1 && user.role != USER_ROLES.ADMIN) {
+      //   return res
+      //     .status(400)
+      //     .json({ message: req.t("user.not_assigned_to_any_restaurants") });
+      // }
       bcrypt.compare(password, user.password).then(async function (result) {
         if (result) {
           if (fcmToken) {
@@ -249,11 +248,6 @@ exports.login = async (req, res, next) => {
               role: r.role,
               notificationsEnabled: r.notificationsEnabled,
             }));
-          if (!restaurantsWithLogo.length) {
-            return res.status(400).json({
-              message: req.t("user.not_assigned_to_any_restaurants"),
-            });
-          }
 
           const tokenPayload = {
             user: {
@@ -270,6 +264,7 @@ exports.login = async (req, res, next) => {
           const token = jwt.sign(tokenPayload, jwtSecret, {
             expiresIn: maxAge, // 8hrs in sec
           });
+          console.log(token);
           res.cookie("jwt", token, {
             httpOnly: true,
             maxAge: maxAge * 1000, // 8hrs in ms

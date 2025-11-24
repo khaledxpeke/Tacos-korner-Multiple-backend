@@ -105,7 +105,7 @@
   "user.login_error": "An error occurred during login",
   "user.get_users_error": "An error occurred while fetching users",
   "user.invalid_role": "Role must be 'manager' or 'waiter'",
-  "user.invalid_restaurant_ids":"Invalid restaurant IDs provided.",
+  "user.invalid_restaurant_ids": "Invalid restaurant IDs provided.",
   "user.assigned_successfully": "User assigned to restaurant successfully",
   "user.assignment_error": "Server error during assignment",
   "user.unassigned_successfully": "User unassigned from restaurant successfully",
@@ -197,5 +197,6 @@
   "variation.not_found": "Variation not found",
   "user.invalid_app_type": "Invalid application type.",
   "user.unauthorized_for_app": "You are not authorized to access this application.",
-  "media.in_use":"Media is in use and cannot be deleted"
+  "media.in_use": "Media is in use and cannot be deleted",
+  "media.deleted": "Media deleted successfully"
 }

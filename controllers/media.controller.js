@@ -167,12 +167,11 @@ exports.updateMedia = async (req, res) => {
 
 exports.deleteMedia = async (req, res) => {
   try {
-    const media = await Media.findByIdAndDelete(req.params.id);
+    const media = await Media.findById(req.params.id);
     if (!media) {
       return res.status(404).json({ message: "Media not found" });
     }
     if (media.scope === "shared") {
-
       const usageCount = await Promise.all([
         Product.countDocuments({ image: media._id }),
         Category.countDocuments({ image: media._id }),
@@ -182,15 +181,16 @@ exports.deleteMedia = async (req, res) => {
 
       const totalUsage = usageCount.reduce((sum, count) => sum + count, 0);
 
-      if (totalUsage > 1) {
+      if (totalUsage > 0) {
         return res.status(400).json({
-          message:
-            req.t("media.in_use") || "Media is in use and cannot be deleted",
+          message: req.t("media.in_use"),
         });
       }
     }
-     await Media.findByIdAndDelete(req.params.id);
-    res.status(200).json({ message: req.t("media.deleted") || "Media deleted successfully" });
+    await Media.findByIdAndDelete(req.params.id);
+    res.status(200).json({
+      message: req.t("media.deleted") ,
+    });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
