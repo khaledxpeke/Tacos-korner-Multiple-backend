@@ -156,19 +156,19 @@ exports.login = async (req, res, next) => {
   }
   try {
     const user = await User.findOne({ email }).populate({
-  path: "restaurants.restaurantId",
-  select: "name logo settings",
-   populate: [
-    {
-      path: "settings",
-      select: "defaultCurrency",
-    },
-    {
-      path: "logo",
-      select: "url",
-    },
-  ],
-});
+      path: "restaurants.restaurantId",
+      select: "name logo settings",
+      populate: [
+        {
+          path: "settings",
+          select: "defaultCurrency",
+        },
+        {
+          path: "logo",
+          select: "url",
+        },
+      ],
+    });
     console.log(user);
     if (!user) {
       res.status(401).json({
@@ -209,7 +209,7 @@ exports.login = async (req, res, next) => {
           error: "Compte bloqué",
         });
       }
-      if (user.restaurants.length < 1) {
+      if (user.restaurants.length < 1 && user.role != USER_ROLES.ADMIN) {
         return res
           .status(400)
           .json({ message: req.t("user.not_assigned_to_any_restaurants") });
@@ -240,7 +240,7 @@ exports.login = async (req, res, next) => {
             maxAge = 30 * 24 * 60 * 60;
           }
           const restaurantsWithLogo = user.restaurants
-            .filter((r) => r.restaurantId !== null) 
+            .filter((r) => r.restaurantId !== null)
             .map((r) => ({
               restaurantId: r.restaurantId._id,
               name: r.restaurantId.name,
@@ -263,8 +263,8 @@ exports.login = async (req, res, next) => {
               role: user.role,
               fcmToken: user.fcmToken,
               restaurants: restaurantsWithLogo,
-              isBlocked:user.isBlocked,
-              updatedAt:user.updatedAt
+              isBlocked: user.isBlocked,
+              updatedAt: user.updatedAt,
             },
           };
           const token = jwt.sign(tokenPayload, jwtSecret, {
