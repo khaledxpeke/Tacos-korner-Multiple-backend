@@ -51,11 +51,11 @@ async function runAllMigrations() {
     console.log(
       `📊 Settings:  ${finalReport.settings.successCount} ✅ | ${finalReport.settings.failCount} ❌`
     );
-     console.log(
-      `📊 Settings:  ${finalReport.products.successCount} ✅ | ${finalReport.products.failCount} ❌`
+    console.log(
+      `📊 Products:    ${finalReport.products.successCount} ✅ | ${finalReport.products.failCount} ❌`
     );
-     console.log(
-      `📊 Settings:  ${finalReport.ingrediants.successCount} ✅ | ${finalReport.ingrediants.failCount} ❌`
+    console.log(
+      `📊 Ingredients: ${finalReport.ingrediants.successCount} ✅ | ${finalReport.ingrediants.failCount} ❌`
     );
     console.log(`⏱️  Total Time: ${duration}s`);
     console.log("==============================================\n");

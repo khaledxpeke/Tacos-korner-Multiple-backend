@@ -36,12 +36,11 @@ async function migrateSettingsMedia() {
       console.log("🟢 Connected to MongoDB.");
     }
 
-    const settingsList = await mongoose.connection.db.collection('settings').find({
-      banner: { 
-        $type: 2, // string type
-        $ne: DEFAULT_BANNER_PATH,
-        $ne: ""
-      }
+    const settingsList = await mongoose.connection.db.collection("settings").find({
+      banner: {
+        $type: 2,
+        $nin: [DEFAULT_BANNER_PATH, ""],
+      },
     }).toArray();
 
     console.log(`\n--- Starting Migration for ${settingsList.length} Settings ---\n`);
@@ -122,9 +121,9 @@ async function migrateSettingsMedia() {
             targetType: "Settings",
             targetId: settings._id,
             restaurantId,
+            scope: "restaurant",
           });
         } else {
-          // ✅ Always overwrite filename
           mediaDoc.filename = originalFileName;
           mediaDoc.url = newRelativeUrl;
           mediaDoc.mimeType = mimeType;
@@ -132,6 +131,7 @@ async function migrateSettingsMedia() {
           mediaDoc.targetType = "Settings";
           mediaDoc.targetId = settings._id;
           mediaDoc.restaurantId = restaurantId;
+          mediaDoc.scope = "restaurant";
         }
         await mediaDoc.save();
 

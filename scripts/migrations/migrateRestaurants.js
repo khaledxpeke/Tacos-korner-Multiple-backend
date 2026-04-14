@@ -23,9 +23,16 @@ async function migrateRestaurantMedia() {
   let successCount = 0;
   let failCount = 0;
   const errors = [];
+
+  const isConnected = mongoose.connection.readyState === 1;
+  let connectionCreated = false;
+
   try {
-    await mongoose.connect(process.env.DATABASE_URL);
-    console.log("🟢 Connected to MongoDB.");
+    if (!isConnected) {
+      await mongoose.connect(process.env.DATABASE_URL);
+      connectionCreated = true;
+      console.log("🟢 Connected to MongoDB.");
+    }
 
     const restaurants = await mongoose.connection.db
       .collection("restaurants")
@@ -64,10 +71,11 @@ async function migrateRestaurantMedia() {
       try {
         if (NEW_PATH_PATTERN.test(oldRelativePath)) {
           console.warn(
-            `⚠️ Skipping ${restaurant.name}: Path already in NEW format (${oldRelativePath}). Clearing old field.`
+            `⚠️ Skipping ${restaurant.name}: Path already in NEW format (${oldRelativePath}). Clearing logo field.`
           );
-          restaurant.logo = null;
-          await restaurant.save();
+          await Restaurant.findByIdAndUpdate(restaurant._id, {
+            $set: { logo: null },
+          });
           failCount++;
           continue;
         }
@@ -98,10 +106,16 @@ async function migrateRestaurantMedia() {
             targetType: "Restaurant",
             targetId: restaurant._id,
             restaurantId,
+            scope: "restaurant",
           });
         } else {
+          mediaDoc.filename = oldFileName;
+          mediaDoc.url = newRelativeUrl;
+          mediaDoc.mimeType = mimeType;
+          mediaDoc.size = size;
           mediaDoc.targetType = "Restaurant";
           mediaDoc.targetId = restaurant._id;
+          mediaDoc.scope = "restaurant";
         }
         await mediaDoc.save();
 
@@ -112,7 +126,6 @@ async function migrateRestaurantMedia() {
           },
           { new: true }
         );
-        // await restaurant.save();
 
         console.log(
           `✅ Restaurant ${restaurant.name} (${restaurantId}) logo migrated, ID written to 'logo': ${mediaDoc._id}`
@@ -125,14 +138,17 @@ async function migrateRestaurantMedia() {
         failCount++;
       }
     }
+
+    return { successCount, failCount, errors };
   } catch (globalError) {
     console.error(
       "\n❌ CRITICAL ERROR: Database or Global Failure:",
       globalError.message
     );
     errors.push(`CRITICAL: ${globalError.message}`);
+    return { successCount, failCount, errors };
   } finally {
-    if (mongoose.connection.readyState === 1) {
+    if (connectionCreated && mongoose.connection.readyState === 1) {
       await mongoose.disconnect();
       console.log("\n🟡 Disconnected from MongoDB.");
     }
@@ -147,13 +163,15 @@ async function migrateRestaurantMedia() {
 }
 
 if (require.main === module) {
-  migrateRestaurantMedia().then(() => {
-    console.log("Restaurant migration completed.");
-    process.exit(0);
-  }).catch(err => {
-    console.error("Fatal error:", err);
-    process.exit(1);
-  });
+  migrateRestaurantMedia()
+    .then(() => {
+      console.log("Restaurant migration completed.");
+      process.exit(0);
+    })
+    .catch((err) => {
+      console.error("Fatal error:", err);
+      process.exit(1);
+    });
 }
 
 module.exports = { migrateRestaurantMedia };

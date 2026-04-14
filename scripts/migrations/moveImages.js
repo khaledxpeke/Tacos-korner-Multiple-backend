@@ -106,14 +106,10 @@ async function moveToHybridFolders() {
         totalMoved.shared++;
         
       } catch (error) {
-        if (error.code === 'ENOENT') {
-          console.warn(`⚠️ File not found (maybe already moved): ${oldFullPath}`);
-          // Still update URL if file is gone (assume moved manually)
-          await Media.findByIdAndUpdate(doc._id, { 
-            url: newUrl, 
-            scope: 'shared' 
-          });
-          totalMoved.shared++;
+        if (error.code === "ENOENT") {
+          console.warn(
+            `⚠️ File not found (skip DB update): ${oldFullPath}`
+          );
         } else {
           console.error(`❌ Error moving ${fileName}: ${error.message}`);
         }

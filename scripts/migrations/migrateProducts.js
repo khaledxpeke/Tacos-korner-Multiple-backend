@@ -36,12 +36,11 @@ async function migrateProductMedia() {
       console.log("🟢 Connected to MongoDB.");
     }
 
-    const products = await mongoose.connection.db.collection('products').find({
-      image: { 
-        $type: 2, // string type
-        $ne: DEFAULT_PEXELS_URL,
-        $ne: ""
-      }
+    const products = await mongoose.connection.db.collection("products").find({
+      image: {
+        $type: 2,
+        $nin: [DEFAULT_PEXELS_URL, ""],
+      },
     }).toArray();
 
     console.log(`\n--- Starting Migration for ${products.length} Products ---\n`);
@@ -119,6 +118,7 @@ async function migrateProductMedia() {
             targetType: "Product",
             targetId: product._id,
             restaurantId,
+            scope: "shared",
           });
         } else {
           mediaDoc.filename = originalFileName;
@@ -128,6 +128,7 @@ async function migrateProductMedia() {
           mediaDoc.targetType = "Product";
           mediaDoc.targetId = product._id;
           mediaDoc.restaurantId = restaurantId;
+          mediaDoc.scope = "shared";
         }
         await mediaDoc.save();
 

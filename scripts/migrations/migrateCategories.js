@@ -36,12 +36,11 @@ async function migrateCategoryMedia() {
       console.log("🟢 Connected to MongoDB.");
     }
 
-    const categories = await mongoose.connection.db.collection('categories').find({
-      image: { 
-        $type: 2, // string type
-        $ne: DEFAULT_PEXELS_URL,
-        $ne: ""
-      }
+    const categories = await mongoose.connection.db.collection("categories").find({
+      image: {
+        $type: 2,
+        $nin: [DEFAULT_PEXELS_URL, ""],
+      },
     }).toArray();
 
     console.log(`\n--- Starting Migration for ${categories.length} Categories ---\n`);
@@ -86,7 +85,7 @@ async function migrateCategoryMedia() {
         const oldFileName = path.basename(oldRelativePath);
         const newRelativeDir = path.join(`restaurant_${restaurantId}`, "category");
         const newFullPath = path.join(NEW_MEDIA_SERVER_PATH, newRelativeDir, oldFileName);
-        const newRelativeUrl = path.join("uploads", newRelativeDir, oldFileName)
+        const newRelativeUrl = path.join("uploads", newRelativeDir, oldFileName);
         await fs.stat(oldFullPath);
         console.log(`📂 Category: ${category.name}`);
         console.log(`   - 🟢 File found: ${oldFullPath}`);
@@ -111,15 +110,21 @@ async function migrateCategoryMedia() {
             mimeType,
             size,
             hash,
-            type:"image",
+            type: "image",
             targetType: "Category",
             targetId: category._id,
             restaurantId,
+            scope: "shared",
           });
         } else {
+          mediaDoc.filename = oldFileName;
+          mediaDoc.url = newRelativeUrl;
+          mediaDoc.mimeType = mimeType;
+          mediaDoc.size = size;
           mediaDoc.targetType = "Category";
           mediaDoc.targetId = category._id;
           mediaDoc.restaurantId = restaurantId;
+          mediaDoc.scope = "shared";
         }
         await mediaDoc.save();
 

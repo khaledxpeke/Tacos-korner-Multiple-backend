@@ -36,12 +36,11 @@ async function migrateIngrediantMedia() {
       console.log("🟢 Connected to MongoDB.");
     }
 
-    const ingrediants = await mongoose.connection.db.collection('ingrediants').find({
-      image: { 
-        $type: 2, // string type
-        $ne: DEFAULT_PEXELS_URL,
-        $ne: ""
-      }
+    const ingrediants = await mongoose.connection.db.collection("ingrediants").find({
+      image: {
+        $type: 2,
+        $nin: [DEFAULT_PEXELS_URL, ""],
+      },
     }).toArray();
 
     console.log(`\n--- Starting Migration for ${ingrediants.length} Ingredients ---\n`);
@@ -116,9 +115,10 @@ async function migrateIngrediantMedia() {
             size,
             hash,
             type,
-            targetType: "Ingrediant", // Note the spelling matches your model
+            targetType: "Ingrediant",
             targetId: ingrediant._id,
             restaurantId,
+            scope: "shared",
           });
         } else {
           mediaDoc.filename = originalFileName;
@@ -128,6 +128,7 @@ async function migrateIngrediantMedia() {
           mediaDoc.targetType = "Ingrediant";
           mediaDoc.targetId = ingrediant._id;
           mediaDoc.restaurantId = restaurantId;
+          mediaDoc.scope = "shared";
         }
         await mediaDoc.save();
 
