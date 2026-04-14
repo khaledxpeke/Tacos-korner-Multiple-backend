@@ -72,6 +72,7 @@ exports.register = async (req, res, next) => {
           });
           res.status(201).json({
             user: createdUser,
+            userId: createdUser.userId,
             token: token,
           });
         })
@@ -127,6 +128,7 @@ exports.createUser = async (req, res, next) => {
           });
           res.status(201).json({
             user: createdUser,
+            userId: createdUser.userId,
             token: token,
           });
         })
@@ -271,6 +273,7 @@ exports.login = async (req, res, next) => {
           });
           res.status(201).json({
             token: token,
+            userId: user.userId,
             marketPayToken: marketPayTokenToSend,
           });
         } else {

@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const AutoIncrement = require("mongoose-sequence")(mongoose);
 const { USER_ROLES } = require("../enum/constants");
 const UserSchema = new mongoose.Schema(
   {
@@ -25,6 +26,7 @@ const UserSchema = new mongoose.Schema(
       default: false,
     },
     fcmToken: { type: String },
+    userId: { type: Number, unique: true, sparse: true },
     marketPayToken: { type: String },
     restaurants: [
       {
@@ -43,6 +45,8 @@ const UserSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+UserSchema.plugin(AutoIncrement, { inc_field: "userId" });
 
 const User = mongoose.model("User", UserSchema);
 module.exports = User;

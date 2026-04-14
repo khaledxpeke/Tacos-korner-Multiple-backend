@@ -25,42 +25,67 @@ exports.handleSSOPermission = async (req, res) => {
 
   const clientIdFromRequest = operationMetadata.ClientID;
 
-  if (clientIdFromRequest !== MARKETPAY_CLIENT_ID) {
+  if (process.env.MARKETPAY_DEBUG === "true") {
+    console.log("SSO Request - Operation:", operation);
+    console.log("SSO Request - Operation Metadata:", operationMetadata);
+  }
+
+  if (
+    !clientIdFromRequest ||
+    clientIdFromRequest.trim().toLowerCase() !==
+      String(MARKETPAY_CLIENT_ID || "").trim().toLowerCase()
+  ) {
     console.error("SSO Request - Invalid ClientID:", clientIdFromRequest);
     return res
       .status(401)
       .json({ success: false, message: "Unauthorized: Invalid Client ID." });
   }
 
-  let userIdFromAuth;
+  let user;
   let userRoleFromAuth;
   try {
-    const user = await findUserByMarketPayToken(userToken);
+    user = await findUserByMarketPayToken(userToken);
 
-    userIdFromAuth = user._id.toString();
     userRoleFromAuth = user.role;
 
     if (operation === "refund" && userRoleFromAuth !== USER_ROLES.ADMIN) {
-      return res
-        .status(401)
-        .json({
-          success: false,
-          message: "Unauthorized for Refund operation.",
-        });
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized for Refund operation.",
+      });
     }
   } catch (error) {
     console.error("Market Pay SSO Auth Failed:", error.message);
-    return res
-      .status(401)
-      .json({
-        success: false,
-        message: "Unauthorized: Invalid or expired User Token.",
-      });
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: Invalid or expired User Token.",
+    });
+  }
+
+  if (user.userId == null) {
+    console.error(
+      "Market Pay SSO: user missing numeric userId",
+      user._id?.toString()
+    );
+    return res.status(503).json({
+      success: false,
+      message:
+        "User numeric id not configured. Run scripts/migrations/migrate_userId.js on the database.",
+    });
+  }
+
+  const merchantIdNum = parseInt(String(MARKETPAY_MERCHANT_ID), 10);
+  if (Number.isNaN(merchantIdNum)) {
+    console.error("MARKETPAY_MERCHANT_ID is not a valid integer");
+    return res.status(500).json({
+      success: false,
+      message: "Server configuration error.",
+    });
   }
 
   const successResponse = {
-    merchantId: MARKETPAY_MERCHANT_ID,
-    userId: String(userIdFromAuth),
+    merchantId: merchantIdNum,
+    userId: user.userId,
   };
 
   return res.status(200).json(successResponse);
