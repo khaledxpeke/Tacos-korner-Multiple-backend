@@ -3,7 +3,12 @@ const path = require("path");
 const axios = require("axios");
 const FormData = require("form-data");
 
-const mediaBackendUrl = process.env.MEDIA_SERVER_URL || "http://localhost:4000";
+function getMediaBackendBaseUrl() {
+  const raw = process.env.MEDIA_SERVER_URL || "http://localhost:4000";
+  return String(raw).trim().replace(/\/+$/, "");
+}
+
+exports.getMediaBackendBaseUrl = getMediaBackendBaseUrl;
 
 function guessContentTypeFromFilename(filename) {
   const ext = path.extname(filename).toLowerCase();
@@ -30,12 +35,49 @@ exports.getFileHashViaApi = async ({ fileBuffer, originalname }) => {
     contentType,
   });
 
-  const hashResponse = await axios.post(
-    `${mediaBackendUrl}/api/media/hash`,
-    formHash,
-    {
+  const base = getMediaBackendBaseUrl();
+  const url = `${base}/api/media/hash`;
+
+  try {
+    const hashResponse = await axios.post(url, formHash, {
       headers: formHash.getHeaders(),
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+      validateStatus: () => true,
+    });
+
+    if (hashResponse.status < 200 || hashResponse.status >= 300) {
+      const detail =
+        typeof hashResponse.data === "object"
+          ? JSON.stringify(hashResponse.data)
+          : String(hashResponse.data);
+      throw new Error(
+        `Media hash API ${hashResponse.status} at ${url}: ${detail || hashResponse.statusText}`
+      );
     }
-  );
-  return hashResponse.data;
+
+    const data = hashResponse.data;
+    if (!data || data.hash == null) {
+      throw new Error(
+        `Media hash API returned no hash from ${url}: ${JSON.stringify(data)}`
+      );
+    }
+    return data;
+  } catch (err) {
+    if (err.response) {
+      const detail =
+        typeof err.response.data === "object"
+          ? JSON.stringify(err.response.data)
+          : String(err.response.data);
+      throw new Error(
+        `Media hash API ${err.response.status} at ${url}: ${detail || err.message}`
+      );
+    }
+    if (err.code === "ECONNREFUSED") {
+      throw new Error(
+        `Cannot reach media server at ${base} (${err.code}). Is it running? Is MEDIA_SERVER_URL correct in .env?`
+      );
+    }
+    throw err;
+  }
 };
