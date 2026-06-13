@@ -66,3 +66,59 @@ exports.forwardToMediaBackend = async ({
 
   return saveResponse.data;
 };
+
+exports.resolveMediaFromRequest = async ({
+  req,
+  restaurantId,
+  userId,
+  targetType,
+  targetId = null,
+  type,
+}) => {
+  if (req.file) {
+    const mediaResponse = await exports.forwardToMediaBackend({
+      filePath: req.file.path,
+      restaurantId: restaurantId?.toString(),
+      type,
+      originalname: req.file.originalname,
+    });
+
+    let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
+
+    if (!mediaDoc) {
+      mediaDoc = new Media({
+        filename: mediaResponse.filename || req.file.originalname,
+        url: mediaResponse.url,
+        mimeType: mediaResponse.mimeType || req.file.mimetype,
+        size: mediaResponse.size || req.file.size,
+        hash: mediaResponse.hash,
+        uploadedBy: userId,
+        targetType,
+        targetId,
+        type,
+        restaurantId: restaurantId?.toString(),
+        scope: "shared",
+      });
+      await mediaDoc.save();
+    }
+
+    return mediaDoc;
+  }
+
+  if (req.body.mediaId) {
+    const mediaDoc = await Media.findOne({
+      _id: req.body.mediaId,
+      scope: "shared",
+    });
+
+    if (!mediaDoc) {
+      const error = new Error("Media not found");
+      error.status = 404;
+      throw error;
+    }
+
+    return mediaDoc;
+  }
+
+  return null;
+};

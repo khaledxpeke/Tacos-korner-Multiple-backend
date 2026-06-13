@@ -95,7 +95,26 @@ exports.listMedia = async (req, res) => {
 
     const filter = { scope: "shared" };
 
-    if (targetType) filter.targetType = targetType;
+    const targetTypeMediaTypes = {
+      Product: ["product", "products"],
+      Category: ["category"],
+      Ingrediant: ["ingredient", "ingrediants"],
+      Allergy: ["allergy_icon", "allergies"],
+      Settings: ["banner", "banners"],
+      Restaurant: ["logo"],
+    };
+
+    if (targetType) {
+      const mediaTypes = targetTypeMediaTypes[targetType] || [];
+      const orConditions = [{ targetType }];
+
+      if (mediaTypes.length > 0) {
+        orConditions.push({ type: { $in: mediaTypes } });
+      }
+
+      filter.$or = orConditions;
+    }
+
     if (targetId) filter.targetId = targetId;
     if (q) filter.filename = new RegExp(q, "i");
 

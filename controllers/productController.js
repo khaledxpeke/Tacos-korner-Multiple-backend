@@ -6,7 +6,7 @@ const express = require("express");
 const app = express();
 require("dotenv").config();
 app.use(express.json());
-const { forwardToMediaBackend } = require("../utils/mediaHelper");
+const { forwardToMediaBackend, resolveMediaFromRequest } = require("../utils/mediaHelper");
 const localUpload = require("../middleware/localMulter");
 const Media = require("../models/media");
 const cleanupTempFile = require("../utils/cleanupTempFiles");
@@ -88,7 +88,7 @@ exports.addProductToCategory = async (req, res, next) => {
         error: err.message,
       });
     }
-    if (!req.file) {
+    if (!req.file && !req.body.mediaId) {
       return res.status(400).json({
         message: req.t("product.add_image"),
         error: req.t("errors.image_required"),
@@ -122,46 +122,36 @@ exports.addProductToCategory = async (req, res, next) => {
       const allergyIds = parseArrayField(req.body.allergies);
 
       if (!name || !restaurantId) {
-        await cleanupTempFile(req.file.path);
+        if (req.file) await cleanupTempFile(req.file.path);
         return res.status(400).json({
           message: req.t("product.fields_required"),
         });
       }
 
-      tempFilePath = req.file.path;
+      if (req.file) {
+        tempFilePath = req.file.path;
+      }
 
       let existingProduct = await Product.findOne({ name: name, restaurantId });
 
       if (existingProduct) {
-        await cleanupTempFile(tempFilePath);
+        if (tempFilePath) await cleanupTempFile(tempFilePath);
         return res.status(400).json({
           message: req.t("product.exists"),
         });
       }
-      const mediaResponse = await forwardToMediaBackend({
-        filePath: tempFilePath,
-        restaurantId: restaurantId.toString(),
-        type: "products",
-        originalname: req.file.originalname,
+
+      const mediaDoc = await resolveMediaFromRequest({
+        req,
+        restaurantId,
+        userId,
+        targetType: "Product",
+        type: "product",
       });
 
-      let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
-
-      if (!mediaDoc) {
-        mediaDoc = new Media({
-          filename: mediaResponse.filename || req.file.originalname,
-          url: mediaResponse.url,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: userId,
-          targetType: "Product",
-          targetId: null,
-          type: "product",
-          restaurantId: restaurantId.toString(),
-          scope: "shared",
-        });
-        await mediaDoc.save();
+      if (req.file) {
+        await cleanupTempFile(tempFilePath);
+        tempFilePath = null;
       }
 
       let typeVariationsData = null;
@@ -239,9 +229,6 @@ exports.addProductToCategory = async (req, res, next) => {
       await Media.findByIdAndUpdate(mediaDoc._id, {
         targetId: savedProduct._id,
       });
-
-      await cleanupTempFile(tempFilePath);
-      tempFilePath = null;
       const updatedCategories = await Category.updateMany(
         { _id: { $in: categoryIds }, restaurantId },
         { $addToSet: { products: product._id } },
@@ -778,38 +765,26 @@ exports.updateProduct = async (req, res) => {
         }
       }
 
-      if (req.file) {
-        tempFilePath = req.file.path;
+      if (req.file || req.body.mediaId) {
+        if (req.file) {
+          tempFilePath = req.file.path;
+        }
 
-        const mediaResponse = await forwardToMediaBackend({
-          filePath: tempFilePath,
-          restaurantId: restaurantId.toString(),
-          type: "products",
-          originalname: req.file.originalname,
+        const newMediaDoc = await resolveMediaFromRequest({
+          req,
+          restaurantId,
+          userId: req.user?.user?._id,
+          targetType: "Product",
+          targetId: product._id,
+          type: "product",
         });
 
-        let newMediaDoc = await Media.findOne({ hash: mediaResponse.hash });
-
-        if (!newMediaDoc) {
-          const mediaDoc = new Media({
-            filename: mediaResponse.filename || req.file.originalname,
-            url: mediaResponse.url,
-            mimeType: mediaResponse.mimeType || req.file.mimetype,
-            size: mediaResponse.size || req.file.size,
-            hash: mediaResponse.hash,
-            uploadedBy: req.user?.user?._id,
-            targetType: "Product",
-            targetId: product._id,
-            type: "product",
-            restaurantId: restaurantId.toString(),
-            scope: "shared",
-          });
-          await mediaDoc.save();
-        }
         product.image = newMediaDoc._id;
 
-        await cleanupTempFile(tempFilePath);
-        tempFilePath = null;
+        if (tempFilePath) {
+          await cleanupTempFile(tempFilePath);
+          tempFilePath = null;
+        }
       }
 
       if (discountValue < 0) {

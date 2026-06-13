@@ -1,6 +1,6 @@
 const Allergy = require("../models/allergy");
 const Product = require("../models/product");
-const { forwardToMediaBackend } = require("../utils/mediaHelper");
+const { resolveMediaFromRequest } = require("../utils/mediaHelper");
 const localUpload = require("../middleware/localMulter");
 const Media = require("../models/media");
 const cleanupTempFile = require("../utils/cleanupTempFiles");
@@ -14,7 +14,7 @@ exports.createAllergy = async (req, res) => {
         error: err.message,
       });
     }
-    if (!req.file) {
+    if (!req.file && !req.body.mediaId) {
       return res.status(400).json({
         message: req.t("allergy.add_icon"),
         error: req.t("errors.image_required"),
@@ -27,19 +27,11 @@ exports.createAllergy = async (req, res) => {
       const userId = req.user?.user?._id;
 
       if (!name) {
-        await cleanupTempFile(req.file.path);
+        if (req.file) await cleanupTempFile(req.file.path);
         return res.status(400).json({
           message: req.t("allergy.fields_required"),
         });
       }
-
-      tempFilePath = req.file.path;
-
-      const mediaResponse = await forwardToMediaBackend({
-        filePath: tempFilePath,
-        type: "allergies",
-        originalname: req.file.originalname,
-      });
 
       const allergy = new Allergy({
         name,
@@ -48,28 +40,25 @@ exports.createAllergy = async (req, res) => {
 
       await allergy.save();
 
-      let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
-      if (!mediaDoc) {
-        mediaDoc = new Media({
-          filename: mediaResponse.filename || req.file.originalname,
-          url: mediaResponse.url,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: userId,
-          targetType: "Allergy",
-          targetId: allergy._id,
-          type: "allergy_icon",
-          scope:"shared"
-        });
-        await mediaDoc.save();
+      if (req.file) {
+        tempFilePath = req.file.path;
       }
+
+      const mediaDoc = await resolveMediaFromRequest({
+        req,
+        userId,
+        targetType: "Allergy",
+        targetId: allergy._id,
+        type: "allergy_icon",
+      });
 
       allergy.icon = mediaDoc._id;
       await allergy.save();
 
-      await cleanupTempFile(tempFilePath);
-      tempFilePath = null;
+      if (tempFilePath) {
+        await cleanupTempFile(tempFilePath);
+        tempFilePath = null;
+      }
 
       res.status(201).json({
         allergy,
@@ -137,33 +126,25 @@ exports.updateAllergy = async (req, res) => {
       }
       if (name) allergy.name = name;
 
-      if (req.file) {
-        tempFilePath = req.file.path;
-        const mediaResponse = await forwardToMediaBackend({
-          filePath: tempFilePath,
-          type: "allergies",
-          originalname: req.file.originalname,
-        });
-
-        let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
-        if (!mediaDoc) {
-          mediaDoc = new Media({
-            filename: mediaResponse.filename || req.file.originalname,
-            url: mediaResponse.url,
-            mimeType: mediaResponse.mimeType || req.file.mimetype,
-            size: mediaResponse.size || req.file.size,
-            hash: mediaResponse.hash,
-            uploadedBy: req.user?.user?._id,
-            targetType: "Allergy",
-            targetId: allergy._id,
-            type: "allergy_icon",
-          });
-          await mediaDoc.save();
+      if (req.file || req.body.mediaId) {
+        if (req.file) {
+          tempFilePath = req.file.path;
         }
 
+        const mediaDoc = await resolveMediaFromRequest({
+          req,
+          userId: req.user?.user?._id,
+          targetType: "Allergy",
+          targetId: allergy._id,
+          type: "allergy_icon",
+        });
+
         allergy.icon = mediaDoc._id;
-        await cleanupTempFile(tempFilePath);
-        tempFilePath = null;
+
+        if (tempFilePath) {
+          await cleanupTempFile(tempFilePath);
+          tempFilePath = null;
+        }
       }
 
       await allergy.save();

@@ -4,7 +4,7 @@ const app = express();
 require("dotenv").config();
 app.use(express.json());
 const Product = require("../models/product");
-const { forwardToMediaBackend } = require("../utils/mediaHelper");
+const { resolveMediaFromRequest } = require("../utils/mediaHelper");
 const localUpload = require("../middleware/localMulter");
 const Media = require("../models/media");
 const cleanupTempFile = require("../utils/cleanupTempFiles");
@@ -19,7 +19,7 @@ exports.createCategory = async (req, res) => {
         error: err.message,
       });
     }
-    if (!req.file) {
+    if (!req.file && !req.body.mediaId) {
       return res.status(400).json({
         message: req.t("product.add_image"),
         error: req.t("errors.image_required"),
@@ -33,19 +33,11 @@ exports.createCategory = async (req, res) => {
 
     try {
       if (!name || !restaurantId) {
-        await cleanupTempFile(req.file.path);
+        if (req.file) await cleanupTempFile(req.file.path);
         return res.status(400).json({
           message: req.t("category.fields_required"),
         });
       }
-      tempFilePath = req.file.path;
-
-      const mediaResponse = await forwardToMediaBackend({
-        filePath: tempFilePath,
-        restaurantId: restaurantId.toString(),
-        type: "category",
-        originalname: req.file.originalname,
-      });
 
       const category = new Category({
         createdBy: userId,
@@ -56,29 +48,26 @@ exports.createCategory = async (req, res) => {
 
       await category.save();
 
-      let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
-      if (!mediaDoc) {
-        mediaDoc = new Media({
-          filename: mediaResponse.filename || req.file.originalname,
-          url: mediaResponse.url,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: userId,
-          targetType: "Category",
-          targetId: category._id,
-          type: "category",
-          restaurantId: restaurantId.toString(),
-          scope: "shared",
-        });
-        await mediaDoc.save();
+      if (req.file) {
+        tempFilePath = req.file.path;
       }
+
+      const mediaDoc = await resolveMediaFromRequest({
+        req,
+        restaurantId,
+        userId,
+        targetType: "Category",
+        targetId: category._id,
+        type: "category",
+      });
 
       category.image = mediaDoc._id;
       await category.save();
 
-      await cleanupTempFile(tempFilePath);
-      tempFilePath = null;
+      if (tempFilePath) {
+        await cleanupTempFile(tempFilePath);
+        tempFilePath = null;
+      }
 
       res.status(201).json({ category, message: req.t("category.created") });
     } catch (error) {
@@ -415,38 +404,26 @@ exports.updateCategory = async (req, res) => {
       }
       if (name) category.name = name;
 
-      if (req.file) {
-        tempFilePath = req.file.path;
-        const mediaResponse = await forwardToMediaBackend({
-          filePath: tempFilePath,
-          restaurantId: restaurantId.toString(),
-          type: "category",
-          originalname: req.file.originalname,
-        });
-
-        let newMediaDoc = await Media.findOne({ hash: mediaResponse.hash });
-
-        if (!newMediaDoc) {
-          newMediaDoc = new Media({
-            filename: mediaResponse.filename || req.file.originalname,
-            url: mediaResponse.url,
-            mimeType: mediaResponse.mimeType || req.file.mimetype,
-            size: mediaResponse.size || req.file.size,
-            hash: mediaResponse.hash,
-            uploadedBy: req.user?.user?._id,
-            targetType: "Category",
-            targetId: category._id,
-            type: "category",
-            restaurantId: restaurantId.toString(),
-            scope: "shared",
-          });
-          await newMediaDoc.save();
+      if (req.file || req.body.mediaId) {
+        if (req.file) {
+          tempFilePath = req.file.path;
         }
+
+        const newMediaDoc = await resolveMediaFromRequest({
+          req,
+          restaurantId,
+          userId: req.user?.user?._id,
+          targetType: "Category",
+          targetId: category._id,
+          type: "category",
+        });
 
         category.image = newMediaDoc._id;
 
-        await cleanupTempFile(tempFilePath);
-        tempFilePath = null;
+        if (tempFilePath) {
+          await cleanupTempFile(tempFilePath);
+          tempFilePath = null;
+        }
       }
 
       await category.save();
