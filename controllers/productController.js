@@ -881,20 +881,50 @@ const addTimezoneZ = (dateString) => {
 
 exports.migrateProductsCategory = async (req, res) => {
   try {
-    const products = await Product.find({ category: { $exists: true } });
+    const { restaurantId } = req;
+    const collection = mongoose.connection.db.collection("products");
 
-    for (const product of products) {
-      if (Array.isArray(product.categories) && product.categories.length > 0)
-        continue;
+    const filter = {
+      category: { $exists: true, $ne: null, $ne: "" },
+      $or: [
+        { categories: { $exists: false } },
+        { categories: null },
+        { categories: { $size: 0 } },
+      ],
+    };
 
-      const categoryId = product.category;
-      product.categories = categoryId ? [categoryId] : [];
-      product.category = undefined;
-
-      await product.save();
+    if (restaurantId) {
+      filter.restaurantId = new mongoose.Types.ObjectId(restaurantId);
     }
 
-    res.status(200).json({ message: "Products migration completed!" });
+    // Use raw MongoDB update — legacy `category` is not on the Mongoose schema,
+    // so Product.find() never loads it and the old loop saved empty arrays.
+    const result = await collection.updateMany(filter, [
+      {
+        $set: {
+          categories: {
+            $cond: {
+              if: { $ne: ["$category", null] },
+              then: {
+                $cond: {
+                  if: { $eq: [{ $type: "$category" }, "string"] },
+                  then: [{ $toObjectId: "$category" }],
+                  else: [{ $category }],
+                },
+              },
+              else: [],
+            },
+          },
+        },
+      },
+      { $unset: "category" },
+    ]);
+
+    res.status(200).json({
+      message: "Products migration completed!",
+      matched: result.matchedCount,
+      modified: result.modifiedCount,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Migration failed", error: error.message });
