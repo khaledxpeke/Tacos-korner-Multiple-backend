@@ -1957,10 +1957,75 @@ exports.getStatistics = async (req, res) => {
       {
         $lookup: {
           from: "products",
-          let: { productId: { $toObjectId: "$product.plat._id" } },
+          let: {
+            productId: { $toObjectId: "$product.plat._id" },
+            productName: "$product.plat.name",
+            restaurantId: "$restaurantId",
+          },
           pipeline: [
-            { $match: { $expr: { $eq: ["$_id", "$$productId"] } } },
-            { $project: { image: 1, name: 1, imagePreviewHash: 1 } },
+            {
+              $match: {
+                $expr: {
+                  $or: [
+                    { $eq: ["$_id", "$$productId"] },
+                    {
+                      $and: [
+                        { $eq: ["$restaurantId", "$$restaurantId"] },
+                        {
+                          $eq: [
+                            { $toLower: "$name" },
+                            { $toLower: "$$productName" },
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+            {
+              $addFields: {
+                _matchPriority: {
+                  $cond: [{ $eq: ["$_id", "$$productId"] }, 0, 1],
+                },
+              },
+            },
+            { $sort: { _matchPriority: 1 } },
+            { $limit: 1 },
+            {
+              $lookup: {
+                from: "media",
+                localField: "image",
+                foreignField: "_id",
+                as: "imageMedia",
+                pipeline: [{ $project: { url: 1 } }],
+              },
+            },
+            {
+              $project: {
+                name: 1,
+                image: {
+                  $let: {
+                    vars: {
+                      mediaUrl: { $arrayElemAt: ["$imageMedia.url", 0] },
+                    },
+                    in: {
+                      $cond: {
+                        if: { $ne: ["$$mediaUrl", null] },
+                        then: "$$mediaUrl",
+                        else: {
+                          $cond: {
+                            if: { $eq: [{ $type: "$image" }, "string"] },
+                            then: "$image",
+                            else: null,
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
           ],
           as: "productDetails",
         },
@@ -1977,7 +2042,6 @@ exports.getStatistics = async (req, res) => {
             id: "$product.plat._id",
             name: "$product.plat.name",
             image: "$productDetails.image",
-            imagePreviewHash: "$productDetails.imagePreviewHash",
           },
           totalCount: { $sum: "$product.plat.count" },
           totalRevenue: {
@@ -1992,7 +2056,6 @@ exports.getStatistics = async (req, res) => {
           _id: "$_id.id",
           name: "$_id.name",
           image: "$_id.image",
-          imagePreviewHash: "$_id.imagePreviewHash",
           totalCount: 1,
           totalRevenue: { $round: ["$totalRevenue", 2] },
         },

@@ -1,0 +1,2150 @@
+openapi: 3.0.3
+info:
+  title: LayaFood Backend API
+  description: |
+    REST API for the LayaFood multi-restaurant ordering platform (dashboard, kiosk, mobile, kitchen).
+
+    ## Authentication
+    Most endpoints require:
+    - `Authorization: Bearer <JWT>` header
+    - `restaurant-id: <ObjectId>` header (restaurant-scoped routes)
+    - `app-type` header: `mobile` | `borne` | `dashboard` | `cashier` | `delivery` | `kitchen`
+
+    ## i18n
+    Pass `?lng=en|fr|ar` query param or use language cookie.
+
+    ---
+
+    ## Socket.IO (Real-time)
+
+    **Connect to:** `{baseUrl}` with path `/socket.io/`  
+    **Transports:** websocket, polling  
+    **CORS:** `*`
+
+    ### Client → Server events
+
+    | Event | Payload | Description |
+    |-------|---------|-------------|
+    | `join-restaurant` | `{ restaurantId: string }` | Join room `restaurant-{restaurantId}`. Registers `fetch-histories` listener. |
+    | `fetch-histories` | See schema below | Fetch paginated order history (emitted after join-restaurant) |
+    | `disconnect` | — | Client disconnects |
+
+    **`fetch-histories` payload:**
+    ```json
+    {
+      "restaurantId": "ObjectId",
+      "page": 1,
+      "search": "",
+      "startDate": "YYYY-MM-DD",
+      "endDate": "YYYY-MM-DD",
+      "filter": "today|week|month",
+      "status": "all|enCours|terminee|annulee|echouee|enAttente|enRetard|remboursee"
+    }
+    ```
+
+    ### Server → Client events
+
+    | Event | Room | Description |
+    |-------|------|-------------|
+    | `histories-update` | `restaurant-{id}` | Response to `fetch-histories` (histories, pagination, stats) |
+    | `new-history` | `restaurant-{id}` | New order created |
+    | `status-update` | broadcast | Order status changed `{ id, status, updatedAt }` |
+    | `settings-updated` | `restaurant-{id}` | Restaurant settings changed |
+    | `print_success` | broadcast | Order printed successfully |
+    | `print_skipped` | broadcast | Auto-print skipped (local mode) |
+    | `print_failed` | broadcast | Print job failed |
+    | `print_retry_exhausted` | broadcast | All print retries exhausted |
+    | `error` | varies | Error message |
+
+  version: 1.0.0
+  contact:
+    name: LayaFood
+
+servers:
+  - url: http://localhost:3300
+    description: Local development
+  - url: https://api.dev.layafood.com
+    description: Development server
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Restaurants
+  - name: Categories
+  - name: Products
+  - name: Ingredients
+  - name: Types (Options)
+  - name: Extras
+  - name: Desserts
+  - name: Drinks
+  - name: Variations
+  - name: Type Variations
+  - name: Allergies
+  - name: History (Orders)
+  - name: Status History
+  - name: Settings
+  - name: Coupons
+  - name: Media Library
+  - name: Carousel
+  - name: Currency
+  - name: Database Export
+  - name: Payment
+  - name: Utilities
+  - name: Static Files
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from POST /api/auth/login
+
+  parameters:
+    RestaurantIdHeader:
+      name: restaurant-id
+      in: header
+      required: true
+      schema:
+        type: string
+      description: MongoDB ObjectId of the restaurant
+    AppTypeHeader:
+      name: app-type
+      in: header
+      schema:
+        type: string
+        enum: [mobile, borne, dashboard, cashier, delivery, kitchen]
+    LanguageQuery:
+      name: lng
+      in: query
+      schema:
+        type: string
+        enum: [en, fr, ar]
+    PageQuery:
+      name: page
+      in: query
+      schema:
+        type: integer
+        default: 1
+        minimum: 1
+      description: Page number (1-based)
+    LimitQuery:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+      description: Items per page
+    SearchQuery:
+      name: search
+      in: query
+      schema:
+        type: string
+      description: Search by name or command number
+    StartDateQuery:
+      name: startDate
+      in: query
+      schema:
+        type: string
+        format: date
+        example: "2026-06-01"
+      description: Start date (YYYY-MM-DD). Used with filter=custom or stats date range.
+    EndDateQuery:
+      name: endDate
+      in: query
+      schema:
+        type: string
+        format: date
+        example: "2026-06-15"
+      description: End date (YYYY-MM-DD). Used with filter=custom or stats date range.
+    HistoryFilterQuery:
+      name: filter
+      in: query
+      schema:
+        type: string
+        enum: [all, today, week, month, year, custom]
+        default: all
+      description: |
+        Date filter preset.
+        - `all` — no date filter (history list only)
+        - `today` — current day
+        - `week` — current week
+        - `month` — current month
+        - `year` — current year (stats only)
+        - `custom` — use startDate/endDate
+    HistoryStatusQuery:
+      name: status
+      in: query
+      schema:
+        type: string
+        enum: [enCours, terminee, annulee, echouee, enAttente, enRetard, remboursee]
+      description: Filter by order status
+    PackIdQuery:
+      name: packId
+      in: query
+      schema:
+        type: string
+      description: Filter by pack ObjectId (sur place / emporter)
+    MethodIdQuery:
+      name: methodId
+      in: query
+      schema:
+        type: string
+      description: Filter by payment method ObjectId
+    MediaTargetTypeQuery:
+      name: targetType
+      in: query
+      schema:
+        type: string
+        enum: [Product, Category, Ingrediant, Allergy, Settings, Restaurant]
+      description: Filter media by target entity type
+    MediaTargetIdQuery:
+      name: targetId
+      in: query
+      schema:
+        type: string
+      description: Filter media by target entity ObjectId
+    MediaSearchQuery:
+      name: q
+      in: query
+      schema:
+        type: string
+      description: Search media by filename
+    MediaTypeQuery:
+      name: type
+      in: query
+      schema:
+        type: string
+        example: category
+      description: Media folder type (category, product, ingredient, banner, logo, etc.)
+    UserRoleQuery:
+      name: role
+      in: query
+      schema:
+        type: string
+        enum: [admin, manager, waiter, client]
+      description: Filter users by role
+    ExportFileQuery:
+      name: file
+      in: query
+      required: true
+      schema:
+        type: string
+        example: restaurant_68d5811fec2a42492440471f_raw_15-06-2026.json
+      description: Export filename returned by GET /api/database/export
+
+  responses:
+    Unauthorized:
+      description: Missing or invalid token
+    Forbidden:
+      description: Insufficient role permissions
+    NotFound:
+      description: Resource not found
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+        error:
+          type: string
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    MediaUpload:
+      type: object
+      properties:
+        image:
+          type: string
+          format: binary
+        mediaId:
+          type: string
+          description: Existing media library item ID
+
+security:
+  - bearerAuth: []
+
+paths:
+  /welcome:
+    get:
+      tags: [Utilities]
+      summary: Welcome / health check with i18n
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/LanguageQuery'
+      responses:
+        '200':
+          description: Welcome message
+
+  /adminRoute:
+    get:
+      tags: [Utilities]
+      summary: Admin-only test route
+      responses:
+        '200':
+          description: Authenticated admin message
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /managerRoute:
+    get:
+      tags: [Utilities]
+      summary: Manager-only test route
+      responses:
+        '200':
+          description: Authenticated manager message
+
+  /waiterRoute:
+    get:
+      tags: [Utilities]
+      summary: Waiter-only test route
+      responses:
+        '200':
+          description: Authenticated waiter message
+
+  /clientRoute:
+    get:
+      tags: [Utilities]
+      summary: Client-only test route
+      responses:
+        '200':
+          description: Authenticated client message
+
+  # ─── AUTH / USERS ───────────────────────────────────────────
+  /api/auth/login:
+    post:
+      tags: [Auth]
+      summary: Login and receive JWT
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JWT token and user info
+        '401':
+          description: Invalid credentials
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (invalidate session)
+      responses:
+        '200':
+          description: Logged out
+
+  /api/auth/register:
+    post:
+      tags: [Auth]
+      summary: Register new user
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+        - $ref: '#/components/parameters/AppTypeHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string }
+                password: { type: string }
+                name: { type: string }
+                role: { type: string, enum: [admin, manager, waiter, client] }
+      responses:
+        '201':
+          description: User created
+
+  /api/auth/create:
+    post:
+      tags: [Users]
+      summary: Create user (admin)
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: User created
+
+  /api/auth/:
+    get:
+      tags: [Users]
+      summary: Get all users (global admin)
+      responses:
+        '200':
+          description: List of users
+
+  /api/auth/users:
+    get:
+      tags: [Users]
+      summary: Get users for restaurant
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Restaurant users
+
+  /api/auth/users/assignable:
+    get:
+      tags: [Users]
+      summary: Get assignable users for restaurant
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/UserRoleQuery'
+      responses:
+        '200':
+          description: Assignable users
+
+  /api/auth/user:
+    get:
+      tags: [Users]
+      summary: Get current authenticated user
+      responses:
+        '200':
+          description: User profile
+
+  /api/auth/{userId}/restaurants:
+    get:
+      tags: [Users]
+      summary: Get restaurants assigned to user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User restaurants
+
+  /api/auth/{userId}:
+    put:
+      tags: [Users]
+      summary: Update user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: User updated
+    delete:
+      tags: [Users]
+      summary: Delete user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: User deleted
+
+  /api/auth/block/{userId}:
+    put:
+      tags: [Users]
+      summary: Block/unblock user
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: User block status updated
+
+  /api/auth/{userId}/assign:
+    post:
+      tags: [Users]
+      summary: Assign user to restaurant
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: User assigned
+
+  /api/auth/{userId}/unassign:
+    delete:
+      tags: [Users]
+      summary: Unassign user from restaurant
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: User unassigned
+
+  /api/auth/{userId}/notif:
+    put:
+      tags: [Users]
+      summary: Update user restaurant notification settings
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Notifications updated
+
+  # ─── RESTAURANTS ────────────────────────────────────────────
+  /api/restaurant/:
+    get:
+      tags: [Restaurants]
+      summary: Get mobile restaurants for user
+      responses:
+        '200':
+          description: Restaurant list
+    post:
+      tags: [Restaurants]
+      summary: Create restaurant (admin only)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Restaurant created
+
+  /api/restaurant/all:
+    get:
+      tags: [Restaurants]
+      summary: Get all restaurants (dashboard)
+      responses:
+        '200':
+          description: All restaurants
+
+  /api/restaurant/{restaurantId}:
+    get:
+      tags: [Restaurants]
+      summary: Get restaurant by ID
+      parameters:
+        - name: restaurantId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Restaurant details
+    put:
+      tags: [Restaurants]
+      summary: Update restaurant
+      parameters:
+        - name: restaurantId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                logo: { type: string, format: binary }
+      responses:
+        '200':
+          description: Restaurant updated
+    delete:
+      tags: [Restaurants]
+      summary: Delete restaurant (admin only)
+      parameters:
+        - name: restaurantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Restaurant deleted
+
+  /api/restaurant/{restaurantId}/users:
+    post:
+      tags: [Restaurants]
+      summary: Assign user to restaurant
+      parameters:
+        - name: restaurantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User assigned
+    delete:
+      tags: [Restaurants]
+      summary: Remove user from restaurant
+      parameters:
+        - name: restaurantId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User removed
+
+  # ─── CATEGORIES ───────────────────────────────────────────────
+  /api/category/:
+    get:
+      tags: [Categories]
+      summary: Get categories with products (kiosk/menu)
+      description: Returns full menu tree with products, options, ingredients populated
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Categories with nested products
+    post:
+      tags: [Categories]
+      summary: Create category
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name]
+              properties:
+                name: { type: string }
+                image: { type: string, format: binary }
+                mediaId: { type: string }
+      responses:
+        '201':
+          description: Category created
+
+  /api/category/all:
+    get:
+      tags: [Categories]
+      summary: Get all categories (dashboard list)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Category list with resolved image URLs
+
+  /api/category/position:
+    put:
+      tags: [Categories]
+      summary: Update category positions (reorder)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                positions:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      _id: { type: string }
+                      position: { type: number }
+      responses:
+        '200':
+          description: Positions updated
+
+  /api/category/update/{categoryId}:
+    put:
+      tags: [Categories]
+      summary: Update category
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                image: { type: string, format: binary }
+                mediaId: { type: string }
+      responses:
+        '200':
+          description: Category updated
+
+  /api/category/position/{categoryId}:
+    put:
+      tags: [Categories]
+      summary: Update product positions within category
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                positions:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '200':
+          description: Product positions updated
+
+  /api/category/{categoryId}:
+    delete:
+      tags: [Categories]
+      summary: Delete category
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Category deleted
+
+  # ─── PRODUCTS ─────────────────────────────────────────────────
+  /api/product/:
+    get:
+      tags: [Products]
+      summary: Get all products (dashboard)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: All products with categories
+    post:
+      tags: [Products]
+      summary: Add product to category
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+                price: { type: number }
+                categories: { type: string, description: JSON array of category IDs }
+                image: { type: string, format: binary }
+                mediaId: { type: string }
+                type: { type: string, description: JSON array of option type IDs }
+                choice: { type: string, enum: [seul, multiple] }
+      responses:
+        '201':
+          description: Product created
+
+  /api/product/seul:
+    get:
+      tags: [Products]
+      summary: Get standalone products (choice=seul)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Standalone products
+
+  /api/product/category/migrate:
+    post:
+      tags: [Products]
+      summary: Migrate products to a category
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Migration result
+
+  /api/product/{categoryId}:
+    get:
+      tags: [Products]
+      summary: Get products by category
+      parameters:
+        - name: categoryId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Products in category
+
+  /api/product/{productId}/{variationId}:
+    get:
+      tags: [Products]
+      summary: Get product detail with variation
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: variationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Product detail
+
+  /api/product/update/{productId}:
+    put:
+      tags: [Products]
+      summary: Update product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Product updated
+
+  /api/product/{productId}:
+    delete:
+      tags: [Products]
+      summary: Delete product
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Product deleted
+
+  /api/product/discount/{productId}:
+    put:
+      tags: [Products]
+      summary: Set product discount
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                discountValue: { type: number }
+                discountStartDate: { type: string, format: date-time }
+                discountEndDate: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Discount applied
+    delete:
+      tags: [Products]
+      summary: Remove product discount
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Discount removed
+
+  # ─── INGREDIENTS ──────────────────────────────────────────────
+  /api/ingrediant/:
+    get:
+      tags: [Ingredients]
+      summary: Get all ingredients
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Ingredient list
+    post:
+      tags: [Ingredients]
+      summary: Create ingredient
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price: { type: number }
+                suppPrice: { type: number }
+                image: { type: string, format: binary }
+                mediaId: { type: string }
+      responses:
+        '201':
+          description: Ingredient created
+
+  /api/ingrediant/update/{ingrediantId}:
+    put:
+      tags: [Ingredients]
+      summary: Update ingredient
+      parameters:
+        - name: ingrediantId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Ingredient updated
+
+  /api/ingrediant/{ingrediantId}:
+    delete:
+      tags: [Ingredients]
+      summary: Delete ingredient
+      parameters:
+        - name: ingrediantId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Ingredient deleted
+
+  # ─── TYPES (OPTIONS) ──────────────────────────────────────────
+  /api/type/:
+    get:
+      tags: [Types (Options)]
+      summary: Get all option types
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Option types with ingredients/products
+    post:
+      tags: [Types (Options)]
+      summary: Create option type
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                label: { type: string }
+                message: { type: string }
+                min: { type: number }
+                max: { type: number }
+                payment: { type: boolean }
+                selection: { type: boolean }
+                mode: { type: string, enum: [INGREDIENTS, PRODUCTS] }
+                ingredients: { type: array, items: { type: object } }
+                products: { type: array, items: { type: object } }
+      responses:
+        '201':
+          description: Option type created
+
+  /api/type/{typeId}:
+    get:
+      tags: [Types (Options)]
+      summary: Get option type by ID
+      parameters:
+        - name: typeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Option type detail
+    delete:
+      tags: [Types (Options)]
+      summary: Delete option type
+      parameters:
+        - name: typeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Option type deleted
+
+  /api/type/update/{typeId}:
+    put:
+      tags: [Types (Options)]
+      summary: Update option type
+      parameters:
+        - name: typeId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Option type updated
+
+  # ─── EXTRAS ───────────────────────────────────────────────────
+  /api/extra/:
+    get:
+      tags: [Extras]
+      summary: Get visible extras (kiosk)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Extra list
+    post:
+      tags: [Extras]
+      summary: Create extra
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price: { type: number }
+                image: { type: string, format: binary }
+      responses:
+        '201':
+          description: Extra created
+
+  /api/extra/all:
+    get:
+      tags: [Extras]
+      summary: Get all extras (dashboard)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: All extras
+
+  /api/extra/update/{extraId}:
+    put:
+      tags: [Extras]
+      summary: Update extra
+      parameters:
+        - name: extraId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Extra updated
+
+  /api/extra/{extraId}:
+    delete:
+      tags: [Extras]
+      summary: Delete extra
+      parameters:
+        - name: extraId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Extra deleted
+
+  # ─── DESSERTS ─────────────────────────────────────────────────
+  /api/desert/:
+    get:
+      tags: [Desserts]
+      summary: Get visible desserts (kiosk)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Dessert list
+    post:
+      tags: [Desserts]
+      summary: Create dessert
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price: { type: number }
+                image: { type: string, format: binary }
+      responses:
+        '201':
+          description: Dessert created
+
+  /api/desert/all:
+    get:
+      tags: [Desserts]
+      summary: Get all desserts (dashboard)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: All desserts
+
+  /api/desert/update/{desertId}:
+    put:
+      tags: [Desserts]
+      summary: Update dessert
+      parameters:
+        - name: desertId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Dessert updated
+
+  /api/desert/{desertId}:
+    delete:
+      tags: [Desserts]
+      summary: Delete dessert
+      parameters:
+        - name: desertId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Dessert deleted
+
+  # ─── DRINKS ─────────────────────────────────────────────────
+  /api/drink/:
+    get:
+      tags: [Drinks]
+      summary: Get visible drinks (kiosk)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Drink list
+    post:
+      tags: [Drinks]
+      summary: Create drink
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price: { type: number }
+                image: { type: string, format: binary }
+      responses:
+        '201':
+          description: Drink created
+
+  /api/drink/all:
+    get:
+      tags: [Drinks]
+      summary: Get all drinks (dashboard)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: All drinks
+
+  /api/drink/update/{drinkId}:
+    put:
+      tags: [Drinks]
+      summary: Update drink
+      parameters:
+        - name: drinkId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Drink updated
+
+  /api/drink/{drinkId}:
+    delete:
+      tags: [Drinks]
+      summary: Delete drink
+      parameters:
+        - name: drinkId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Drink deleted
+
+  # ─── VARIATIONS ───────────────────────────────────────────────
+  /api/variation/:
+    get:
+      tags: [Variations]
+      summary: Get all variations
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Variation list
+    post:
+      tags: [Variations]
+      summary: Create variation
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price: { type: number }
+      responses:
+        '201':
+          description: Variation created
+
+  /api/variation/{variationId}:
+    put:
+      tags: [Variations]
+      summary: Update variation
+      parameters:
+        - name: variationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Variation updated
+    delete:
+      tags: [Variations]
+      summary: Delete variation
+      parameters:
+        - name: variationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Variation deleted
+
+  # ─── TYPE VARIATIONS ──────────────────────────────────────────
+  /api/typeVariation/:
+    get:
+      tags: [Type Variations]
+      summary: Get all type variations
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Type variation list
+    post:
+      tags: [Type Variations]
+      summary: Create type variation
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Type variation created
+
+  /api/typeVariation/{typeVariationId}:
+    put:
+      tags: [Type Variations]
+      summary: Update type variation
+      parameters:
+        - name: typeVariationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      tags: [Type Variations]
+      summary: Delete type variation
+      parameters:
+        - name: typeVariationId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Deleted
+
+  # ─── ALLERGIES ────────────────────────────────────────────────
+  /api/allergy/:
+    get:
+      tags: [Allergies]
+      summary: Get all allergies
+      responses:
+        '200':
+          description: Allergy list
+    post:
+      tags: [Allergies]
+      summary: Create allergy (admin)
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                icon: { type: string, format: binary }
+                mediaId: { type: string }
+      responses:
+        '201':
+          description: Allergy created
+
+  /api/allergy/{allergyId}:
+    put:
+      tags: [Allergies]
+      summary: Update allergy
+      parameters:
+        - name: allergyId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Allergy updated
+    delete:
+      tags: [Allergies]
+      summary: Delete allergy
+      parameters:
+        - name: allergyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Allergy deleted
+
+  # ─── HISTORY (ORDERS) ─────────────────────────────────────────
+  /api/history/:
+    get:
+      tags: [History (Orders)]
+      summary: Get order history (paginated)
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+        - $ref: '#/components/parameters/AppTypeHeader'
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/SearchQuery'
+        - $ref: '#/components/parameters/HistoryFilterQuery'
+        - $ref: '#/components/parameters/HistoryStatusQuery'
+        - $ref: '#/components/parameters/PackIdQuery'
+        - $ref: '#/components/parameters/MethodIdQuery'
+        - $ref: '#/components/parameters/StartDateQuery'
+        - $ref: '#/components/parameters/EndDateQuery'
+      responses:
+        '200':
+          description: Order history list with pagination
+    post:
+      tags: [History (Orders)]
+      summary: Create new order
+      description: Triggers Socket.IO `new-history` and `status-update` events
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+        - $ref: '#/components/parameters/AppTypeHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Order created
+
+  /api/history/stats:
+    get:
+      tags: [History (Orders)]
+      summary: Get order statistics (revenue, counts, charts)
+      description: |
+        Returns dashboard statistics for the selected period.
+        Defaults to `filter=today` when no params are provided.
+
+        **Example:** `/api/history/stats?filter=today`
+      parameters:
+        - name: restaurant-id
+          in: header
+          required: true
+          schema:
+            type: string
+          description: MongoDB ObjectId of the restaurant
+        - name: app-type
+          in: header
+          schema:
+            type: string
+            enum: [mobile, borne, dashboard, cashier, delivery, kitchen]
+            example: dashboard
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [today, week, month, year, custom]
+            default: today
+          description: Date range preset
+        - name: startDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2026-06-01"
+          description: Start date — use with filter=custom
+        - name: endDate
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2026-06-15"
+          description: End date — use with filter=custom
+      responses:
+        '200':
+          description: Statistics (revenue, order counts, payment/pack breakdown)
+
+  /api/history/10:
+    get:
+      tags: [History (Orders)]
+      summary: Get last 10 orders
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Last 10 orders
+
+  /api/history/email:
+    post:
+      tags: [History (Orders)]
+      summary: Send order receipt by email
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Email sent
+
+  /api/history/CommandNumber:
+    post:
+      tags: [History (Orders)]
+      summary: Get next command number
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Next command number
+
+  /api/history/{id}:
+    put:
+      tags: [History (Orders)]
+      summary: Update order status
+      description: Triggers Socket.IO `status-update` event
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [enCours, terminee, annulee, echouee, enAttente, enRetard, remboursee]
+      responses:
+        '200':
+          description: Status updated
+
+  /api/history/{id}/print:
+    post:
+      tags: [History (Orders)]
+      summary: Manually trigger print for order
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Print triggered
+
+  /api/history/print/failed:
+    get:
+      tags: [History (Orders)]
+      summary: Get failed print jobs
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Failed prints
+
+  /api/history/print/{id}/retry:
+    post:
+      tags: [History (Orders)]
+      summary: Retry failed print job
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Retry queued
+
+  /api/history/print/retry-all:
+    post:
+      tags: [History (Orders)]
+      summary: Retry all failed print jobs
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: All retries queued
+
+  /api/history/print/stats:
+    get:
+      tags: [History (Orders)]
+      summary: Get print statistics
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Print stats
+
+  /api/history/print-job/latest:
+    get:
+      tags: [History (Orders)]
+      summary: Get latest print job
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Latest print job
+
+  # ─── STATUS HISTORY ───────────────────────────────────────────
+  /api/statusHistory/{historyId}:
+    get:
+      tags: [Status History]
+      summary: Get status change history for an order
+      parameters:
+        - name: historyId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Status history log
+
+  # ─── SETTINGS ─────────────────────────────────────────────────
+  /api/settings/:
+    get:
+      tags: [Settings]
+      summary: Get restaurant settings
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Settings object
+    put:
+      tags: [Settings]
+      summary: Update restaurant settings
+      description: Triggers Socket.IO `settings-updated` event
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                banner: { type: string, format: binary }
+                printerIp: { type: string }
+                printMode: { type: boolean }
+      responses:
+        '200':
+          description: Settings updated
+
+  /api/settings/currency:
+    get:
+      tags: [Settings]
+      summary: Get all currencies for restaurant
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Currency list
+    put:
+      tags: [Settings]
+      summary: Update default currency
+      description: Triggers Socket.IO `settings-updated` event
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                currencyId: { type: string }
+      responses:
+        '200':
+          description: Default currency updated
+
+  # ─── COUPONS ──────────────────────────────────────────────────
+  /api/coupon/:
+    get:
+      tags: [Coupons]
+      summary: Get all coupons
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Coupon list
+    post:
+      tags: [Coupons]
+      summary: Create coupon
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Coupon created
+
+  /api/coupon/categories:
+    get:
+      tags: [Coupons]
+      summary: Get categories available for coupons
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Category list
+
+  /api/coupon/validate:
+    post:
+      tags: [Coupons]
+      summary: Validate coupon code for order
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                code: { type: string }
+      responses:
+        '200':
+          description: Coupon valid
+
+  /api/coupon/{couponId}:
+    get:
+      tags: [Coupons]
+      summary: Get coupon by ID
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Coupon detail
+    put:
+      tags: [Coupons]
+      summary: Update coupon
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Coupon updated
+    delete:
+      tags: [Coupons]
+      summary: Delete coupon
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Coupon deleted
+
+  /api/coupon/{couponId}/toggle:
+    put:
+      tags: [Coupons]
+      summary: Toggle coupon active/inactive
+      parameters:
+        - name: couponId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Coupon toggled
+
+  # ─── MEDIA LIBRARY ────────────────────────────────────────────
+  /api/media/:
+    get:
+      tags: [Media Library]
+      summary: List media items (paginated)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/PageQuery'
+        - $ref: '#/components/parameters/LimitQuery'
+        - $ref: '#/components/parameters/MediaTargetTypeQuery'
+        - $ref: '#/components/parameters/MediaTargetIdQuery'
+        - $ref: '#/components/parameters/MediaSearchQuery'
+      responses:
+        '200':
+          description: Media list with totalCount
+    post:
+      tags: [Media Library]
+      summary: Upload media to library
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/MediaTypeQuery'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
+                targetType: { type: string }
+                targetId: { type: string }
+      responses:
+        '201':
+          description: Media uploaded
+
+  /api/media/types:
+    get:
+      tags: [Media Library]
+      summary: List available media target types
+      security: []
+      responses:
+        '200':
+          description: Target types
+
+  /api/media/{id}:
+    get:
+      tags: [Media Library]
+      summary: Get media by ID
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Media detail
+    put:
+      tags: [Media Library]
+      summary: Update media metadata
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Media updated
+    delete:
+      tags: [Media Library]
+      summary: Delete media
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Media deleted
+
+  # ─── CAROUSEL ─────────────────────────────────────────────────
+  /api/carousel/:
+    get:
+      tags: [Carousel]
+      summary: Get all carousel media
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Carousel items
+    post:
+      tags: [Carousel]
+      summary: Add carousel media
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '201':
+          description: Carousel item added
+
+  /api/carousel/stream:
+    get:
+      tags: [Carousel]
+      summary: Stream carousel media (kiosk display)
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Carousel stream data
+
+  /api/carousel/test-carousel:
+    get:
+      tags: [Carousel]
+      summary: Test carousel stream (hardcoded restaurant)
+      security: []
+      responses:
+        '200':
+          description: Test carousel data
+
+  /api/carousel/order:
+    put:
+      tags: [Carousel]
+      summary: Update carousel item order
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                order:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Order updated
+
+  /api/carousel/{id}:
+    delete:
+      tags: [Carousel]
+      summary: Delete carousel item
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Carousel item deleted
+
+  # ─── CURRENCY (GLOBAL) ────────────────────────────────────────
+  /api/currency/:
+    get:
+      tags: [Currency]
+      summary: Get all global currencies (admin)
+      responses:
+        '200':
+          description: Currency list
+    post:
+      tags: [Currency]
+      summary: Create global currency (admin)
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                symbol: { type: string }
+      responses:
+        '201':
+          description: Currency created
+
+  /api/currency/{currencyId}:
+    put:
+      tags: [Currency]
+      summary: Update currency
+      parameters:
+        - name: currencyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Currency updated
+    delete:
+      tags: [Currency]
+      summary: Delete currency
+      parameters:
+        - name: currencyId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Currency deleted
+
+  # ─── DATABASE EXPORT ──────────────────────────────────────────
+  /api/database/export:
+    get:
+      tags: [Database Export]
+      summary: Export restaurant data as JSON
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      responses:
+        '200':
+          description: Export data
+
+  /api/database/download:
+    get:
+      tags: [Database Export]
+      summary: Download restaurant export file
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+        - $ref: '#/components/parameters/ExportFileQuery'
+      responses:
+        '200':
+          description: Export file download
+
+  /api/database/import:
+    post:
+      tags: [Database Export]
+      summary: Import restaurant data from file
+      parameters:
+        - $ref: '#/components/parameters/RestaurantIdHeader'
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file: { type: string, format: binary }
+      responses:
+        '200':
+          description: Import result
+
+  # ─── PAYMENT ──────────────────────────────────────────────────
+  /api/payment/marketpay:
+    post:
+      tags: [Payment]
+      summary: Market Pay SSO authorization webhook
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: SSO processed
+
+  # ─── UTILITIES ────────────────────────────────────────────────
+  /api/images/remove-image-hashes:
+    post:
+      tags: [Utilities]
+      summary: Remove all image hashes from database
+      security: []
+      responses:
+        '200':
+          description: Hashes removed
+
+  # ─── STATIC FILES ─────────────────────────────────────────────
+  /api/uploads/{path}:
+    get:
+      tags: [Static Files]
+      summary: Serve uploaded files (legacy backend uploads)
+      security: []
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: File content
+
+  /api/uploads/carousel/{path}:
+    get:
+      tags: [Static Files]
+      summary: Serve carousel uploaded files
+      security: []
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Carousel file

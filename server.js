@@ -97,6 +97,10 @@ app.use((req, res, next) => {
 // });
 
 app.use(cookieParser());
+
+const { setupSwagger } = require("./config/swagger");
+setupSwagger(app);
+
 app.use("/api/auth", require("./routes/userRoutes"));
 app.use("/api/product", require("./routes/productRoutes"));
 app.use("/api/category", require("./routes/categoryRoutes"));
