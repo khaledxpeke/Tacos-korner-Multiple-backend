@@ -113,6 +113,7 @@
   "user.id_not_found": "Id non trouvée",
   "user.updated_successfully": "Utilisateur modifié avec succès",
   "user.invalid_update_role": "Le rôle doit être l'un des suivants : {{validRoles}}",
+  "user.cannot_change_own_role": "Vous ne pouvez pas modifier votre propre rôle",
   "user.update_error": "Erreur du serveur",
   "user.cannot_block_admin_manager": "Vous ne pouvez pas bloquer un administrateur ou une autre gérant",
   "user.blocked_successfully": "Utilisateur {{action}} avec succès",

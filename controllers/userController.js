@@ -452,8 +452,20 @@ exports.updateUser = async (req, res, next) => {
       return res.status(404).json({ message: req.t("user.not_found") });
     }
     const { fullName, email, role } = req.body;
+    const loggedInUserId = req.user?.user?._id?.toString();
     user.fullName = fullName || user.fullName;
     user.email = email || user.email;
+
+    if (
+      role &&
+      loggedInUserId &&
+      loggedInUserId === userId.toString() &&
+      role !== user.role
+    ) {
+      return res.status(403).json({
+        message: req.t("user.cannot_change_own_role"),
+      });
+    }
 
     if (role) {
       const allowedUpdateRoles = [USER_ROLES.MANAGER, USER_ROLES.WAITER];

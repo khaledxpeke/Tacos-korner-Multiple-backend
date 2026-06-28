@@ -113,6 +113,7 @@
   "user.id_not_found": "User ID not found",
   "user.updated_successfully": "User updated successfully",
   "user.invalid_update_role": "Role must be one of: {{validRoles}}",
+  "user.cannot_change_own_role": "You cannot change your own role",
   "user.update_error": "Server error during update",
   "user.cannot_block_admin_manager": "You cannot block an admin or another manager",
   "user.blocked_successfully": "User {{action}} successfully",
