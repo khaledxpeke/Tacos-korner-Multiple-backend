@@ -7,7 +7,6 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc && node scripts/copy-assets.js",
     "start": "node dist/server.js",
-    "start:legacy": "nodemon server.js",
     "typecheck": "tsc --noEmit"
   },
   "repository": {

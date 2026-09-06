@@ -38,16 +38,11 @@ export const createSocketServer = (server: HttpServer) => {
     socket.on("disconnect", () => {
       console.log(`Client disconnected: ${socket.id}`);
     });
+    void getHistoriesRT(socket);
     socket.on("join-restaurant", (data) => {
       const { restaurantId } = data;
       void socket.join(`restaurant-${restaurantId}`);
       console.log(`Socket ${socket.id} joined restaurant ${restaurantId}`);
-      // TODO: Legacy behavior preserved during TS migration.
-      void getHistoriesRT(socket, restaurantId);
-    });
-
-    socket.on("disconnect", () => {
-      console.log(`Client disconnected: ${socket.id}`);
     });
   });
 
