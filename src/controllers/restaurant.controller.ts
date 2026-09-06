@@ -126,6 +126,7 @@ export const createRestaurant = async (req: Request, res: Response) => {
           },
         ],
         defaultCurrency: "€",
+        defaultLanguage: "fr",
         maxExtras: 5,
         maxDessert: 5,
         maxDrink: 5,

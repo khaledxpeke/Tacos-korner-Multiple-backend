@@ -14,6 +14,7 @@ export interface IPack {
 
 export interface ISettings {
   defaultCurrency: string;
+  defaultLanguage: string;
   tva: number;
   maxExtras: number;
   maxDessert: number;
@@ -72,6 +73,12 @@ const settingsSchema = new Schema<ISettings>(
       type: String,
       uppercase: true,
       default: "€",
+    },
+    defaultLanguage: {
+      type: String,
+      lowercase: true,
+      enum: ["fr", "en", "ar"],
+      default: "fr",
     },
     tva: {
       type: Number,

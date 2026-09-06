@@ -153,6 +153,7 @@
   "settings.param_not_found": "لم يتم العثور على الإعدادات لهذا المطعم",
   "settings.currency_not_found": "العملة غير موجودة",
   "settings.currency_invalid": "عملة غير صالحة",
+  "settings.language_invalid": "لغة غير صالحة",
   "settings.currency_default_required": "العملة الافتراضية مطلوبة",
   "settings.currency_default_updated": "تم تحديث العملة الافتراضية",
   "settings.currency_last_delete_error": "لا يمكن حذف العملة الأخيرة. أضف عملة أخرى أولاً.",

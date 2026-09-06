@@ -154,6 +154,7 @@
   "settings.param_not_found": "Settings not found for this restaurant",
   "settings.currency_not_found": "Currency not found",
   "settings.currency_invalid": "Invalid currency",
+  "settings.language_invalid": "Invalid language",
   "settings.currency_default_required": "Default currency is required",
   "settings.currency_default_updated": "Default currency updated",
   "settings.currency_last_delete_error": "Cannot delete the last currency. Add another first.",

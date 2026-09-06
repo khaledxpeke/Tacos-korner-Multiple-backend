@@ -21,7 +21,6 @@ import {
 } from "../services/history-realtime";
 import type {
   AddHistoryBody,
-  HistoryListFilter,
   HistoryListQuery,
   PdfOrderData,
   RestaurantWithLogo,
@@ -91,6 +90,7 @@ export const addHistory = async (req: Request, res: Response) => {
         .json({ message: req.t("history.payment_method_not_found") });
     }
     const tva = settings?.tva || 0;
+    const orderCurrency = settings.defaultCurrency || currency || "";
     const history = await new History({
       product: products.map((product) => {
         const productTva =
@@ -125,7 +125,7 @@ export const addHistory = async (req: Request, res: Response) => {
         };
       }),
       name,
-      currency,
+      currency: orderCurrency,
       tva,
       discountValue: discountValue || 0,
       couponId: couponId || null,
@@ -235,59 +235,66 @@ export const getHistory = async (req: Request, res: Response) => {
       endDate,
     } = req.query as HistoryListQuery;
     const skip = (Number(page) - 1) * parseInt(String(limit));
-    const query: HistoryListFilter = { restaurantId };
+    const query: Record<string, unknown> = { restaurantId };
 
-    if (search && search.trim() !== "") {
-      const searchRegex = new RegExp(search, "i");
+    if (search && String(search).trim() !== "") {
+      const searchRegex = new RegExp(String(search).trim(), "i");
       query.$or = [
         { name: { $regex: searchRegex } },
-        { commandNumber: isNaN(parseInt(search)) ? -1 : parseInt(search) },
+        { commandNumber: isNaN(parseInt(String(search), 10)) ? -1 : parseInt(String(search), 10) },
       ];
     }
     if (status) {
       query.status = status;
     }
 
-    if (packId) query["pack._id"] = packId;
+    const asIdOrLabel = (field: "pack" | "method", value: unknown) => {
+      const id = String(value || "").trim();
+      if (!id) return;
+      query.$and = [
+        ...((query.$and as Array<Record<string, unknown>>) || []),
+        {
+          $or: [
+            { [`${field}._id`]: id },
+            { [`${field}.label`]: id },
+          ],
+        },
+      ];
+    };
+    asIdOrLabel("pack", packId);
+    asIdOrLabel("method", methodId);
 
-    if (methodId) query["method._id"] = methodId;
-
-    // TODO: Legacy behavior preserved during TS migration.
-    const now = dayjs().tz("Europe/Paris").format() as unknown as Date;
-
+    const now = dayjs().tz("Europe/Paris");
     if (filter === "today") {
-      const start = new Date(now);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(now);
-      end.setHours(23, 59, 59, 999);
-      query.boughtAt = { $gte: start, $lte: end };
+      query.boughtAt = {
+        $gte: now.startOf("day").toDate(),
+        $lte: now.endOf("day").toDate(),
+      };
     } else if (filter === "week") {
-      const day = now.getDay() || 7;
-      const start = new Date(now);
-      start.setDate(now.getDate() - day + 1);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(start);
-      end.setDate(start.getDate() + 6);
-      end.setHours(23, 59, 59, 999);
-      query.boughtAt = { $gte: start, $lte: end };
+      const monday =
+        now.day() === 0 ? now.subtract(6, "day") : now.subtract(now.day() - 1, "day");
+      query.boughtAt = {
+        $gte: monday.startOf("day").toDate(),
+        $lte: monday.add(6, "day").endOf("day").toDate(),
+      };
     } else if (filter === "month") {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      end.setHours(23, 59, 59, 999);
-      query.boughtAt = { $gte: start, $lte: end };
+      query.boughtAt = {
+        $gte: now.startOf("month").toDate(),
+        $lte: now.endOf("month").toDate(),
+      };
     } else if (filter === "custom" && (startDate || endDate)) {
-      query.boughtAt = {};
+      const boughtAt: { $gte?: Date; $lte?: Date } = {};
       if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
-        query.boughtAt.$gte = start;
+        boughtAt.$gte = dayjs(startDate as string).tz("Europe/Paris").startOf("day").toDate();
       }
       if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
-        query.boughtAt.$lte = end;
+        boughtAt.$lte = dayjs(endDate as string).tz("Europe/Paris").endOf("day").toDate();
       }
+      query.boughtAt = boughtAt;
     }
+    const restaurantSettings = await Settings.findOne({ restaurantId }).select(
+      "defaultCurrency"
+    );
     const histories = await History.find(query)
       .sort({ boughtAt: -1 })
       .skip(skip)
@@ -355,6 +362,7 @@ export const getHistory = async (req: Request, res: Response) => {
 
       return {
         ...history,
+        currency: history.currency || restaurantSettings?.defaultCurrency || "",
         tvaAmount: parseFloat(tvaAmount.toFixed(2)),
         totalHT: parseFloat(totalHT.toFixed(2)),
         boughtAt: formattedBoughtAt,

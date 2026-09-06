@@ -158,7 +158,8 @@ export const getHistoriesRT = async (socket: Socket, restaurantId?: string) => {
           {
             $lookup: {
               from: "settings",
-              pipeline: [{ $limit: 1 }],
+              localField: "restaurantId",
+              foreignField: "restaurantId",
               as: "settingsData",
             },
           },
@@ -282,7 +283,14 @@ export const getHistoriesRT = async (socket: Socket, restaurantId?: string) => {
                     tva: { $first: "$tva" },
                     // tvaRate: { $first: "$tvaRate" },
                     boughtAt: { $first: "$boughtAt" },
-                    currency: { $first: "$settingsData.defaultCurrency" },
+                    currency: {
+                      $first: {
+                        $ifNull: [
+                          "$currency",
+                          "$settingsData.defaultCurrency",
+                        ],
+                      },
+                    },
                     commandNumber: { $first: "$commandNumber" },
                     status: { $first: "$status" },
                     coupon: { $first: "$couponDetails" },

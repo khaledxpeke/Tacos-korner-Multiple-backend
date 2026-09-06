@@ -154,6 +154,7 @@
   "settings.param_not_found": "Paramètre non trouvée pour ce restaurant",
   "settings.currency_not_found": "Devise non trouvée",
   "settings.currency_invalid": "Devise invalide",
+  "settings.language_invalid": "Langue invalide",
   "settings.currency_default_required": "La devise par défaut est requise",
   "settings.currency_default_updated": "Devise par défaut mise à jour",
   "settings.currency_last_delete_error": "Impossible de supprimer la dernière devise. Ajoutez-en une autre d'abord.",

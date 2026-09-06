@@ -77,6 +77,7 @@ export const getSettings = async (req: Request, res: Response) => {
           },
         ],
         defaultCurrency: "€",
+        defaultLanguage: "fr",
         maxExtras: 5,
         maxDessert: 5,
         maxDrink: 5,
@@ -114,6 +115,9 @@ export const getSettings = async (req: Request, res: Response) => {
     };
     settingsObject.isPasswordSet = !!settingsObject.emailPass;
     delete settingsObject.emailPass;
+    if (!settingsObject.defaultLanguage) {
+      settingsObject.defaultLanguage = "fr";
+    }
 
     return res.status(200).json(settingsObject);
   } catch (error) {
@@ -247,6 +251,7 @@ export const updateSettings = async (req: Request, res: Response) => {
         emailName,
         printMode,
         printerIp,
+        defaultLanguage,
       } = req.body as {
         tva?: number;
         maxExtras?: number;
@@ -266,6 +271,7 @@ export const updateSettings = async (req: Request, res: Response) => {
         emailName?: string;
         printMode?: boolean | string;
         printerIp?: string;
+        defaultLanguage?: string;
       };
 
       if (tva !== undefined) {
@@ -411,6 +417,15 @@ export const updateSettings = async (req: Request, res: Response) => {
       }
       if (printerIp) {
         settings.printerIp = printerIp || settings.printerIp;
+      }
+      if (defaultLanguage) {
+        const language = String(defaultLanguage).toLowerCase();
+        if (!["fr", "en", "ar"].includes(language)) {
+          return res.status(400).json({
+            message: req.t("settings.language_invalid"),
+          });
+        }
+        settings.defaultLanguage = language;
       }
 
       await settings.save();
