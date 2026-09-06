@@ -17,7 +17,7 @@ import { createTransporter } from "../services/mail.service";
 import { admin } from "../services/firebase.service";
 import { env } from "../config/environment";
 import { paths, PROJECT_ROOT } from "../config/paths";
-import { errorMessage } from "../utils/helpers";
+import { errorMessage, findActiveSettingOption } from "../utils/helpers";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -824,19 +824,29 @@ export const addHistory = async (req: Request, res: Response) => {
   const { restaurantId } = req;
   try {
     const restaurant = await Restaurant.findById(restaurantId);
-    const settings = await Settings.findOne({ restaurantId });
+    if (!restaurant) {
+      return res.status(404).json({ message: req.t("restaurant.not_found") });
+    }
+
+    let settings = restaurant.settings
+      ? await Settings.findById(restaurant.settings)
+      : null;
+    if (!settings) {
+      settings = await Settings.findOne({ restaurantId });
+    }
+    if (!settings) {
+      return res.status(404).json({ message: req.t("settings.param_not_found") });
+    }
 
     const now = dayjs().tz("Europe/Paris").format();
-    const methodExists = settings!.method.find(
-      (m) => m._id.toString() === method
-    );
-    const packExists = settings!.pack.find((p) => p._id.toString() === pack);
-    if (!packExists || !packExists.isActive) {
+    const packExists = findActiveSettingOption(settings.pack, pack);
+    const methodExists = findActiveSettingOption(settings.method, method);
+    if (!packExists) {
       return res
         .status(404)
         .json({ message: req.t("history.delivery_mode_not_found") });
     }
-    if (!methodExists || !methodExists.isActive) {
+    if (!methodExists) {
       return res
         .status(404)
         .json({ message: req.t("history.payment_method_not_found") });
