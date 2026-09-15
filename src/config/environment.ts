@@ -33,6 +33,10 @@ export const env = {
   marketPayClientId: optional("MARKETPAY_CLIENT_ID"),
   marketPayMerchantId: optional("MARKETPAY_MERCHANT_ID"),
   marketPayDebug: process.env.MARKETPAY_DEBUG === "true",
+  allowedOrigins: optional("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3006")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
 };
 
 export type Env = typeof env;

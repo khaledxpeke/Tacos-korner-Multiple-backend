@@ -105,7 +105,7 @@ export const addMedia = async (req: Request, res: Response) => {
 
 export const listMedia = async (req: Request, res: Response) => {
   try {
-    const { targetType, targetId, q, limit = 50, page = 1 } = req.query;
+    const { targetType, targetId, q, limit = 50, page = 1, locateId, locateUrl } = req.query;
 
     const filter: FilterQuery<IMedia> = { scope: "shared" };
 
@@ -129,15 +129,44 @@ export const listMedia = async (req: Request, res: Response) => {
       filter.filename = new RegExp(query, "i");
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const pageSize = Number(limit);
+    let currentPage = Number(page);
+    let locatedMediaId: string | null = null;
+
+    // When the caller already has an existing image selected (locateId, or
+    // its url as a fallback when only the raw path is known), resolve which
+    // page it falls on within this same filter/sort so the picker can open
+    // directly there instead of always resetting to page 1.
+    if (locateId || locateUrl) {
+      const target = locateId
+        ? await Media.findOne({ _id: locateId, ...filter })
+        : await Media.findOne({
+            ...filter,
+            url: new RegExp(
+              `${String(locateUrl).replace(/\\/g, "/").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+              "i"
+            ),
+          });
+
+      if (target) {
+        locatedMediaId = target._id.toString();
+        const precedingCount = await Media.countDocuments({
+          ...filter,
+          createdAt: { $gt: target.createdAt },
+        });
+        currentPage = Math.floor(precedingCount / pageSize) + 1;
+      }
+    }
+
+    const skip = (currentPage - 1) * pageSize;
     const totalCount = await Media.countDocuments(filter);
     const medias = await Media.find(filter)
       .sort({ createdAt: -1 })
-      .limit(Number(limit))
+      .limit(pageSize)
       .skip(skip)
       .populate("uploadedBy", "name");
 
-    res.status(200).json({ medias, totalCount });
+    res.status(200).json({ medias, totalCount, page: currentPage, locatedMediaId });
   } catch (err) {
     res.status(500).json({ message: errorMessage(err) });
   }
@@ -169,7 +198,7 @@ export const getMediaById = async (req: Request, res: Response) => {
       "name"
     );
     if (!media) {
-      return res.status(404).json({ message: "Media not found" });
+      return res.status(404).json({ message: req.t("media.not_found") });
     }
     res.json(media);
   } catch (err) {
@@ -191,7 +220,7 @@ export const updateMedia = async (req: Request, res: Response) => {
     );
 
     if (!media) {
-      return res.status(404).json({ message: "Media not found" });
+      return res.status(404).json({ message: req.t("media.not_found") });
     }
     res.json(media);
   } catch (err) {
@@ -203,7 +232,7 @@ export const deleteMedia = async (req: Request, res: Response) => {
   try {
     const media = await Media.findById(req.params.id);
     if (!media) {
-      return res.status(404).json({ message: "Media not found" });
+      return res.status(404).json({ message: req.t("media.not_found") });
     }
     if (media.scope === "shared") {
       const usageCount = await Promise.all([

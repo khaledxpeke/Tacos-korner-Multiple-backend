@@ -112,6 +112,7 @@ export const getSettings = async (req: Request, res: Response) => {
     const settingsObject = settings.toObject() as ReturnType<SettingsDocument["toObject"]> & {
       isPasswordSet?: boolean;
       emailPass?: string;
+      defaultLanguage?: string;
     };
     settingsObject.isPasswordSet = !!settingsObject.emailPass;
     delete settingsObject.emailPass;

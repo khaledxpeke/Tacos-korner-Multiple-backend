@@ -1,11 +1,14 @@
 import express, { Application } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import helmet from "helmet";
 import path from "path";
 import { paths } from "./config/paths";
+import { env } from "./config/environment";
 import { initI18n, i18nMiddleware } from "./config/i18n";
 import { setupSwagger } from "./config/swagger";
 import { roleAuth } from "./middleware/auth.middleware";
+import { csrfProtection } from "./middleware/csrf.middleware";
 import { notFoundMiddleware, errorMiddleware } from "./middleware/error.middleware";
 import { USER_ROLES } from "./enum/constants";
 import authRoutes from "./routes/auth.routes";
@@ -36,8 +39,22 @@ export const createApp = (): Application => {
   (app as unknown as { timeout: number }).timeout = 300000;
 
   app.use(
+    helmet({
+      // Uploaded images/videos are served from this API and loaded
+      // cross-origin by the dashboard and customer-facing apps (different
+      // ports/hosts). Helmet's default "same-origin" CORP would block that.
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    })
+  );
+
+  app.use(
     cors({
-      origin: "*",
+      origin: (origin, callback) => {
+        if (!origin || env.allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error(`Origin ${origin} is not allowed by CORS`));
+      },
       credentials: true,
       exposedHeaders: ["Content-Type", "Authorization"],
     })
@@ -56,6 +73,7 @@ export const createApp = (): Application => {
   });
 
   app.use(cookieParser());
+  app.use(csrfProtection);
   setupSwagger(app);
 
   app.use("/api/auth", authRoutes);

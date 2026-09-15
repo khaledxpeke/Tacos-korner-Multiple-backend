@@ -22,7 +22,7 @@ export const handleSSOPermission = async (req: Request, res: Response) => {
   };
 
   if (!userToken || !operationMetadata || !operationMetadata.ClientID) {
-    return res.status(400).json({ success: false, message: "Missing required SSO data." });
+    return res.status(400).json({ success: false, message: req.t("marketpay.missing_sso_data") });
   }
 
   const clientIdFromRequest = operationMetadata.ClientID;
@@ -38,7 +38,7 @@ export const handleSSOPermission = async (req: Request, res: Response) => {
       String(env.marketPayClientId || "").trim().toLowerCase()
   ) {
     console.error("SSO Request - Invalid ClientID:", clientIdFromRequest);
-    return res.status(401).json({ success: false, message: "Unauthorized: Invalid Client ID." });
+    return res.status(401).json({ success: false, message: req.t("marketpay.invalid_client_id") });
   }
 
   let user;

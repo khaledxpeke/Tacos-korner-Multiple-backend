@@ -3,11 +3,11 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 import { Desert } from "../models/desert.model";
-import multerStorage from "../middleware/multerStorage";
+import multerStorage, { imageFileFilter, imageFileLimits } from "../middleware/multerStorage";
 import { PROJECT_ROOT } from "../config/paths";
 import { errorMessage } from "../utils/helpers";
 
-const upload = multer({ storage: multerStorage });
+const upload = multer({ storage: multerStorage, fileFilter: imageFileFilter, limits: imageFileLimits });
 
 export const addDesert = async (req: Request, res: Response) => {
   req.uploadTarget = "dessert";

@@ -103,10 +103,31 @@ export const createIngredient = async (req: Request, res: Response, next: NextFu
 export const getAllIngrediants = async (req: Request, res: Response) => {
   try {
     const { restaurantId } = req;
+    const { page, limit, search } = req.query as {
+      page?: string;
+      limit?: string;
+      search?: string;
+    };
 
-    const ingrediants = await Ingrediant.aggregate([
-      { $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId as string) } },
+    const parsedPage = parseInt(String(page), 10);
+    const parsedLimit = parseInt(String(limit), 10);
+    const isPaginated =
+      (page !== undefined && !isNaN(parsedPage) && parsedPage > 0) ||
+      (limit !== undefined && !isNaN(parsedLimit) && parsedLimit > 0);
 
+    const currentPage = isPaginated && parsedPage > 0 ? parsedPage : 1;
+    const pageSize = isPaginated && parsedLimit > 0 ? parsedLimit : 10;
+    const skip = (currentPage - 1) * pageSize;
+
+    const matchStage: Record<string, unknown> = {
+      restaurantId: new mongoose.Types.ObjectId(restaurantId as string),
+    };
+    if (search && String(search).trim() !== "") {
+      matchStage.name = { $regex: new RegExp(String(search).trim(), "i") };
+    }
+
+    const basePipeline: mongoose.PipelineStage[] = [
+      { $match: matchStage },
       {
         $lookup: {
           from: "media",
@@ -121,7 +142,6 @@ export const getAllIngrediants = async (req: Request, res: Response) => {
           image: { $arrayElemAt: ["$image.url", 0] },
         },
       },
-
       {
         $lookup: {
           from: "types",
@@ -143,9 +163,30 @@ export const getAllIngrediants = async (req: Request, res: Response) => {
         },
       },
       { $sort: { createdAt: -1 } },
+    ];
+
+    if (!isPaginated) {
+      const ingrediants = await Ingrediant.aggregate(basePipeline);
+      return res.status(200).json(ingrediants);
+    }
+
+    const [ingrediants, totalRecords] = await Promise.all([
+      Ingrediant.aggregate([
+        ...basePipeline,
+        { $skip: skip },
+        { $limit: pageSize },
+      ]),
+      Ingrediant.countDocuments(matchStage),
     ]);
 
-    return res.status(200).json(ingrediants);
+    return res.status(200).json({
+      ingrediants,
+      pagination: {
+        currentPage,
+        totalPages: Math.ceil(totalRecords / pageSize),
+        totalRecords,
+      },
+    });
   } catch (error) {
     return res.status(400).json({
       message: req.t("ingrediant.not_found"),

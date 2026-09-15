@@ -52,7 +52,7 @@ export const createRestaurant = async (req: Request, res: Response) => {
     if (err) {
       return res
         .status(400)
-        .json({ message: "Image upload failed", error: errorMessage(err) });
+        .json({ message: req.t("errors.image_upload_failed"), error: errorMessage(err) });
     }
     let tempFilePath: string | null = null;
     try {

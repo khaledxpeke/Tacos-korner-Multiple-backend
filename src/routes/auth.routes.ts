@@ -1,9 +1,11 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import {
   register,
   login,
   getUsers,
   logout,
+  me,
   getUserbyId,
   blockUser,
   updateUser,
@@ -17,13 +19,23 @@ import {
   createUser,
 } from "../controllers/user.controller";
 import { USER_ROLES } from "../enum/constants";
-import { roleAuth, restaurantAuth } from "../middleware/auth.middleware";
+import { roleAuth, restaurantAuth, authenticate } from "../middleware/auth.middleware";
 
 const router = Router();
 
-router.post("/register", restaurantAuth(), register);
-router.post("/create", createUser);
-router.post("/login", login);
+// Limit brute-force/credential-stuffing attempts against auth endpoints.
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later." },
+});
+
+router.post("/register", authRateLimiter, restaurantAuth(), register);
+router.post("/create", authRateLimiter, createUser);
+router.post("/login", authRateLimiter, login);
+router.get("/me", authenticate(), me);
 router.post(
   "/:userId/assign",
   restaurantAuth(),

@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import mongoose from "mongoose";
+import mongoose, { PipelineStage } from "mongoose";
 import { Category } from "../models/category.model";
 import { Product } from "../models/product.model";
 import { resolveMediaFromRequest } from "../services/media.service";
@@ -175,7 +175,28 @@ export const createCategory = async (req: Request, res: Response) => {
 export const getAllCategories = async (req: Request, res: Response) => {
   try {
     const { restaurantId } = req;
-    const categories = await Category.find({ restaurantId })
+    const { page, limit, search } = req.query as {
+      page?: string;
+      limit?: string;
+      search?: string;
+    };
+
+    const parsedPage = parseInt(String(page), 10);
+    const parsedLimit = parseInt(String(limit), 10);
+    const isPaginated =
+      (page !== undefined && !isNaN(parsedPage) && parsedPage > 0) ||
+      (limit !== undefined && !isNaN(parsedLimit) && parsedLimit > 0);
+
+    const currentPage = isPaginated && parsedPage > 0 ? parsedPage : 1;
+    const pageSize = isPaginated && parsedLimit > 0 ? parsedLimit : 10;
+    const skip = (currentPage - 1) * pageSize;
+
+    const query: Record<string, unknown> = { restaurantId };
+    if (search && String(search).trim() !== "") {
+      query.name = { $regex: new RegExp(String(search).trim(), "i") };
+    }
+
+    const categories = await Category.find(query)
       .sort("position")
       .populate({
         path: "image",
@@ -426,7 +447,21 @@ export const getAllCategories = async (req: Request, res: Response) => {
       (category) => category.products && category.products.length > 0
     );
 
-    res.status(200).json(finalCategories);
+    if (!isPaginated) {
+      return res.status(200).json(finalCategories);
+    }
+
+    const totalRecords = finalCategories.length;
+    const paginatedCategories = finalCategories.slice(skip, skip + pageSize);
+
+    res.status(200).json({
+      categories: paginatedCategories,
+      pagination: {
+        currentPage,
+        totalPages: Math.ceil(totalRecords / pageSize),
+        totalRecords,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: errorMessage(error) });
   }
@@ -435,9 +470,31 @@ export const getAllCategories = async (req: Request, res: Response) => {
 export const getAllCategory = async (req: Request, res: Response) => {
   try {
     const { restaurantId } = req;
+    const { page, limit, search } = req.query as {
+      page?: string;
+      limit?: string;
+      search?: string;
+    };
 
-    const categories = await Category.aggregate([
-      { $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId as string) } },
+    const parsedPage = parseInt(String(page), 10);
+    const parsedLimit = parseInt(String(limit), 10);
+    const isPaginated =
+      (page !== undefined && !isNaN(parsedPage) && parsedPage > 0) ||
+      (limit !== undefined && !isNaN(parsedLimit) && parsedLimit > 0);
+
+    const currentPage = isPaginated && parsedPage > 0 ? parsedPage : 1;
+    const pageSize = isPaginated && parsedLimit > 0 ? parsedLimit : 10;
+    const skip = (currentPage - 1) * pageSize;
+
+    const matchStage: Record<string, unknown> = {
+      restaurantId: new mongoose.Types.ObjectId(restaurantId as string),
+    };
+    if (search && String(search).trim() !== "") {
+      matchStage.name = { $regex: new RegExp(String(search).trim(), "i") };
+    }
+
+    const basePipeline: PipelineStage[] = [
+      { $match: matchStage },
       { $sort: { position: 1 } },
       {
         $lookup: {
@@ -460,9 +517,30 @@ export const getAllCategory = async (req: Request, res: Response) => {
           image: { $arrayElemAt: ["$image.url", 0] },
         },
       },
+    ];
+
+    if (!isPaginated) {
+      const categories = await Category.aggregate(basePipeline);
+      return res.status(200).json(categories);
+    }
+
+    const [categories, totalRecords] = await Promise.all([
+      Category.aggregate([
+        ...basePipeline,
+        { $skip: skip },
+        { $limit: pageSize },
+      ]),
+      Category.countDocuments(matchStage),
     ]);
 
-    res.status(200).json(categories);
+    res.status(200).json({
+      categories,
+      pagination: {
+        currentPage,
+        totalPages: Math.ceil(totalRecords / pageSize),
+        totalRecords,
+      },
+    });
   } catch (error) {
     res.status(500).json({ message: errorMessage(error) });
   }

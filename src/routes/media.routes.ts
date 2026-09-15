@@ -1,13 +1,34 @@
 import { Router } from "express";
 import * as mediaController from "../controllers/media.controller";
+import { restaurantAuth, roleAuth } from "../middleware/auth.middleware";
+import { USER_ROLES } from "../enum/constants";
 
 const router = Router();
 
+// Reads stay open: uploaded images/videos are displayed unauthenticated in
+// public-facing menus/carousels, so they can't require a session.
 router.get("/", mediaController.listMedia);
 router.get("/types", mediaController.listTargetTypes);
-router.post("/upload", mediaController.addMedia);
 router.get("/:id", mediaController.getMediaById);
-router.put("/:id", mediaController.updateMedia);
-router.delete("/:id", mediaController.deleteMedia);
+
+// Writes require an authenticated staff member for a specific restaurant.
+router.post(
+  "/upload",
+  restaurantAuth(),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
+  mediaController.addMedia
+);
+router.put(
+  "/:id",
+  restaurantAuth(),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
+  mediaController.updateMedia
+);
+router.delete(
+  "/:id",
+  restaurantAuth(),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
+  mediaController.deleteMedia
+);
 
 export default router;

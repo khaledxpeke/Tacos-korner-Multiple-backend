@@ -8,6 +8,14 @@ import { USER_ROLES, APP_TYPES, type UserRole } from "../enum/constants";
 import { User, type IUser, type IUserRestaurant, type UserDocument } from "../models/user.model";
 import { errorMessage } from "../utils/helpers";
 
+// fcmToken is an internal push-notification device token — it has no
+// reason to reach the browser, so strip it before a user object goes into
+// any client-facing response (login, /me).
+const toClientSafeUser = <T extends { fcmToken?: unknown }>(user: T) => {
+  const { fcmToken: _fcmToken, ...safeUser } = user;
+  return safeUser;
+};
+
 interface NewUserPayload {
   email: string;
   password: string;
@@ -104,14 +112,19 @@ export const register = async (req: Request, res: Response, _next: NextFunction)
           const token = jwt.sign({ id: createdUser._id, email }, env.jwtSecret, {
             expiresIn: maxAge,
           });
+          const isProd = process.env.NODE_ENV === "production";
           res.cookie("jwt", token, {
             httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
+            path: "/",
             maxAge: maxAge * 1000,
           });
+          const isDashboard = req.headers["app-type"] === APP_TYPES.DASHBOARD;
           res.status(201).json({
             user: createdUser,
             userId: createdUser.userId,
-            token: token,
+            ...(isDashboard ? {} : { token: token }),
           });
         })
         .catch((error: unknown) =>
@@ -165,14 +178,19 @@ export const createUser = async (req: Request, res: Response, _next: NextFunctio
           const token = jwt.sign({ id: createdUser._id, email }, env.jwtSecret, {
             expiresIn: maxAge,
           });
+          const isProd = process.env.NODE_ENV === "production";
           res.cookie("jwt", token, {
             httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
+            path: "/",
             maxAge: maxAge * 1000,
           });
+          const isDashboard = req.headers["app-type"] === APP_TYPES.DASHBOARD;
           res.status(201).json({
             user: createdUser,
             userId: createdUser.userId,
-            token: token,
+            ...(isDashboard ? {} : { token: token }),
           });
         })
         .catch((error: unknown) =>
@@ -316,14 +334,24 @@ export const login = async (req: Request, res: Response, _next: NextFunction) =>
           const token = jwt.sign(tokenPayload, env.jwtSecret, {
             expiresIn: maxAge, // 8hrs in sec
           });
-          // TODO: Legacy behavior preserved during TS migration.
-          console.log(token);
+          const isProd = process.env.NODE_ENV === "production";
           res.cookie("jwt", token, {
             httpOnly: true,
+            secure: isProd,
+            sameSite: isProd ? "none" : "lax",
+            path: "/",
             maxAge: maxAge * 1000, // 8hrs in ms
           });
+
+          // The dashboard relies solely on the httpOnly cookie above and
+          // never needs the raw token; other app types (mobile, kiosk,
+          // cashier, ...) still authenticate with a bearer token, so keep
+          // returning it for them.
+          const isDashboard = appType === APP_TYPES.DASHBOARD;
           res.status(201).json({
-            token: token,
+            ...(isDashboard
+              ? { user: toClientSafeUser(tokenPayload.user) }
+              : { token: token }),
             userId: user.userId,
             marketPayToken: marketPayTokenToSend,
           });
@@ -631,7 +659,21 @@ export const logout = async (req: Request, res: Response) => {
   const user = await User.findById(userId);
   user!.fcmToken = "";
   await user!.save();
+  const isProd = process.env.NODE_ENV === "production";
+  res.clearCookie("jwt", {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    path: "/",
+  });
   res.status(200).json({ message: req.t("user.token_updated") });
+};
+
+// Tells the caller who they are, based solely on the verified token
+// (cookie or bearer header) — the dashboard uses this to restore a session
+// on page load, since it can't read the httpOnly cookie itself to decode it.
+export const me = async (req: Request, res: Response) => {
+  res.status(200).json({ user: toClientSafeUser(req.user!.user) });
 };
 
 export const getUserRestaurants = async (req: Request, res: Response) => {

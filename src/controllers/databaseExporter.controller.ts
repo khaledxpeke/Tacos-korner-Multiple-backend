@@ -90,7 +90,7 @@ export const exportRestaurantData = async (req: Request, res: Response) => {
   if (!restaurantId)
     return res
       .status(400)
-      .json({ message: "Restaurant ID missing from middleware." });
+      .json({ message: req.t("database.restaurant_id_missing") });
 
   try {
     const exportDataRaw: Record<string, unknown[]> = {};
@@ -119,7 +119,7 @@ export const exportRestaurantData = async (req: Request, res: Response) => {
     if (Object.keys(exportDataRaw).length === 0)
       return res
         .status(404)
-        .json({ message: "No data found for this restaurant." });
+        .json({ message: req.t("database.no_data_found") });
 
     const exportFolder = path.join(PROJECT_ROOT, "data", "exports");
     if (!fs.existsSync(exportFolder))
@@ -144,7 +144,7 @@ export const exportRestaurantData = async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: "Export files generated successfully.",
+      message: req.t("database.export_success"),
       files: [
         { type: "raw", filename: rawFileName, size: rawStat.size, docCounts: counts.raw },
         { type: "cloned", filename: clonedFileName, size: clonedStat.size, docCounts: counts.cloned },
@@ -154,7 +154,7 @@ export const exportRestaurantData = async (req: Request, res: Response) => {
     console.error("Export error:", err);
     return res
       .status(500)
-      .json({ success: false, message: "Error exporting data", error: errorMessage(err) });
+      .json({ success: false, message: req.t("database.export_error"), error: errorMessage(err) });
   }
 };
 
@@ -163,27 +163,27 @@ export const downloadRestaurantExport = async (req: Request, res: Response) => {
   const { file } = req.query;
 
   if (!restaurantId) {
-    return res.status(400).json({ message: "Restaurant ID missing from middleware." });
+    return res.status(400).json({ message: req.t("database.restaurant_id_missing") });
   }
   if (!file) {
-    return res.status(400).json({ message: "file query parameter is required." });
+    return res.status(400).json({ message: req.t("database.file_param_required") });
   }
 
   const fileName = typeof file === "string" ? file : String(file);
   const safeRegex = new RegExp(`^restaurant_${restaurantId}_(raw|cloned)_\\d{2}-\\d{2}-\\d{4}\\.json$`);
   if (!safeRegex.test(fileName)) {
-    return res.status(403).json({ message: "Invalid or forbidden file name." });
+    return res.status(403).json({ message: req.t("database.invalid_file_name") });
   }
 
   const exportFolder = path.join(PROJECT_ROOT, "data", "exports");
   const fullPath = path.join(exportFolder, fileName);
 
   if (path.dirname(fullPath) !== exportFolder) {
-    return res.status(400).json({ message: "Invalid path." });
+    return res.status(400).json({ message: req.t("database.invalid_path") });
   }
 
   if (!fs.existsSync(fullPath)) {
-    return res.status(404).json({ message: "File not found." });
+    return res.status(404).json({ message: req.t("database.file_not_found") });
   }
 
   return res.download(fullPath, fileName, (err) => {
@@ -232,10 +232,10 @@ const multerUpload = multer({ dest: path.join(PROJECT_ROOT, "data") });
 export const importRestaurantData = async (req: Request, res: Response) => {
   const { restaurantId: newRestaurantId } = req;
   if (!newRestaurantId)
-    return res.status(400).json({ message: "Target restaurant ID missing." });
+    return res.status(400).json({ message: req.t("database.target_restaurant_id_missing") });
 
   if (!req.file)
-    return res.status(400).json({ message: "JSON file is required." });
+    return res.status(400).json({ message: req.t("database.json_file_required") });
 
   const filePath = req.file.path;
 
@@ -308,14 +308,14 @@ export const importRestaurantData = async (req: Request, res: Response) => {
 
     return res.json({
       success: true,
-      message: "Import complete",
+      message: req.t("database.import_success"),
       insertedCollections,
     });
   } catch (err) {
     console.error("Import error:", err);
     return res.status(500).json({
       success: false,
-      message: "Error importing data",
+      message: req.t("database.import_error"),
       error: errorMessage(err),
     });
   }

@@ -72,10 +72,32 @@ export const getProductsByCategory = async (req: Request, res: Response, next: N
 export const getAllProducts = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { restaurantId } = req;
+    const { page, limit, search } = req.query as {
+      page?: string;
+      limit?: string;
+      search?: string;
+    };
 
-    const products = await Product.aggregate([
+    const parsedPage = parseInt(String(page), 10);
+    const parsedLimit = parseInt(String(limit), 10);
+    const isPaginated =
+      (page !== undefined && !isNaN(parsedPage) && parsedPage > 0) ||
+      (limit !== undefined && !isNaN(parsedLimit) && parsedLimit > 0);
+
+    const currentPage = isPaginated && parsedPage > 0 ? parsedPage : 1;
+    const pageSize = isPaginated && parsedLimit > 0 ? parsedLimit : 10;
+    const skip = (currentPage - 1) * pageSize;
+
+    const matchStage: Record<string, unknown> = {
+      restaurantId: new mongoose.Types.ObjectId(restaurantId as string),
+    };
+    if (search && String(search).trim() !== "") {
+      matchStage.name = { $regex: new RegExp(String(search).trim(), "i") };
+    }
+
+    const pipeline: mongoose.PipelineStage[] = [
       {
-        $match: { restaurantId: new mongoose.Types.ObjectId(restaurantId as string) },
+        $match: matchStage,
       },
       {
         $sort: { createdAt: -1 },
@@ -179,9 +201,31 @@ export const getAllProducts = async (req: Request, res: Response, next: NextFunc
           ],
         },
       },
-    ]);
+    ];
 
-    res.status(200).json(products);
+    if (!isPaginated) {
+      const products = await Product.aggregate(pipeline);
+      return res.status(200).json(products);
+    }
+
+    const [products, countResult] = await Promise.all([
+      Product.aggregate([
+        ...pipeline,
+        { $skip: skip },
+        { $limit: pageSize },
+      ]),
+      Product.aggregate([{ $match: matchStage }, { $count: "total" }]),
+    ]);
+    const totalRecords = (countResult[0] as { total?: number } | undefined)?.total || 0;
+
+    res.status(200).json({
+      products,
+      pagination: {
+        currentPage,
+        totalPages: Math.ceil(totalRecords / pageSize),
+        totalRecords,
+      },
+    });
   } catch (error) {
     res.status(400).json({
       message: req.t("product.error"),

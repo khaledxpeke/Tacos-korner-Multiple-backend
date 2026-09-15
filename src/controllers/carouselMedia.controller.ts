@@ -43,7 +43,7 @@ export const addMedia = async (req: Request, res: Response) => {
         await Promise.all(
           req.files.map((f) => fs.unlink(f.path).catch(() => {}))
         );
-        return res.status(400).json({ message: "Restaurant ID is required" });
+        return res.status(400).json({ message: req.t("database.restaurant_id_missing") });
       }
       const allowedTypes = [
         "image/jpeg",

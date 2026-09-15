@@ -22,7 +22,7 @@ async function removeImageHashes(Model: Model<unknown>, hashField = "imagePrevie
   return result.modifiedCount || 0;
 }
 
-export const removeAllImageHashes = async (_req: Request, res: Response) => {
+export const removeAllImageHashes = async (req: Request, res: Response) => {
   try {
     const catCount = await removeImageHashes(Category as unknown as Model<unknown>);
     const prodCount = await removeImageHashes(Product as unknown as Model<unknown>);
@@ -39,7 +39,7 @@ export const removeAllImageHashes = async (_req: Request, res: Response) => {
       "imagePreviewHash"
     );
     res.status(200).json({
-      message: "Image hashes removed",
+      message: req.t("images.hashes_removed"),
       categoriesUpdated: catCount,
       productsUpdated: prodCount,
       ingrediantsUpdated: ingCount,

@@ -45,11 +45,29 @@ export const addProductToCategory = async (req: Request, res: Response, next: Ne
     try {
       const { restaurantId } = req;
       // const { categoryId } = req.params;
-      const categoryIds = Array.isArray(req.body.categories)
-        ? req.body.categories
-        : JSON.parse(req.body.categories || "[]");
+      let categoryIds: unknown;
+      if (Array.isArray(req.body.categories)) {
+        categoryIds = req.body.categories;
+      } else {
+        try {
+          categoryIds = JSON.parse(req.body.categories || "[]");
+        } catch {
+          if (req.file) await cleanupTempFile(req.file.path);
+          return res.status(400).json({
+            message: req.t("product.error"),
+            error: "Invalid categories format: expected a JSON array",
+          });
+        }
+      }
       const userId = req.user!.user._id;
       const price = Number(req.body.price ?? "");
+      if (Number.isNaN(price) || price < 0) {
+        if (req.file) await cleanupTempFile(req.file.path);
+        return res.status(400).json({
+          message: req.t("product.error"),
+          error: "Invalid price: must be a non-negative number",
+        });
+      }
       const name = (req.body.name as string).replace(/"/g, "");
       const {
         choice,
@@ -457,13 +475,13 @@ export const migrateProductsCategory = async (req: Request, res: Response) => {
     ]);
 
     res.status(200).json({
-      message: "Products migration completed!",
+      message: req.t("product.migration_success"),
       matched: result.matchedCount,
       modified: result.modifiedCount,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Migration failed", error: errorMessage(error) });
+    res.status(500).json({ message: req.t("product.migration_error"), error: errorMessage(error) });
   }
 };
 

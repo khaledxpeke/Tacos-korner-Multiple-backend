@@ -2,14 +2,14 @@ import type { Request, Response } from "express";
 import { Currency } from "../models/currency.model";
 import { errorMessage } from "../utils/helpers";
 
-export const getCurrencies = async (_req: Request, res: Response) => {
+export const getCurrencies = async (req: Request, res: Response) => {
   try {
     const currencies = await Currency.find({ isActive: true }).sort({
       createdAt: -1,
     });
     res.json(currencies);
   } catch (error) {
-    res.status(500).json({ message: "Failed to fetch currencies", error: errorMessage(error) });
+    res.status(500).json({ message: req.t("currency.fetch_error"), error: errorMessage(error) });
   }
 };
 
@@ -19,7 +19,7 @@ export const createCurrency = async (req: Request, res: Response) => {
 
     const existing = await Currency.findOne({ code: String(code).toUpperCase() });
     if (existing) {
-      return res.status(400).json({ message: "Currency code already exists" });
+      return res.status(400).json({ message: req.t("currency.code_exists") });
     }
 
     const currency = new Currency({
@@ -31,7 +31,7 @@ export const createCurrency = async (req: Request, res: Response) => {
     await currency.save();
     res.status(201).json(currency);
   } catch (error) {
-    res.status(500).json({ message: "Failed to create currency", error: errorMessage(error) });
+    res.status(500).json({ message: req.t("currency.create_error"), error: errorMessage(error) });
   }
 };
 
@@ -47,12 +47,12 @@ export const updateCurrency = async (req: Request, res: Response) => {
     );
 
     if (!currency) {
-      return res.status(404).json({ message: "Currency not found" });
+      return res.status(404).json({ message: req.t("currency.not_found") });
     }
 
     res.status(200).json(currency);
   } catch (error) {
-    res.status(500).json({ message: "Failed to update currency", error: errorMessage(error) });
+    res.status(500).json({ message: req.t("currency.update_error"), error: errorMessage(error) });
   }
 };
 
@@ -60,8 +60,8 @@ export const deleteCurrency = async (req: Request, res: Response) => {
   try {
     const { currencyId } = req.params;
     await Currency.findOneAndDelete({ _id: currencyId });
-    res.json({ message: "Currency deleted successfully" });
+    res.json({ message: req.t("currency.deleted") });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete currency", error: errorMessage(error) });
+    res.status(500).json({ message: req.t("currency.delete_error"), error: errorMessage(error) });
   }
 };

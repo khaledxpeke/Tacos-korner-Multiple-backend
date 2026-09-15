@@ -13,25 +13,6 @@ declare module "mongoose-sequence" {
   export = AutoIncrementFactory;
 }
 
-declare module "pdf-creator-node" {
-  interface PdfDocument {
-    html: string;
-    data: unknown;
-    path: string;
-    type?: string;
-  }
-
-  interface PdfOptions {
-    format?: string;
-    orientation?: string;
-    border?: string;
-    timeout?: number;
-  }
-
-  function create(document: PdfDocument, options?: PdfOptions): Promise<unknown>;
-  export = { create };
-}
-
 declare module "nodemailer-express-handlebars" {
   import type { PluginFunction } from "nodemailer/lib/mailer";
 

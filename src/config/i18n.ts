@@ -15,8 +15,10 @@ export const initI18n = (): void => {
       defaultNS: "translation",
       backend: { loadPath: path.join(paths.translations, "{{lng}}.json") },
       detection: {
-        order: ["querystring", "cookie"],
+        order: ["header", "querystring", "cookie"],
         lookupQuerystring: "lng",
+        lookupHeader: "x-lang",
+        caches: false,
       },
       initImmediate: false,
       keySeparator: false,

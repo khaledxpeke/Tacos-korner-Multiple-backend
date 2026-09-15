@@ -67,16 +67,83 @@ export const createType = async (req: Request, res: Response, next: NextFunction
 export const getAllTypes = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { restaurantId } = req;
-    const types = await Type.find({ restaurantId })
-      .populate("ingredients.ingredient")
-      .populate("products.product")
-      .sort({ createdAt: -1 })
-      .lean();
-    if (!types || types.length === 0) {
-      return res.status(404).json({
-        message: req.t("type.not_found") || "Aucune option trouvée",
-      });
+    const { page, limit, search } = req.query as {
+      page?: string;
+      limit?: string;
+      search?: string;
+    };
+
+    const parsedPage = parseInt(String(page), 10);
+    const parsedLimit = parseInt(String(limit), 10);
+    const isPaginated =
+      (page !== undefined && !isNaN(parsedPage) && parsedPage > 0) ||
+      (limit !== undefined && !isNaN(parsedLimit) && parsedLimit > 0);
+
+    const currentPage = isPaginated && parsedPage > 0 ? parsedPage : 1;
+    const pageSize = isPaginated && parsedLimit > 0 ? parsedLimit : 10;
+    const skip = (currentPage - 1) * pageSize;
+
+    const query: Record<string, unknown> = { restaurantId };
+    if (search && String(search).trim() !== "") {
+      const searchRegex = new RegExp(String(search).trim(), "i");
+      query.$or = [{ name: { $regex: searchRegex } }, { label: { $regex: searchRegex } }];
     }
+
+    if (!isPaginated) {
+      const types = await Type.find(query)
+        .populate("ingredients.ingredient")
+        .populate("products.product")
+        .sort({ createdAt: -1 })
+        .lean();
+      if (!types || types.length === 0) {
+        return res.status(404).json({
+          message: req.t("type.not_found") || "Aucune option trouvée",
+        });
+      }
+
+      const formattedTypes = types.map((type) => {
+        const populated = type as {
+          products?: Array<{
+            product?: { _id?: unknown; name?: string } | null;
+            position?: number;
+          }>;
+          ingredients?: Array<{
+            ingredient?: { _id?: unknown; name?: string } | null;
+            position?: number;
+          }>;
+        };
+        const formattedProducts = (populated.products || []).map((p) => ({
+          _id: p.product?._id || null,
+          name: p.product?.name || "Unknown",
+          position: p.position ?? 0,
+        }));
+
+        const formattedIngredients = (populated.ingredients || []).map((i) => ({
+          _id: i.ingredient?._id || null,
+          name: i.ingredient?.name || "Unknown",
+          position: i.position ?? 0,
+        }));
+
+        return {
+          ...type,
+          products: formattedProducts,
+          ingredients: formattedIngredients,
+        };
+      });
+
+      return res.status(200).json(formattedTypes);
+    }
+
+    const [types, totalRecords] = await Promise.all([
+      Type.find(query)
+        .populate("ingredients.ingredient")
+        .populate("products.product")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(pageSize)
+        .lean(),
+      Type.countDocuments(query),
+    ]);
 
     const formattedTypes = types.map((type) => {
       const populated = type as {
@@ -108,7 +175,14 @@ export const getAllTypes = async (req: Request, res: Response, next: NextFunctio
       };
     });
 
-    res.status(200).json(formattedTypes);
+    res.status(200).json({
+      types: formattedTypes,
+      pagination: {
+        currentPage,
+        totalPages: Math.ceil(totalRecords / pageSize),
+        totalRecords,
+      },
+    });
   } catch (error) {
     res.status(400).json({
       message: req.t("type.not_found"),

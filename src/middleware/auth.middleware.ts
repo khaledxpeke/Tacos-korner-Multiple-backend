@@ -5,10 +5,19 @@ import { User } from "../models/user.model";
 import { USER_ROLES, APP_TYPES } from "../enum/constants";
 import type { JwtPayload } from "../interfaces/auth.interface";
 
+// Non-browser clients (mobile, kiosk/borne, cashier, delivery, kitchen) send
+// a bearer token; the dashboard sends none of that and relies solely on the
+// httpOnly `jwt` cookie set at login. Both are accepted here so this one
+// middleware keeps serving every client type.
+const extractToken = (req: Request): string | undefined => {
+  const authHeader = req.headers["authorization"];
+  const headerToken = authHeader && authHeader.split(" ")[1];
+  return headerToken || req.cookies?.jwt;
+};
+
 export const roleAuth = (expectedRoles: string | readonly string[]) => {
   return (req: Request, res: Response, next: NextFunction) => {
-    const authHeader = req.headers["authorization"];
-    const token = authHeader && authHeader.split(" ")[1];
+    const token = extractToken(req);
     if (token == null) {
       return res.status(401).json({ message: req.t("errors.token_missing") });
     }
@@ -27,6 +36,24 @@ export const roleAuth = (expectedRoles: string | readonly string[]) => {
   };
 };
 
+// Like roleAuth, but for routes any authenticated user may hit regardless
+// of role (e.g. "who am I").
+export const authenticate = () => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const token = extractToken(req);
+    if (token == null) {
+      return res.status(401).json({ message: req.t("errors.token_missing") });
+    }
+    jwt.verify(token, env.jwtSecret, (err, user) => {
+      if (err) {
+        return res.status(403).json({ message: req.t("errors.token_invalid") });
+      }
+      req.user = user as JwtPayload;
+      next();
+    });
+  };
+};
+
 export const restaurantAuth = () => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -35,8 +62,7 @@ export const restaurantAuth = () => {
         (Array.isArray(restaurantIdParam) ? restaurantIdParam[0] : restaurantIdParam) ||
         (req.headers["restaurant-id"] as string | undefined);
       const appType = req.headers["app-type"];
-      const authorizationHeader = req.headers["authorization"];
-      const token = authorizationHeader && authorizationHeader.split(" ")[1];
+      const token = extractToken(req);
 
       if (req.path === "/register") {
         if (appType === APP_TYPES.MOBILE || appType === APP_TYPES.BORNE) {

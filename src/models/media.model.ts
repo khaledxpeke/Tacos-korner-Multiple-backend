@@ -12,6 +12,8 @@ export interface IMedia {
   targetId?: Types.ObjectId;
   restaurantId?: Types.ObjectId;
   scope: "restaurant" | "shared";
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export type MediaDocument = HydratedDocument<IMedia>;
