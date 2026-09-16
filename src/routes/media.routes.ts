@@ -11,7 +11,8 @@ router.get("/", mediaController.listMedia);
 router.get("/types", mediaController.listTargetTypes);
 router.get("/:id", mediaController.getMediaById);
 
-// Writes require an authenticated staff member for a specific restaurant.
+// Uploads stay restaurant-scoped. Rename/delete authenticate by role only so
+// ADMIN can manage the global library without a restaurant-id header.
 router.post(
   "/upload",
   restaurantAuth(),
@@ -20,13 +21,11 @@ router.post(
 );
 router.put(
   "/:id",
-  restaurantAuth(),
   roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   mediaController.updateMedia
 );
 router.delete(
   "/:id",
-  restaurantAuth(),
   roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   mediaController.deleteMedia
 );

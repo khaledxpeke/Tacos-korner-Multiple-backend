@@ -28,7 +28,9 @@ export const notifyWaiters = async (
   try {
     const { restaurantId } = history;
     const users = await User.find({
-      fcmToken: { $ne: "" },
+      // `$ne: ""` also matches documents where fcmToken does not exist.
+      // Require an actual non-blank string before calling Firebase.
+      fcmToken: { $type: "string", $regex: /\S/ },
       restaurants: { $elemMatch: { restaurantId, notificationsEnabled: true } },
     });
     if (users.length === 0) {
@@ -38,7 +40,9 @@ export const notifyWaiters = async (
       return;
     }
 
-    const tokens = users.map((user) => user.fcmToken);
+    const tokens = users
+      .map((user) => user.fcmToken?.trim())
+      .filter((token): token is string => Boolean(token));
     const payload = {
       notification: {
         title: t("history.new_order_title"),
