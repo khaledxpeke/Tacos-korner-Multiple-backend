@@ -1,6 +1,10 @@
 import type { Request, Response } from "express";
 import fs from "fs/promises";
-import { CarouselMedia, type ICarouselMedia } from "../models/carouselMedia.model";
+import {
+  CarouselMedia,
+  type ICarouselMedia,
+  type CarouselMediaDocument,
+} from "../models/carouselMedia.model";
 import { Settings } from "../models/settings.model";
 import { Media } from "../models/media.model";
 import { forwardToMediaBackend } from "../services/media.service";
@@ -77,7 +81,12 @@ export const addMedia = async (req: Request, res: Response) => {
       );
       const startOrder = lastMedia ? parseInt(String(lastMedia.order), 10) : 0;
 
-      const savedMedia = await Promise.all(
+      // Promise.allSettled (not Promise.all) so every file finishes — success
+      // or failure — before any temp file is touched. With Promise.all, one
+      // early rejection unlinked every temp path immediately in the catch
+      // block below while sibling files in this same batch could still be
+      // mid-read via forwardToMediaBackend's file streams, racing the delete.
+      const results = await Promise.allSettled(
         req.files.map(async (file, index) => {
           const mediaResponse = await forwardToMediaBackend({
             filePath: file.path,
@@ -122,7 +131,27 @@ export const addMedia = async (req: Request, res: Response) => {
         tempFilePaths.map((filePath) => fs.unlink(filePath).catch(() => {}))
       );
 
-      res.status(201).json(savedMedia);
+      const failed = results.filter((r) => r.status === "rejected");
+      const succeeded = results
+        .filter((r) => r.status === "fulfilled")
+        .map((r) => (r as PromiseFulfilledResult<CarouselMediaDocument>).value);
+
+      if (failed.length > 0) {
+        // Keep the existing all-or-nothing contract: roll back whatever did
+        // succeed rather than leaving a partially-uploaded batch behind.
+        await Promise.all(
+          succeeded.map((media) =>
+            CarouselMedia.findOneAndDelete({ _id: media._id }).then(() =>
+              Media.findOneAndDelete({ targetId: media._id })
+            )
+          )
+        );
+        const firstError = failed[0] as PromiseRejectedResult;
+        res.status(500).json({ error: errorMessage(firstError.reason) });
+        return;
+      }
+
+      res.status(201).json(succeeded);
     } catch (error) {
       if (req.files) {
         await Promise.all(

@@ -26,9 +26,19 @@ export const env = {
   emailSender: optional("EMAIL_SENDER"),
   emailName: optional("EMAIL_NAME", "Restaurant"),
   restaurantTimezone: optional("RESTAURANT_TIMEZONE", "Europe/Paris"),
-  mediaServerUrl: optional("MEDIA_SERVER_URL", "http://localhost:4000"),
+  // Trailing slash stripped: callers build URLs as `${mediaServerUrl}/api/...`,
+  // and a trailing slash here would double up into "//api/..." which Express
+  // doesn't match (returns 404) — this bit us with a misconfigured .env.
+  mediaServerUrl: optional("MEDIA_SERVER_URL", "http://localhost:4000").replace(
+    /\/+$/,
+    ""
+  ),
   carouselUrl: optional("CAROUSEL_URL"),
-  printerServerUrl: optional("PRINTER_SERVER_URL", "http://localhost:3301"),
+  // Same trailing-slash-doubling hazard as mediaServerUrl above.
+  printerServerUrl: optional(
+    "PRINTER_SERVER_URL",
+    "http://localhost:3301"
+  ).replace(/\/+$/, ""),
   baseUrl: optional("BASE_URL"),
   marketPayClientId: optional("MARKETPAY_CLIENT_ID"),
   marketPayMerchantId: optional("MARKETPAY_MERCHANT_ID"),

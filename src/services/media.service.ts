@@ -7,6 +7,17 @@ import { env } from "../config/environment";
 
 const mediaBackendUrl = env.mediaServerUrl;
 
+// fs.createReadStream() streams handed to form-data have no listener of
+// their own; if the underlying file errors mid-read (e.g. it was unlinked by
+// another request in the same batch), Node treats an "error" event with no
+// listener as an uncaughtException and kills the whole process. Attaching a
+// no-op listener here turns that into an ordinary rejection instead.
+const createSafeReadStream = (filePath: string) => {
+  const stream = fs.createReadStream(filePath);
+  stream.on("error", () => {});
+  return stream;
+};
+
 export const forwardToMediaBackend = async ({
   filePath,
   type,
@@ -28,7 +39,7 @@ export const forwardToMediaBackend = async ({
   };
 
   const formHash = new FormData();
-  formHash.append("file", fs.createReadStream(filePath), {
+  formHash.append("file", createSafeReadStream(filePath), {
     filename: originalname,
   });
 
@@ -56,7 +67,7 @@ export const forwardToMediaBackend = async ({
   }
 
   const formSave = new FormData();
-  formSave.append("file", fs.createReadStream(filePath), {
+  formSave.append("file", createSafeReadStream(filePath), {
     filename: originalname,
   });
 

@@ -437,13 +437,9 @@ export const validateCoupon = async (req: Request, res: Response) => {
 
     if (coupon.recurringDays && coupon.recurringDays.length > 0) {
       if (!coupon.recurringDays.includes(currentDay)) {
+        const days = coupon.recurringDays.map((d) => req.t(`coupon.day_${d}`)).join(", ");
         return res.status(400).json({
-          message: `Ce code promo n'est valable que les jours suivants : ${coupon.recurringDays
-            .map(
-              (d) =>
-                ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"][d]
-            )
-            .join(", ")}`,
+          message: req.t("coupon.not_valid_today", { days }),
         });
       }
     }
@@ -453,9 +449,9 @@ export const validateCoupon = async (req: Request, res: Response) => {
       const startDate = dayjs(coupon.startDate).tz(RESTAURANT_TIMEZONE);
       if (now.isBefore(startDate)) {
         return res.status(400).json({
-          message: `Ce code promo sera valide à partir du ${startDate.format(
-            "DD/MM/YYYY à HH:mm"
-          )}`,
+          message: req.t("coupon.not_started", {
+            date: startDate.format("DD/MM/YYYY HH:mm"),
+          }),
         });
       }
     }
@@ -465,14 +461,16 @@ export const validateCoupon = async (req: Request, res: Response) => {
       const endDate = dayjs(coupon.endDate).tz(RESTAURANT_TIMEZONE);
       if (now.isAfter(endDate)) {
         return res.status(400).json({
-          message: `Ce code promo a expiré le ${endDate.format("DD/MM/YYYY à HH:mm")}`,
+          message: req.t("coupon.expired", {
+            date: endDate.format("DD/MM/YYYY HH:mm"),
+          }),
         });
       }
     }
 
     if (coupon.usageCount >= coupon.limit) {
       return res.status(400).json({
-        message: "Ce code promo a atteint sa limite d'utilisation",
+        message: req.t("coupon.usage_limit_reached"),
       });
     }
 
