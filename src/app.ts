@@ -37,6 +37,10 @@ import marketPayRoutes from "./routes/marketPay.routes";
 export const createApp = (): Application => {
   const app = express();
   (app as unknown as { timeout: number }).timeout = 300000;
+  // Nginx is the single reverse proxy in front of this process. Without this,
+  // express-rate-limit throws ERR_ERL_UNEXPECTED_X_FORWARDED_FOR because
+  // nginx sets X-Forwarded-For on every request.
+  app.set("trust proxy", 1);
 
   app.use(
     helmet({
