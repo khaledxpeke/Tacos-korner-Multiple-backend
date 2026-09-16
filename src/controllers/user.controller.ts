@@ -7,6 +7,7 @@ import { env } from "../config/environment";
 import { USER_ROLES, APP_TYPES, type UserRole } from "../enum/constants";
 import { User, type IUser, type IUserRestaurant, type UserDocument } from "../models/user.model";
 import { errorMessage } from "../utils/helpers";
+import { authCookieOptions } from "../utils/authCookie";
 
 // fcmToken is an internal push-notification device token — it has no
 // reason to reach the browser, so strip it before a user object goes into
@@ -112,14 +113,7 @@ export const register = async (req: Request, res: Response, _next: NextFunction)
           const token = jwt.sign({ id: createdUser._id, email }, env.jwtSecret, {
             expiresIn: maxAge,
           });
-          const isProd = process.env.NODE_ENV === "production";
-          res.cookie("jwt", token, {
-            httpOnly: true,
-            secure: isProd,
-            sameSite: isProd ? "none" : "lax",
-            path: "/",
-            maxAge: maxAge * 1000,
-          });
+          res.cookie("jwt", token, authCookieOptions(maxAge * 1000));
           const isDashboard = req.headers["app-type"] === APP_TYPES.DASHBOARD;
           res.status(201).json({
             user: createdUser,
@@ -178,14 +172,7 @@ export const createUser = async (req: Request, res: Response, _next: NextFunctio
           const token = jwt.sign({ id: createdUser._id, email }, env.jwtSecret, {
             expiresIn: maxAge,
           });
-          const isProd = process.env.NODE_ENV === "production";
-          res.cookie("jwt", token, {
-            httpOnly: true,
-            secure: isProd,
-            sameSite: isProd ? "none" : "lax",
-            path: "/",
-            maxAge: maxAge * 1000,
-          });
+          res.cookie("jwt", token, authCookieOptions(maxAge * 1000));
           const isDashboard = req.headers["app-type"] === APP_TYPES.DASHBOARD;
           res.status(201).json({
             user: createdUser,
@@ -334,14 +321,7 @@ export const login = async (req: Request, res: Response, _next: NextFunction) =>
           const token = jwt.sign(tokenPayload, env.jwtSecret, {
             expiresIn: maxAge, // 8hrs in sec
           });
-          const isProd = process.env.NODE_ENV === "production";
-          res.cookie("jwt", token, {
-            httpOnly: true,
-            secure: isProd,
-            sameSite: isProd ? "none" : "lax",
-            path: "/",
-            maxAge: maxAge * 1000, // 8hrs in ms
-          });
+          res.cookie("jwt", token, authCookieOptions(maxAge * 1000));
 
           // The dashboard relies solely on the httpOnly cookie above and
           // never needs the raw token; other app types (mobile, kiosk,
@@ -659,13 +639,7 @@ export const logout = async (req: Request, res: Response) => {
   const user = await User.findById(userId);
   user!.fcmToken = "";
   await user!.save();
-  const isProd = process.env.NODE_ENV === "production";
-  res.clearCookie("jwt", {
-    httpOnly: true,
-    secure: isProd,
-    sameSite: isProd ? "none" : "lax",
-    path: "/",
-  });
+  res.clearCookie("jwt", authCookieOptions());
   res.status(200).json({ message: req.t("user.token_updated") });
 };
 
