@@ -617,7 +617,7 @@ export const updatePositions = async (req: Request, res: Response) => {
     await Promise.all(
       positions.map(async ({ productId, position }: { productId: string; position: number }) => {
         await Product.findOneAndUpdate(
-          { _id: productId, category: { $in: [categoryId] }, restaurantId },
+          { _id: productId, categories: { $in: [categoryId] }, restaurantId },
           { $set: { position } },
           { new: true }
         );
