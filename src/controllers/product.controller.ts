@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import moment from "moment-timezone";
 import { Product } from "../models/product.model";
 import { Category } from "../models/category.model";
+import { Type } from "../models/type.model";
 import { Ingrediant } from "../models/ingrediant.model";
 import { Media } from "../models/media.model";
 import { resolveMediaFromRequest } from "../services/media.service";
@@ -197,15 +198,23 @@ export const addProductToCategory = async (req: Request, res: Response, next: Ne
       await Media.findByIdAndUpdate(mediaDoc!._id, {
         targetId: savedProduct._id,
       });
-      const updatedCategories = await Category.updateMany(
+      await Category.updateMany(
         { _id: { $in: categoryIds }, restaurantId },
-        { $addToSet: { products: product._id } },
-        { new: true }
+        { $addToSet: { products: product._id } }
       );
+      const updatedCategories = await Category.find({
+        _id: { $in: categoryIds },
+        restaurantId,
+      });
+      const populatedTypes = await Type.find({
+        _id: { $in: parsedTypeIds },
+        restaurantId,
+      });
 
       res.status(201).json({
         ...savedProduct.toObject(),
         categories: updatedCategories,
+        type: populatedTypes,
         message: req.t("product.created"),
       });
     } catch (error) {
@@ -413,9 +422,19 @@ export const updateProduct = async (req: Request, res: Response) => {
         (typeVariationsData || product.typeVariations) as typeof product.typeVariations;
 
       const updatedProduct = await product.save();
+      const populatedCategories = await Category.find({
+        _id: { $in: updatedProduct.categories },
+        restaurantId,
+      });
+      const populatedTypes = await Type.find({
+        _id: { $in: updatedProduct.type },
+        restaurantId,
+      });
 
       res.status(200).json({
         ...updatedProduct.toObject(),
+        categories: populatedCategories,
+        type: populatedTypes,
         message: req.t("product.updated_success"),
       });
     } catch (error) {
