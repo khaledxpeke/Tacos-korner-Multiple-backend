@@ -99,8 +99,12 @@ export const addMedia = async (req: Request, res: Response) => {
             mediaDoc.targetType = targetType;
             dirty = true;
           }
-          if (targetId && !mediaDoc.targetId) {
-            mediaDoc.targetId = targetId;
+          if (
+            targetId &&
+            !mediaDoc.targetId &&
+            mongoose.isValidObjectId(targetId)
+          ) {
+            mediaDoc.targetId = new mongoose.Types.ObjectId(targetId);
             dirty = true;
           }
           if (type && mediaDoc.type !== type) {
