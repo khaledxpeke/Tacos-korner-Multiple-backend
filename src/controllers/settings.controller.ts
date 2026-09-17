@@ -7,7 +7,59 @@ import localUpload from "../middleware/localMulter";
 import { Settings, type IMethod, type IPack, type SettingsDocument } from "../models/settings.model";
 import { Restaurant, type RestaurantDocument } from "../models/restaurant.model";
 import { Currency } from "../models/currency.model";
+import { Media } from "../models/media.model";
 import { resolveMediaFromRequest } from "../services/media.service";
+
+const isMediaObjectId = (value: unknown): boolean =>
+  typeof value === "string"
+    ? mongoose.isValidObjectId(value) && /^[a-fA-F0-9]{24}$/.test(value)
+    : mongoose.isValidObjectId(value);
+
+const normalizeBannerUrl = (url?: string | null): string | null =>
+  url ? url.replace(/\\/g, "/") : null;
+
+const resolveSettingsBannerUrl = async (
+  settings: SettingsDocument
+): Promise<string | null> => {
+  const raw = await Settings.collection.findOne(
+    { _id: settings._id },
+    { projection: { banner: 1 } }
+  );
+  const stored = raw?.banner;
+
+  if (stored && typeof stored === "object" && "url" in stored) {
+    return normalizeBannerUrl((stored as { url?: string }).url);
+  }
+
+  if (typeof stored === "string" && stored.length > 0 && !isMediaObjectId(stored)) {
+    return normalizeBannerUrl(stored);
+  }
+
+  if (stored && isMediaObjectId(stored)) {
+    const linked = await Media.findById(stored).select("url");
+    if (linked?.url) {
+      return normalizeBannerUrl(linked.url);
+    }
+  }
+
+  const fallback = await Media.findOne({
+    $or: [
+      { targetType: "Settings", targetId: settings._id },
+      { restaurantId: settings.restaurantId, type: { $in: ["banner", "banners"] } },
+    ],
+    type: { $in: ["banner", "banners", "image"] },
+  })
+    .sort({ updatedAt: -1 })
+    .select("url _id");
+
+  if (fallback?.url) {
+    settings.banner = fallback._id;
+    await settings.save();
+    return normalizeBannerUrl(fallback.url);
+  }
+
+  return null;
+};
 import { cleanupTempFile } from "../utils/cleanupTempFiles";
 import { errorMessage } from "../utils/helpers";
 import type {
@@ -108,7 +160,6 @@ export const getSettings = async (req: Request, res: Response) => {
       await restaurant.save();
     }
 
-    await settings.populate({ path: "banner", select: "url" });
     const settingsObject = settings.toObject() as ReturnType<SettingsDocument["toObject"]> & {
       isPasswordSet?: boolean;
       emailPass?: string;
@@ -120,14 +171,7 @@ export const getSettings = async (req: Request, res: Response) => {
     if (!settingsObject.defaultLanguage) {
       settingsObject.defaultLanguage = "fr";
     }
-    const bannerDoc = settingsObject.banner as { url?: string } | string | null;
-    if (bannerDoc && typeof bannerDoc === "object" && bannerDoc.url) {
-      settingsObject.banner = bannerDoc.url.replace(/\\/g, "/");
-    } else if (typeof bannerDoc === "string" && bannerDoc.length > 0) {
-      settingsObject.banner = bannerDoc.replace(/\\/g, "/");
-    } else {
-      settingsObject.banner = null;
-    }
+    settingsObject.banner = await resolveSettingsBannerUrl(settings);
 
     return res.status(200).json(settingsObject);
   } catch (error) {

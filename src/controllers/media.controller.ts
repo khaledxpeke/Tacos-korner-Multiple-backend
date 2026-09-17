@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import type { FilterQuery } from "mongoose";
+import mongoose, { type FilterQuery } from "mongoose";
 import fs from "fs/promises";
 import { Media, type IMedia, type MediaDocument } from "../models/media.model";
 import { Product } from "../models/product.model";
@@ -47,11 +47,16 @@ export const addMedia = async (req: Request, res: Response) => {
 
     try {
       const { restaurantId } = req;
-      const type = typeof req.query.type === "string" ? req.query.type : undefined;
+      const queryType =
+        typeof req.query.type === "string" ? req.query.type : undefined;
       const { targetType, targetId } = req.body as {
         targetType?: string;
         targetId?: string;
       };
+      const type =
+        targetType === "Settings" && (!queryType || queryType === "image")
+          ? "banner"
+          : queryType;
 
       const mediaPromises = tempFiles.map(async (file) => {
         const mediaResponse = await forwardToMediaBackend({
@@ -61,7 +66,16 @@ export const addMedia = async (req: Request, res: Response) => {
           originalname: file.originalname,
         });
 
-        let mediaDoc = await Media.findOne({ hash: mediaResponse.hash });
+        const restaurantIdValue = restaurantId?.toString();
+        let mediaDoc = await Media.findOne({
+          hash: mediaResponse.hash,
+          $or: [
+            { scope: "shared" },
+            ...(restaurantIdValue
+              ? [{ scope: "restaurant" as const, restaurantId: restaurantIdValue }]
+              : []),
+          ],
+        });
         if (!mediaDoc) {
           mediaDoc = new Media({
             filename: mediaResponse.filename || file.originalname,
@@ -73,12 +87,29 @@ export const addMedia = async (req: Request, res: Response) => {
             targetType: targetType,
             targetId: targetId,
             type: type,
-            restaurantId: restaurantId?.toString(),
+            restaurantId: restaurantIdValue,
             scope: "shared",
           });
 
           await mediaDoc.save();
           createdMediaDocs.push(mediaDoc);
+        } else if (targetType === "Settings") {
+          let dirty = false;
+          if (!mediaDoc.targetType) {
+            mediaDoc.targetType = targetType;
+            dirty = true;
+          }
+          if (targetId && !mediaDoc.targetId) {
+            mediaDoc.targetId = targetId;
+            dirty = true;
+          }
+          if (type && mediaDoc.type !== type) {
+            mediaDoc.type = type;
+            dirty = true;
+          }
+          if (dirty) {
+            await mediaDoc.save();
+          }
         }
         return mediaDoc;
       });
@@ -107,7 +138,21 @@ export const listMedia = async (req: Request, res: Response) => {
   try {
     const { targetType, targetId, q, limit = 50, page = 1, locateId, locateUrl } = req.query;
 
-    const filter: FilterQuery<IMedia> = { scope: "shared" };
+    const filter: FilterQuery<IMedia> = {};
+    const restaurantIdHeader = req.headers["restaurant-id"];
+    const restaurantId =
+      typeof restaurantIdHeader === "string" ? restaurantIdHeader : undefined;
+
+    const scopeFilter: FilterQuery<IMedia> = restaurantId
+      ? {
+          $or: [
+            { scope: "shared" },
+            { scope: "restaurant", restaurantId },
+          ],
+        }
+      : { scope: "shared" };
+
+    const extraFilters: FilterQuery<IMedia>[] = [scopeFilter];
 
     if (targetType) {
       const typeKey = typeof targetType === "string" ? targetType : String(targetType);
@@ -118,8 +163,10 @@ export const listMedia = async (req: Request, res: Response) => {
         orConditions.push({ type: { $in: mediaTypes } });
       }
 
-      filter.$or = orConditions;
+      extraFilters.push({ $or: orConditions });
     }
+
+    Object.assign(filter, extraFilters.length === 1 ? extraFilters[0] : { $and: extraFilters });
 
     if (targetId) {
       filter.targetId = typeof targetId === "string" ? targetId : String(targetId);
@@ -132,29 +179,42 @@ export const listMedia = async (req: Request, res: Response) => {
     const pageSize = Number(limit);
     let currentPage = Number(page);
     let locatedMediaId: string | null = null;
+    let locatedDoc: MediaDocument | null = null;
 
-    // When the caller already has an existing image selected (locateId, or
-    // its url as a fallback when only the raw path is known), resolve which
-    // page it falls on within this same filter/sort so the picker can open
-    // directly there instead of always resetting to page 1.
+    // Locate the currently selected image even if its type/targetType does
+    // not match this picker's filter (legacy banners were stored as "image").
     if (locateId || locateUrl) {
-      const target = locateId
-        ? await Media.findOne({ _id: locateId, ...filter })
-        : await Media.findOne({
-            ...filter,
-            url: new RegExp(
-              `${String(locateUrl).replace(/\\/g, "/").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
-              "i"
-            ),
-          });
+      const rawUrl = locateUrl
+        ? String(locateUrl).replace(/\\/g, "/")
+        : "";
+      const fileName = rawUrl.split("/").pop();
+      const escapedUrl = rawUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-      if (target) {
-        locatedMediaId = target._id.toString();
-        const precedingCount = await Media.countDocuments({
+      locatedDoc =
+        locateId && mongoose.isValidObjectId(String(locateId))
+          ? await Media.findById(locateId)
+          : locateUrl
+            ? await Media.findOne({
+                $or: [
+                  { url: new RegExp(`${escapedUrl}$`, "i") },
+                  ...(fileName ? [{ filename: fileName }] : []),
+                ],
+              })
+            : null;
+
+      if (locatedDoc) {
+        locatedMediaId = locatedDoc._id.toString();
+        const inFilteredList = await Media.findOne({
+          _id: locatedDoc._id,
           ...filter,
-          createdAt: { $gt: target.createdAt },
         });
-        currentPage = Math.floor(precedingCount / pageSize) + 1;
+        if (inFilteredList) {
+          const precedingCount = await Media.countDocuments({
+            ...filter,
+            createdAt: { $gt: locatedDoc.createdAt },
+          });
+          currentPage = Math.floor(precedingCount / pageSize) + 1;
+        }
       }
     }
 
@@ -165,6 +225,13 @@ export const listMedia = async (req: Request, res: Response) => {
       .limit(pageSize)
       .skip(skip)
       .populate("uploadedBy", "name");
+
+    if (
+      locatedDoc &&
+      !medias.some((item) => item._id.toString() === locatedMediaId)
+    ) {
+      medias.unshift(locatedDoc);
+    }
 
     res.status(200).json({ medias, totalCount, page: currentPage, locatedMediaId });
   } catch (err) {
