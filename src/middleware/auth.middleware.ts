@@ -9,6 +9,16 @@ import type { JwtPayload } from "../interfaces/auth.interface";
 // a bearer token; the dashboard sends none of that and relies solely on the
 // httpOnly `jwt` cookie set at login. Both are accepted here so this one
 // middleware keeps serving every client type.
+const isAuthAdminOptionalRestaurant = (req: Request) => {
+  const method = req.method;
+  const path = String(req.path || "").replace(/\/$/, "");
+  if (method === "POST" && path.endsWith("register")) return true;
+  if (method === "PUT" && /\/block\/[a-fA-F0-9]{24}$/.test(path)) return true;
+  if (method === "PUT" && /\/[a-fA-F0-9]{24}$/.test(path)) return true;
+  if (method === "DELETE" && /\/[a-fA-F0-9]{24}$/.test(path)) return true;
+  return false;
+};
+
 const extractToken = (req: Request): string | undefined => {
   const authHeader = req.headers["authorization"];
   const headerToken = authHeader && authHeader.split(" ")[1];
@@ -27,6 +37,9 @@ export const roleAuth = (expectedRoles: string | readonly string[]) => {
       }
 
       const decoded = user as JwtPayload;
+      if (!decoded?.user?._id) {
+        return res.status(403).json({ message: req.t("errors.token_invalid") });
+      }
       if (!expectedRoles.includes(decoded.user.role)) {
         return res.status(403).json({ message: req.t("errors.forbidden") });
       }
@@ -48,7 +61,11 @@ export const authenticate = () => {
       if (err) {
         return res.status(403).json({ message: req.t("errors.token_invalid") });
       }
-      req.user = user as JwtPayload;
+      const decoded = user as JwtPayload;
+      if (!decoded?.user?._id) {
+        return res.status(403).json({ message: req.t("errors.token_invalid") });
+      }
+      req.user = decoded;
       next();
     });
   };
@@ -107,11 +124,15 @@ export const restaurantAuth = () => {
       }
 
       jwt.verify(token, env.jwtSecret, async (err, decodedToken) => {
+        try {
         if (err) {
           return res.status(403).json({ message: req.t("errors.token_invalid") });
         }
 
         const decoded = decodedToken as JwtPayload;
+        if (!decoded?.user?._id) {
+          return res.status(403).json({ message: req.t("errors.token_invalid") });
+        }
         req.user = decoded;
 
         const userDoc = await User.findById(decoded.user._id);
@@ -128,12 +149,12 @@ export const restaurantAuth = () => {
         }
 
         if (decoded.user.role === USER_ROLES.ADMIN) {
-          if (!restaurantIdFromInput) {
+          if (!restaurantIdFromInput && !isAuthAdminOptionalRestaurant(req)) {
             return res.status(400).json({
               message: req.t("errors.restaurant_id_required"),
             });
           }
-          req.restaurantId = restaurantIdFromInput;
+          req.restaurantId = restaurantIdFromInput || null;
           return next();
         }
 
@@ -164,6 +185,15 @@ export const restaurantAuth = () => {
 
         req.restaurantId = restaurantIdFromInput;
         next();
+        } catch (verifyError) {
+          console.error("Restaurant auth error:", verifyError);
+          const message =
+            verifyError instanceof Error ? verifyError.message : String(verifyError);
+          res.status(500).json({
+            message: req.t("restaurant.auth_error"),
+            error: message,
+          });
+        }
       });
     } catch (error) {
       console.error("Restaurant auth error:", error);

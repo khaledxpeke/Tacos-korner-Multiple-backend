@@ -97,6 +97,7 @@
   "restaurant.assignment_results": "{{successful}} utilisateurs assignés avec succès, {{failed}} échecs",
   "user.already_exists": "L'utilisateur existe déjà",
   "user.invalid_staff_role": "Le rôle '{{role}}' n'est pas valide pour le personnel. Les rôles valides sont : {{validRoles}}",
+  "user.created_successfully": "Utilisateur créé avec succès",
   "user.creation_error": "Erreur lors de la création de l'utilisateur",
   "user.password_hash_error": "Une erreur s'est produite lors du hachage du mot de passe ou de la configuration initiale",
   "user.invalid_credentials": "L'email ou le mot de passe est incorrect !",

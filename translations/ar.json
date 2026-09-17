@@ -97,6 +97,7 @@
   "restaurant.assignment_results": "تم تعيين {{successful}} مستخدمين بنجاح، {{failed}} فشل",
   "user.already_exists": "المستخدم موجود بالفعل",
   "user.invalid_staff_role": "الدور '{{role}}' غير صالح للموظفين. الأدوار الصالحة هي: {{validRoles}}",
+  "user.created_successfully": "تم إنشاء المستخدم بنجاح",
   "user.creation_error": "خطأ في إنشاء المستخدم",
   "user.password_hash_error": "حدث خطأ أثناء تشفير كلمة المرور أو الإعداد الأولي",
   "user.invalid_credentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة!",

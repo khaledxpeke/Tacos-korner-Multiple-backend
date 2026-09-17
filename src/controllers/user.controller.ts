@@ -30,6 +30,45 @@ interface NewUserPayload {
   restaurants?: IUserRestaurant[];
 }
 
+const respondWithCreatedUser = (
+  req: Request,
+  res: Response,
+  createdUser: UserDocument
+) => {
+  const keepExistingSession = Boolean(req.user?.user || req.cookies?.jwt);
+  const isDashboard = req.headers["app-type"] === APP_TYPES.DASHBOARD;
+
+  if (keepExistingSession) {
+    return res.status(201).json({
+      user: createdUser,
+      userId: createdUser.userId,
+      message: req.t("user.created_successfully"),
+    });
+  }
+
+  const maxAge = 8 * 60 * 60;
+  const token = jwt.sign(
+    {
+      user: {
+        _id: createdUser._id,
+        email: createdUser.email,
+        fullName: createdUser.fullName,
+        role: createdUser.role,
+        restaurants: createdUser.restaurants || [],
+        isBlocked: createdUser.isBlocked,
+      },
+    },
+    env.jwtSecret,
+    { expiresIn: maxAge }
+  );
+  res.cookie("jwt", token, authCookieOptions(maxAge * 1000));
+  res.status(201).json({
+    user: createdUser,
+    userId: createdUser.userId,
+    ...(isDashboard ? {} : { token }),
+  });
+};
+
 const createUserDocument = async (payload: NewUserPayload) => {
   try {
     return await User.create(payload);
@@ -84,8 +123,9 @@ export const register = async (req: Request, res: Response, _next: NextFunction)
   let determinedUserRole: UserRole;
   let determinedRestaurantRoleForStaff: UserRole | undefined;
 
+  const allowedStaffRoles: UserRole[] = [USER_ROLES.MANAGER, USER_ROLES.WAITER];
+
   if (restaurantId) {
-    const allowedStaffRoles: UserRole[] = [USER_ROLES.MANAGER, USER_ROLES.WAITER];
     if (roleFromBody && allowedStaffRoles.includes(roleFromBody as UserRole)) {
       determinedUserRole = roleFromBody as UserRole;
       determinedRestaurantRoleForStaff = roleFromBody as UserRole;
@@ -100,6 +140,16 @@ export const register = async (req: Request, res: Response, _next: NextFunction)
       determinedUserRole = USER_ROLES.WAITER;
       determinedRestaurantRoleForStaff = USER_ROLES.WAITER;
     }
+  } else if (req.user?.user?.role === USER_ROLES.ADMIN && roleFromBody) {
+    if (!allowedStaffRoles.includes(roleFromBody as UserRole)) {
+      return res.status(400).json({
+        message: req.t("user.invalid_staff_role", {
+          role: roleFromBody,
+          validRoles: allowedStaffRoles.join(", "),
+        }),
+      });
+    }
+    determinedUserRole = roleFromBody as UserRole;
   } else {
     determinedUserRole = USER_ROLES.CLIENT;
   }
@@ -124,19 +174,7 @@ export const register = async (req: Request, res: Response, _next: NextFunction)
       }
 
       await createUserDocument(newUser)
-        .then((createdUser) => {
-          const maxAge = 8 * 60 * 60;
-          const token = jwt.sign({ id: createdUser._id, email }, env.jwtSecret, {
-            expiresIn: maxAge,
-          });
-          res.cookie("jwt", token, authCookieOptions(maxAge * 1000));
-          const isDashboard = req.headers["app-type"] === APP_TYPES.DASHBOARD;
-          res.status(201).json({
-            user: createdUser,
-            userId: createdUser.userId,
-            ...(isDashboard ? {} : { token: token }),
-          });
-        })
+        .then((createdUser) => respondWithCreatedUser(req, res, createdUser))
         .catch((error: unknown) =>
           res.status(400).json({
             message: req.t("user.creation_error"),
@@ -183,19 +221,7 @@ export const createUser = async (req: Request, res: Response, _next: NextFunctio
         role: role as UserRole,
       };
       await createUserDocument(newUser)
-        .then((createdUser) => {
-          const maxAge = 8 * 60 * 60;
-          const token = jwt.sign({ id: createdUser._id, email }, env.jwtSecret, {
-            expiresIn: maxAge,
-          });
-          res.cookie("jwt", token, authCookieOptions(maxAge * 1000));
-          const isDashboard = req.headers["app-type"] === APP_TYPES.DASHBOARD;
-          res.status(201).json({
-            user: createdUser,
-            userId: createdUser.userId,
-            ...(isDashboard ? {} : { token: token }),
-          });
-        })
+        .then((createdUser) => respondWithCreatedUser(req, res, createdUser))
         .catch((error: unknown) =>
           res.status(400).json({
             message: req.t("user.creation_error"),
@@ -525,14 +551,19 @@ export const getUserbyId = async (req: Request, res: Response, _next: NextFuncti
   }
 };
 
+const findUserForMutation = (userId: string, restaurantId?: string | null) =>
+  restaurantId
+    ? User.findOne({
+        _id: userId,
+        restaurants: { $elemMatch: { restaurantId } },
+      })
+    : User.findById(userId);
+
 export const updateUser = async (req: Request, res: Response, _next: NextFunction) => {
   try {
     const { userId } = req.params;
     const { restaurantId } = req;
-    const user = await User.findOne({
-      _id: userId,
-      restaurants: { $elemMatch: { restaurantId } },
-    });
+    const user = await findUserForMutation(userId, restaurantId);
     if (!user) {
       return res.status(404).json({ message: req.t("user.not_found") });
     }
@@ -560,7 +591,7 @@ export const updateUser = async (req: Request, res: Response, _next: NextFunctio
       const allowedUpdateRoles: UserRole[] = [USER_ROLES.MANAGER, USER_ROLES.WAITER];
       if (allowedUpdateRoles.includes(role as UserRole)) {
         user.role = role as UserRole;
-        if (user.restaurants && user.restaurants.length > 0) {
+        if (restaurantId && user.restaurants && user.restaurants.length > 0) {
           const restaurantIndexOfUser = user.restaurants.findIndex(
             (r) => r.restaurantId!.toString() === restaurantId
           );
@@ -593,18 +624,12 @@ export const blockUser = async (req: Request, res: Response, _next: NextFunction
     const { userId } = req.params;
     const userRole = req.user!.user.role;
     const { restaurantId } = req;
-    const user = await User.findOne({
-      _id: userId,
-      restaurants: { $elemMatch: { restaurantId } },
-    }).select("-password");
+    const user = await findUserForMutation(userId, restaurantId).select("-password");
     if (!user) {
       return res.status(404).json({ message: req.t("user.not_found") });
     }
     if (userRole == USER_ROLES.MANAGER) {
-      const user = await User.findOne({
-        _id: userId,
-        restaurants: { $elemMatch: { restaurantId } },
-      }).select("-password");
+      const user = await findUserForMutation(userId, restaurantId).select("-password");
       if (user!.role === USER_ROLES.MANAGER) {
         return res.status(403).json({
           message: req.t("user.cannot_block_admin_manager"),
@@ -630,10 +655,12 @@ export const deleteUser = async (req: Request, res: Response, _next: NextFunctio
   try {
     const { userId } = req.params;
     const { restaurantId } = req;
-    const deletedUser = await User.findOneAndDelete({
-      _id: userId,
-      restaurants: { $elemMatch: { restaurantId } },
-    });
+    const deletedUser = restaurantId
+      ? await User.findOneAndDelete({
+          _id: userId,
+          restaurants: { $elemMatch: { restaurantId } },
+        })
+      : await User.findByIdAndDelete(userId);
 
     if (!deletedUser) {
       return res.status(404).json({ message: req.t("user.not_found") });

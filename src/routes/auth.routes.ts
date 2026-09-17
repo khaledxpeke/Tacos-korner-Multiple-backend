@@ -33,7 +33,12 @@ const authRateLimiter = rateLimit({
 });
 
 router.post("/register", authRateLimiter, restaurantAuth(), register);
-router.post("/create", authRateLimiter, createUser);
+router.post(
+  "/create",
+  authRateLimiter,
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
+  createUser
+);
 router.post("/login", authRateLimiter, login);
 router.get("/me", authenticate(), me);
 router.post(

@@ -46,7 +46,10 @@ process.on("SIGINT", () => {
 // least this leaves a trace and closes connections gracefully instead of
 // dying silently mid-request.
 process.on("unhandledRejection", (reason) => {
-  logger.error(`Unhandled promise rejection: ${errorMessage(reason)}`);
+  const stack = reason instanceof Error ? reason.stack : undefined;
+  logger.error(
+    `Unhandled promise rejection: ${errorMessage(reason)}${stack ? `\n${stack}` : ""}`
+  );
 });
 process.on("uncaughtException", (err) => {
   logger.error(`Uncaught exception: ${err.stack || err.message}`);
