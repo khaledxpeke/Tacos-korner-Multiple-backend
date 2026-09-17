@@ -7,8 +7,7 @@ import localUpload from "../middleware/localMulter";
 import { Settings, type IMethod, type IPack, type SettingsDocument } from "../models/settings.model";
 import { Restaurant, type RestaurantDocument } from "../models/restaurant.model";
 import { Currency } from "../models/currency.model";
-import { Media } from "../models/media.model";
-import { forwardToMediaBackend } from "../services/media.service";
+import { resolveMediaFromRequest } from "../services/media.service";
 import { cleanupTempFile } from "../utils/cleanupTempFiles";
 import { errorMessage } from "../utils/helpers";
 import type {
@@ -109,15 +108,25 @@ export const getSettings = async (req: Request, res: Response) => {
       await restaurant.save();
     }
 
+    await settings.populate({ path: "banner", select: "url" });
     const settingsObject = settings.toObject() as ReturnType<SettingsDocument["toObject"]> & {
       isPasswordSet?: boolean;
       emailPass?: string;
       defaultLanguage?: string;
+      banner?: unknown;
     };
     settingsObject.isPasswordSet = !!settingsObject.emailPass;
     delete settingsObject.emailPass;
     if (!settingsObject.defaultLanguage) {
       settingsObject.defaultLanguage = "fr";
+    }
+    const bannerDoc = settingsObject.banner as { url?: string } | string | null;
+    if (bannerDoc && typeof bannerDoc === "object" && bannerDoc.url) {
+      settingsObject.banner = bannerDoc.url.replace(/\\/g, "/");
+    } else if (typeof bannerDoc === "string" && bannerDoc.length > 0) {
+      settingsObject.banner = bannerDoc.replace(/\\/g, "/");
+    } else {
+      settingsObject.banner = null;
     }
 
     return res.status(200).json(settingsObject);
@@ -335,40 +344,25 @@ export const updateSettings = async (req: Request, res: Response) => {
           };
         }) as IPack[];
       }
-      if (req.file) {
-        tempFilePath = req.file.path;
-        const oldBannerId = settings.banner;
-
-        const mediaResponse = await forwardToMediaBackend({
-          filePath: tempFilePath,
-          restaurantId: restaurantId!.toString(),
-          type: "banners",
-          originalname: req.file.originalname,
-        });
-
-        const mediaDoc = new Media({
-          filename: mediaResponse.filename || req.file.originalname,
-          url: mediaResponse.url as string,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: req.user?.user?._id,
+      if (req.file || req.body.mediaId) {
+        if (req.file) {
+          tempFilePath = req.file.path;
+        }
+        const newMediaDoc = await resolveMediaFromRequest({
+          req,
+          restaurantId,
+          userId: req.user?.user?._id,
           targetType: "Settings",
           targetId: settings._id,
           type: "banner",
-          restaurantId: restaurantId!.toString(),
-          scope: "restaurant",
         });
-        await mediaDoc.save();
-
-        if (oldBannerId) {
-          await Media.findByIdAndDelete(oldBannerId);
+        if (newMediaDoc) {
+          settings.banner = newMediaDoc._id;
         }
-
-        settings.banner = mediaDoc._id;
-
-        await cleanupTempFile(tempFilePath);
-        tempFilePath = null;
+        if (tempFilePath) {
+          await cleanupTempFile(tempFilePath);
+          tempFilePath = null;
+        }
       }
 
       if (address) {

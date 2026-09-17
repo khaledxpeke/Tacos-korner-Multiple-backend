@@ -139,7 +139,12 @@ export const resolveMediaFromRequest = async ({
   if (req.body.mediaId) {
     const mediaDoc = await Media.findOne({
       _id: req.body.mediaId,
-      scope: "shared",
+      $or: [
+        { scope: "shared" },
+        ...(restaurantId
+          ? [{ restaurantId, scope: "restaurant" as const }]
+          : []),
+      ],
     });
 
     if (!mediaDoc) {

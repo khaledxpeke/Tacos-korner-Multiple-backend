@@ -1,194 +1,182 @@
 # LayaFood test stack on Debian 13
 
-You are a **sudo user**, not the DNS owner. Deploy and prove it on the **VPS IP** first.
-The owner points `dev.layafood.com` at this IP **after** backend + dashboard are up.
+You are a **sudo user**, not the DNS owner.
 
-**Do not** put `https://dev.layafood.com` in the dashboard build until DNS actually points here. If you do it early, the UI on the new IP still calls **prod**.
+**Status (16 Sep 2026): Phase 1 is DONE.** Dashboard, API, local Mongo (Atlas dump restored), and media files work on the **VPS IP** over HTTP.
 
-Isolated Mongo only. Never reuse the production `DATABASE_URL`.
+Do **not** put `https://dev.layafood.com` in the dashboard build until DNS actually points here. If you do it early, Certbot fails and the UI can still call the wrong host.
 
-Replace `YOUR_VPS_IP` and every `CHANGE_ME` before running.
+Isolated Mongo only (`layafood_dev`). Never reuse production `DATABASE_URL`.
 
 ---
 
-## Phase 1 — host on the IP (you)
+## Where you are
 
-Public URLs until DNS moves:
+| Check | Status |
+|---|---|
+| Docker Mongo on `127.0.0.1:27017` | Done |
+| Atlas `TakosKorner` restored into `layafood_dev` | Done |
+| Backend + dashboard + media cloned, built, PM2 | Done |
+| Nginx on IP (`server_name _;`) | Done |
+| Login + restaurants + images on `http://YOUR_VPS_IP/` | Done |
+| Media files in `/var/www/layafood/media-uploads` | Done |
+| DNS `dev.layafood.com` → this VPS | **Waiting on owner** |
+| HTTPS / Certbot | **Not yet** |
+
+Until DNS moves, public URLs are:
 
 | URL | Serves |
 |---|---|
 | `http://YOUR_VPS_IP/` | Dashboard |
 | `http://YOUR_VPS_IP/api/...` | Backend `127.0.0.1:3300` |
 | `http://YOUR_VPS_IP/socket.io/` | Socket.IO |
-| `http://YOUR_VPS_IP/uploads/...` | Media files |
+| `http://YOUR_VPS_IP/uploads/...` | Files in `/var/www/layafood/media-uploads` |
 
-Media API stays internal (`127.0.0.1:4000`).
+Media API stays internal (`127.0.0.1:4000`). Do not bind `3300` / `4000` / `27017` to `0.0.0.0`.
 
-### 1. Sudo check
+---
 
-SSH as `debian`, then:
+## What you do now (today)
 
-```bash
-whoami
-sudo -n true && echo "sudo ok" || echo "NEED OWNER TO GRANT SUDO"
-```
+### 1. Make sure PM2 restarts after a reboot
 
-If sudo fails, stop. Ask the owner to add you to sudo (`usermod -aG sudo debian`) or to run the package install themselves. You cannot install Nginx/Node/Docker without it.
-
-### 2. Packages, swap, firewall
+On the VPS:
 
 ```bash
-sudo apt update && sudo apt upgrade -y
-
-# Swap if RAM is under ~2GB (CRA build will OOM)
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-
-sudo apt install -y nginx git curl ufw \
-  build-essential python3 pkg-config ca-certificates gnupg \
-  libcairo2-dev libpango1.0-dev libjpeg-dev libgif-dev librsvg2-dev libpixman-1-dev
-
-# Docker (MongoDB on Debian 13)
-sudo install -m 0755 -d /etc/apt/keyrings
-curl -fsSL https://download.docker.com/linux/debian/gpg | sudo tee /etc/apt/keyrings/docker.asc >/dev/null
-sudo chmod a+r /etc/apt/keyrings/docker.asc
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
-  | sudo tee /etc/apt/sources.list.d/docker.list
-sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
-sudo usermod -aG docker "$USER"
-
-# Node 20
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo bash -
-sudo apt install -y nodejs
-sudo npm install -g pm2
-
-sudo ufw allow OpenSSH
-sudo ufw allow 'Nginx Full'
-sudo ufw --force enable
+pm2 status
+pm2 save
+pm2 startup systemd
 ```
 
-Log out and back in so the `docker` group applies (`groups` should list `docker`).
-
-Skip Certbot until Phase 2. It needs the domain to resolve to this IP.
-
-### 3. New MongoDB (not prod)
+Run the `sudo ...` command it prints (once). Then:
 
 ```bash
-sudo mkdir -p /var/lib/layafood-mongo
-docker run -d --name layafood-mongo --restart unless-stopped \
-  -p 127.0.0.1:27017:27017 \
-  -e MONGO_INITDB_ROOT_USERNAME=admin \
-  -e MONGO_INITDB_ROOT_PASSWORD='CHANGE_ME_MONGO_ROOT' \
-  -v /var/lib/layafood-mongo:/data/db \
-  mongo:7
+pm2 save
 ```
+
+### 2. Message the owner
+
+Send them:
+
+> The test stack is live on this VPS IP. Please point the DNS **A record** of `dev.layafood.com` to **YOUR_VPS_IP**. Do not change anything else yet. I will add HTTPS after the name resolves.
+
+Replace `YOUR_VPS_IP` with the real IP (`curl -4 ifconfig.me` on the VPS).
+
+### 3. Optional cleanup (safe)
 
 ```bash
-docker exec -it layafood-mongo mongosh -u admin -p 'CHANGE_ME_MONGO_ROOT' --authenticationDatabase admin
+rm -rf ~/mongo-dump /tmp/media-uploads-copy ~/uploads
 ```
 
-```javascript
-use layafood_dev
-db.createUser({
-  user: "layafood",
-  pwd: "CHANGE_ME_MONGO_APP",
-  roles: [{ role: "readWrite", db: "layafood_dev" }]
-})
-exit
-```
+Do **not** delete `/var/lib/layafood-mongo` or `/var/www/layafood/media-uploads`.
 
-```
-mongodb://layafood:CHANGE_ME_MONGO_APP@127.0.0.1:27017/layafood_dev?authSource=layafood_dev
-```
+Skip creating `admin@layafood.com` — the restored Atlas users already work.
 
-### 4. Clone apps
+---
 
-Backend **must** be `feat/typescript-migration`. Dashboard: GitHub `main`.
+## What you wait for
+
+**Wait for the owner to change DNS.** You cannot do HTTPS before that.
+
+From **your PC** (not the VPS), poll until the name is this VPS:
 
 ```bash
-sudo mkdir -p /var/www/layafood/{backend,dashboard,media,media-uploads}
-sudo chown -R "$USER":"$USER" /var/www/layafood
-sudo chown -R www-data:www-data /var/www/layafood/media-uploads
-sudo chmod -R u+rwX /var/www/layafood/media-uploads
-# nginx + node both need this dir
-sudo usermod -aG www-data "$USER"
-
-cd /var/www/layafood
-git clone -b feat/typescript-migration https://github.com/khaledxpeke/Tacos-korner-Multiple-backend.git backend
-git clone -b main https://github.com/khaledxpeke/TacosKorner_dashboard.git dashboard
-git clone https://github.com/khaledxpeke/MediaBackend.git media
+nslookup dev.layafood.com
 ```
 
-Copy `backend/config/push-notification-key.json` from your PC (Firebase). Without it the API crashes on push init.
+or:
 
-### 5. Env files — use the IP, not the domain
+```bash
+ping dev.layafood.com
+```
 
-Generate secrets: `openssl rand -hex 32`
+You are ready for Phase 2 only when that IP **equals the VPS IP**.
+
+- If it still shows the old server / nothing: **keep waiting**. Do not run Certbot.
+- DNS can take minutes to a few hours.
+
+Do **not**:
+
+- Run `certbot` early (fails + can rate-limit you)
+- Rebuild the dashboard with `https://dev.layafood.com` while the name still points elsewhere
+- Change kiosk/mobile API URLs until you decide they should use this host
+
+---
+
+## Phase 2 — after DNS points here (you)
+
+Do these **in order**. One command at a time.
+
+### 1. Confirm DNS
+
+From your PC: `nslookup dev.layafood.com` → VPS IP.
+
+From the VPS you can also check, but the laptop check is what matters for Let's Encrypt.
+
+### 2. Point Nginx at the domain
+
+```bash
+sudo nano /etc/nginx/sites-available/layafood-dev
+```
+
+Change only:
+
+```nginx
+server_name dev.layafood.com;
+```
+
+Keep `listen 80` and the rest. Then:
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Open `http://dev.layafood.com` — dashboard should load (still HTTP).
+
+### 3. HTTPS (Certbot)
+
+```bash
+sudo apt install -y certbot python3-certbot-nginx
+sudo certbot --nginx -d dev.layafood.com
+```
+
+Follow the prompts (email, agree ToS). Certbot will edit Nginx for 443 and redirect HTTP → HTTPS.
+
+### 4. Switch app URLs to HTTPS
 
 **`/var/www/layafood/backend/.env`**
 
 ```
-PORT=3300
-DATABASE_URL=mongodb://layafood:CHANGE_ME_MONGO_APP@127.0.0.1:27017/layafood_dev?authSource=layafood_dev
-JWT_SECRET=CHANGE_ME_LONG_RANDOM
-ENCRYPTION_KEY=CHANGE_ME_32_CHARS_OR_HEX
-EMAIL_HOST=
-EMAIL_PORT=587
-EMAIL_USER=
-EMAIL_PASSWORD=
-EMAIL_SENDER=
-EMAIL_NAME=LayaFood
-RESTAURANT_TIMEZONE=Europe/Paris
-MEDIA_SERVER_URL=http://127.0.0.1:4000
-CAROUSEL_URL=
-PRINTER_SERVER_URL=
-BASE_URL=http://YOUR_VPS_IP
-MARKETPAY_CLIENT_ID=
-MARKETPAY_MERCHANT_ID=
-MARKETPAY_DEBUG=true
+BASE_URL=https://dev.layafood.com
+ALLOWED_ORIGINS=https://dev.layafood.com
 ```
 
-`MEDIA_SERVER_URL` stays localhost. The backend talks to media on the same machine.
+Leave `DATABASE_URL` and `MEDIA_SERVER_URL=http://127.0.0.1:4000` unchanged.
 
 **`/var/www/layafood/media/.env.production`**
 
 ```
 NODE_ENV=production
 PORT=4000
-BASE_URL=http://YOUR_VPS_IP
+BASE_URL=https://dev.layafood.com
 UPLOAD_DIR=/var/www/layafood/media-uploads
 ```
 
-**`/var/www/layafood/dashboard/.env`** (baked at **build** time)
+**`/var/www/layafood/dashboard/.env`** (must rebuild after this)
 
 ```
-REACT_APP_API_URL=http://YOUR_VPS_IP/api
-REACT_APP_MEDIA_URL=http://YOUR_VPS_IP
+REACT_APP_API_URL=https://dev.layafood.com/api
+REACT_APP_MEDIA_URL=https://dev.layafood.com
 REACT_APP_NAME=LayaFood
 ```
 
 No trailing slash on `REACT_APP_MEDIA_URL`.
 
-### 6. Build + PM2
+### 5. Put API back in production mode (Secure cookies)
 
-```bash
-cd /var/www/layafood/backend
-npm ci
-npm run build
+HTTP on the IP needed `NODE_ENV=development` so the login cookie was not `Secure`. HTTPS can use production.
 
-cd /var/www/layafood/media
-npm ci
-
-cd /var/www/layafood/dashboard
-npm ci
-npm run build
-```
-
-**`/var/www/layafood/ecosystem.config.cjs`**
+**`/var/www/layafood/ecosystem.config.cjs`** — both apps:
 
 ```javascript
 module.exports = {
@@ -211,187 +199,120 @@ module.exports = {
 };
 ```
 
-```bash
-pm2 start /var/www/layafood/ecosystem.config.cjs
-pm2 save
-pm2 startup systemd
-# run the command it prints (it will use sudo)
-```
-
-```bash
-pm2 status
-curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3300/api/auth/login
-ss -tlnp | grep -E '3300|4000|27017'
-```
-
-### 7. Nginx on the IP (HTTP only)
-
-**`/etc/nginx/sites-available/layafood-dev`**
-
-```nginx
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
-    server_name _;
-
-    root /var/www/layafood/dashboard/build;
-    index index.html;
-
-    client_max_body_size 100M;
-
-    location /uploads/ {
-        alias /var/www/layafood/media-uploads/;
-        expires 30d;
-        add_header Cache-Control "public";
-    }
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:3300;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 120s;
-    }
-
-    location /socket.io/ {
-        proxy_pass http://127.0.0.1:3300;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-```
-
-```bash
-sudo ln -sf /etc/nginx/sites-available/layafood-dev /etc/nginx/sites-enabled/
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t && sudo systemctl reload nginx
-```
-
-### 8. First admin (empty DB)
-
-`POST /api/auth/create` cannot create `admin`.
+Pull the latest backend (trust proxy + cookie helper) if the VPS is missing those commits:
 
 ```bash
 cd /var/www/layafood/backend
-node --input-type=module <<'EOF'
-import bcrypt from "bcryptjs";
-import mongoose from "mongoose";
-import dotenv from "dotenv";
-dotenv.config();
-
-await mongoose.connect(process.env.DATABASE_URL);
-const password = await bcrypt.hash("CHANGE_ME_ADMIN_PASSWORD", 10);
-await mongoose.connection.collection("users").insertOne({
-  email: "admin@layafood.com",
-  password,
-  fullName: "Admin",
-  role: "admin",
-  isBlocked: false,
-  restaurants: [],
-  userId: 1,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-});
-await mongoose.connection.collection("counters").updateOne(
-  { id: "userId" },
-  { $set: { seq: 1 } },
-  { upsert: true }
-);
-console.log("admin@layafood.com created");
-await mongoose.disconnect();
-EOF
+git pull origin feat/typescript-migration
+npm run build
 ```
 
-### 9. Prove it, then ping the owner
-
-From your laptop (not from the VPS):
-
-- `http://YOUR_VPS_IP/` → dashboard login
-- Log in as `admin@layafood.com`
-- Create a restaurant
-- Upload an image (file lands in `/var/www/layafood/media-uploads/`)
-
-Tell the owner: **apps are live on this IP, you can point `dev.layafood.com` now.**
-
----
-
-## Phase 2 — after the owner changes DNS (you again)
-
-Wait until from your laptop:
-
-```bash
-nslookup dev.layafood.com
-```
-
-shows **YOUR_VPS_IP**. Then HTTPS + rebuild the dashboard for the domain.
-
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-```
-
-Set `server_name` so Certbot can issue the cert. Edit the same nginx file:
-
-```nginx
-server_name dev.layafood.com;
-```
-
-Keep `listen 80` and the rest unchanged.
-
-```bash
-sudo nginx -t && sudo systemctl reload nginx
-sudo certbot --nginx -d dev.layafood.com
-```
-
-Switch public URLs to HTTPS:
-
-**backend `.env`**
-
-```
-BASE_URL=https://dev.layafood.com
-```
-
-**media `.env.production`**
-
-```
-BASE_URL=https://dev.layafood.com
-```
-
-**dashboard `.env`**
-
-```
-REACT_APP_API_URL=https://dev.layafood.com/api
-REACT_APP_MEDIA_URL=https://dev.layafood.com
-REACT_APP_NAME=LayaFood
-```
+### 6. Rebuild dashboard and restart
 
 ```bash
 cd /var/www/layafood/dashboard
 npm run build
 
-pm2 restart layafood-api layafood-media
+pm2 delete layafood-api layafood-media
+pm2 start /var/www/layafood/ecosystem.config.cjs
+pm2 save
 ```
 
-Open `https://dev.layafood.com` and confirm login + images.
+### 7. Prove HTTPS
+
+From your laptop:
+
+- `https://dev.layafood.com` → login
+- Restaurants and images load
+- Browser padlock, no mixed-content errors
+
+If login works then every page is `No token provided`, you are still on HTTP or `NODE_ENV=production` with `BASE_URL` still `http://...`. Fix `BASE_URL` to `https://...` and restart the API.
 
 ---
 
-## Notes
+## After Phase 2 (optional, not blocking)
 
-- Prod Mongo stays untouched (`layafood_dev` only).
-- Rebuild dashboard after any `REACT_APP_*` change.
-- Printer / carousel LAN IPs from local `.env` will not work here.
-- Mobile app is unchanged until you point its API URL at this host.
-- Media in production does not serve `/uploads`; Nginx does.
-- Do not bind 3300 / 4000 / 27017 to `0.0.0.0`.
-- Do not run Certbot before DNS points here. It will fail and can rate-limit you.
+- Printer / carousel: old LAN IPs do not work on this VPS. Leave empty until you have a printer path.
+- Kiosk / mobile: still on the old API until you change their `API_URL` / `MEDIA_URL` to `https://dev.layafood.com`.
+- Rotate Atlas / Gmail secrets that were pasted in chat.
+- Rebuild dashboard after **any** `REACT_APP_*` change.
+
+---
+
+## Phase 1 reference (already done — do not rerun)
+
+Kept so you can rebuild a box later. Skip this until you need a fresh VPS.
+
+### Packages
+
+- Debian 13, sudo user `debian`
+- Swap 2G if RAM &lt; ~2GB
+- Nginx, git, Docker, Node 20, PM2, UFW
+- Docker GPG: `sudo chmod a+r /etc/apt/keyrings/docker.asc` (not `a644`)
+- Log out of PuTTY and back in after `usermod -aG docker`
+
+### Mongo
+
+- Container `layafood-mongo`, bound to `127.0.0.1:27017`
+- App DB `layafood_dev`, user `layafood`
+- If the app password contains `@`, encode it as `%40` in `DATABASE_URL`
+- Data: `mongodump` Atlas DB `TakosKorner` on the PC (Database Tools, not Compass mongosh), `scp` to VPS, `docker cp` + `mongorestore --nsFrom='TakosKorner.*' --nsTo='layafood_dev.*'`
+
+### Layout
+
+```
+/var/www/layafood/backend
+/var/www/layafood/dashboard
+/var/www/layafood/media
+/var/www/layafood/media-uploads
+```
+
+Clone into those names (`git clone … media`). If you clone `MediaBackend` into an existing `media` folder it nests; flatten or clone again with the last argument `media`.
+
+### Env that made HTTP-on-IP work
+
+Backend:
+
+```
+PORT=3300
+DATABASE_URL=mongodb://layafood:PASSWORD@127.0.0.1:27017/layafood_dev?authSource=layafood_dev
+MEDIA_SERVER_URL=http://127.0.0.1:4000
+BASE_URL=http://YOUR_VPS_IP
+ALLOWED_ORIGINS=http://YOUR_VPS_IP
+```
+
+`ALLOWED_ORIGINS` is required (default is localhost). No `/api` on `BASE_URL`.
+
+Dashboard (baked at build):
+
+```
+REACT_APP_API_URL=http://YOUR_VPS_IP/api
+REACT_APP_MEDIA_URL=http://YOUR_VPS_IP
+```
+
+Media:
+
+```
+UPLOAD_DIR=/var/www/layafood/media-uploads
+```
+
+not `/var/www/media-backend/uploads`.
+
+### HTTP cookie workaround
+
+Until HTTPS, `layafood-api` in PM2 used `NODE_ENV: "development"` so the `jwt` cookie was not `Secure`. Switch back to `production` in Phase 2.
+
+Also: `app.set("trust proxy", 1)` so `express-rate-limit` accepts Nginx `X-Forwarded-For`.
+
+### Media files
+
+`uploads/` is gitignored. Copy with `scp` into `/var/www/layafood/media-uploads` so you see `restaurant_*` folders **directly** there (not `media-uploads/uploads/...`). Then:
+
+```bash
+sudo chown -R debian:www-data /var/www/layafood/media-uploads
+sudo chmod -R 775 /var/www/layafood/media-uploads
+```
+
+### Nginx IP vhost
+
+`server_name _;` plus `default_server` — do not put the IP in `server_name`.
