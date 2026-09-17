@@ -8,6 +8,10 @@ import { USER_ROLES, APP_TYPES, type UserRole } from "../enum/constants";
 import { User, type IUser, type IUserRestaurant, type UserDocument } from "../models/user.model";
 import { errorMessage } from "../utils/helpers";
 import { authCookieOptions } from "../utils/authCookie";
+import {
+  isUserIdDuplicateError,
+  syncUserIdSequence,
+} from "../utils/userIdSequence";
 
 // fcmToken is an internal push-notification device token — it has no
 // reason to reach the browser, so strip it before a user object goes into
@@ -25,6 +29,18 @@ interface NewUserPayload {
   role: UserRole;
   restaurants?: IUserRestaurant[];
 }
+
+const createUserDocument = async (payload: NewUserPayload) => {
+  try {
+    return await User.create(payload);
+  } catch (error) {
+    if (!isUserIdDuplicateError(error)) {
+      throw error;
+    }
+    await syncUserIdSequence();
+    return await User.create(payload);
+  }
+};
 
 interface PopulatedRestaurantRef {
   _id: Types.ObjectId;
@@ -107,7 +123,7 @@ export const register = async (req: Request, res: Response, _next: NextFunction)
         ];
       }
 
-      await User.create(newUser)
+      await createUserDocument(newUser)
         .then((createdUser) => {
           const maxAge = 8 * 60 * 60;
           const token = jwt.sign({ id: createdUser._id, email }, env.jwtSecret, {
@@ -166,7 +182,7 @@ export const createUser = async (req: Request, res: Response, _next: NextFunctio
         isBlocked: false,
         role: role as UserRole,
       };
-      await User.create(newUser)
+      await createUserDocument(newUser)
         .then((createdUser) => {
           const maxAge = 8 * 60 * 60;
           const token = jwt.sign({ id: createdUser._id, email }, env.jwtSecret, {

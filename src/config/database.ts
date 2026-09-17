@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { env } from "./environment";
 import { logger } from "../utils/logger";
+import { syncUserIdSequence } from "../utils/userIdSequence";
 
 let connecting: Promise<typeof mongoose> | null = null;
 
@@ -17,8 +18,13 @@ export const connectDB = async (): Promise<typeof mongoose> => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     } as mongoose.ConnectOptions)
-    .then((connection) => {
+    .then(async (connection) => {
       logger.info("MongoDB Connected");
+      try {
+        await syncUserIdSequence();
+      } catch (error) {
+        logger.error("Failed to sync userId sequence", error);
+      }
       return connection;
     })
     .catch((error: unknown) => {
