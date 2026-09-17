@@ -19,7 +19,7 @@ import { Desert } from "../models/desert.model";
 import { Extra } from "../models/extra.model";
 import { Drink } from "../models/drink.model";
 import { CarouselMedia } from "../models/carouselMedia.model";
-import { forwardToMediaBackend } from "../services/media.service";
+import { resolveMediaFromRequest } from "../services/media.service";
 import { errorMessage } from "../utils/helpers";
 import type { ISettings } from "../models/settings.model";
 
@@ -76,39 +76,30 @@ export const createRestaurant = async (req: Request, res: Response) => {
 
       await restaurant.save();
 
-      if (req.file) {
-        tempFilePath = req.file.path;
-        const mediaResponse = await forwardToMediaBackend({
-          filePath: tempFilePath,
+      if (req.file || req.body.mediaId) {
+        if (req.file) {
+          tempFilePath = req.file.path;
+        }
+        const mediaDoc = await resolveMediaFromRequest({
+          req,
           restaurantId: restaurant._id.toString(),
-          type: "logo",
-          originalname: req.file.originalname,
-        });
-
-        const mediaDoc = new Media({
-          filename: req.file.originalname,
-          url: mediaResponse.url as string,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: req.user?.user?._id,
+          userId: req.user?.user?._id,
           targetType: "Restaurant",
           targetId: restaurant._id,
           type: "logo",
-          restaurantId: restaurant._id.toString(),
-          scope: "restaurant",
         });
-        await mediaDoc.save();
-
-        restaurant.logo = mediaDoc._id;
-        await restaurant.save();
-
-        try {
-          await fs.unlink(tempFilePath);
-        } catch (cleanupErr) {
-          console.error("Error deleting temp file:", cleanupErr);
+        if (mediaDoc) {
+          restaurant.logo = mediaDoc._id;
+          await restaurant.save();
         }
-        tempFilePath = null;
+        if (tempFilePath) {
+          try {
+            await fs.unlink(tempFilePath);
+          } catch (cleanupErr) {
+            console.error("Error deleting temp file:", cleanupErr);
+          }
+          tempFilePath = null;
+        }
       }
       const settings = new Settings({
         restaurantId: restaurant._id,
@@ -366,49 +357,38 @@ export const updateRestaurant = async (req: Request, res: Response) => {
         return res.status(404).json({ message: req.t("restaurant.not_found") });
       }
 
-      if (req.file) {
-        tempFilePath = req.file.path;
+      if (req.file || req.body.mediaId) {
+        if (req.file) {
+          tempFilePath = req.file.path;
+        }
         const oldMediaId = existedRestaurant.logo;
-
-        const mediaResponse = await forwardToMediaBackend({
-          filePath: tempFilePath,
+        const mediaDoc = await resolveMediaFromRequest({
+          req,
           restaurantId: existedRestaurant._id.toString(),
-          type: "logo",
-          originalname: req.file.originalname,
-        });
-
-        const mediaDoc = new Media({
-          filename: mediaResponse.filename || req.file.originalname,
-          url: mediaResponse.url as string,
-          mimeType: mediaResponse.mimeType || req.file.mimetype,
-          size: mediaResponse.size || req.file.size,
-          hash: mediaResponse.hash,
-          uploadedBy: req.user?.user?._id,
+          userId: req.user?.user?._id,
           targetType: "Restaurant",
           targetId: existedRestaurant._id,
           type: "logo",
-          restaurantId: existedRestaurant._id.toString(),
-          scope: "restaurant",
         });
-        await mediaDoc.save();
-
-        if (oldMediaId) {
-          await Media.findOneAndDelete({
-            _id: oldMediaId,
-            targetType: "Restaurant",
-            targetId: existedRestaurant._id,
-            type: "logo",
-          });
+        if (mediaDoc) {
+          if (oldMediaId && oldMediaId.toString() !== mediaDoc._id.toString()) {
+            await Media.findOneAndDelete({
+              _id: oldMediaId,
+              targetType: "Restaurant",
+              targetId: existedRestaurant._id,
+              type: "logo",
+            });
+          }
+          existedRestaurant.logo = mediaDoc._id;
         }
-
-        existedRestaurant.logo = mediaDoc._id;
-
-        try {
-          await fs.unlink(tempFilePath);
-        } catch (cleanupErr) {
-          console.error("Error deleting temp file:", cleanupErr);
+        if (tempFilePath) {
+          try {
+            await fs.unlink(tempFilePath);
+          } catch (cleanupErr) {
+            console.error("Error deleting temp file:", cleanupErr);
+          }
+          tempFilePath = null;
         }
-        tempFilePath = null;
       }
 
       if (name) existedRestaurant.name = name;

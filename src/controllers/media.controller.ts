@@ -46,7 +46,10 @@ export const addMedia = async (req: Request, res: Response) => {
     const createdMediaDocs: MediaDocument[] = [];
 
     try {
-      const { restaurantId } = req;
+      const restaurantIdHeader = req.headers["restaurant-id"];
+      const restaurantId =
+        req.restaurantId ||
+        (typeof restaurantIdHeader === "string" ? restaurantIdHeader : undefined);
       const queryType =
         typeof req.query.type === "string" ? req.query.type : undefined;
       const { targetType, targetId } = req.body as {
@@ -56,7 +59,9 @@ export const addMedia = async (req: Request, res: Response) => {
       const type =
         targetType === "Settings" && (!queryType || queryType === "image")
           ? "banner"
-          : queryType;
+          : targetType === "Restaurant" && (!queryType || queryType === "image")
+            ? "logo"
+            : queryType;
 
       const mediaPromises = tempFiles.map(async (file) => {
         const mediaResponse = await forwardToMediaBackend({

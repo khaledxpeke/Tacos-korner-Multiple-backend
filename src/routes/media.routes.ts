@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as mediaController from "../controllers/media.controller";
-import { restaurantAuth, roleAuth } from "../middleware/auth.middleware";
+import { roleAuth } from "../middleware/auth.middleware";
 import { USER_ROLES } from "../enum/constants";
 
 const router = Router();
@@ -11,11 +11,11 @@ router.get("/", mediaController.listMedia);
 router.get("/types", mediaController.listTargetTypes);
 router.get("/:id", mediaController.getMediaById);
 
-// Uploads stay restaurant-scoped. Rename/delete authenticate by role only so
-// ADMIN can manage the global library without a restaurant-id header.
+// Uploads authenticate by role so ADMIN can add a restaurant logo
+// (or shared library image) before a restaurant-id exists. Managers
+// still send restaurant-id from the dashboard when they have one.
 router.post(
   "/upload",
-  restaurantAuth(),
   roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
   mediaController.addMedia
 );
