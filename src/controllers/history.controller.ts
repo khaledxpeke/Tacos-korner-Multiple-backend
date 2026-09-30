@@ -15,7 +15,7 @@ import { errorMessage, findActiveSettingOption } from "../utils/helpers";
 import { setHistoryIO, getHistoryIO } from "../services/history-io";
 import { startPrintRetryWorker, triggerAutoPrint } from "../services/print.service";
 import { generatePDF } from "../services/history-pdf.service";
-import { commitLoyalty, previewLoyalty } from "../services/loyalty.service";
+import { commitLoyalty, loyaltyRates, previewLoyalty } from "../services/loyalty.service";
 import {
   notifyWaiters,
   startDelayedOrderWorker,
@@ -95,12 +95,15 @@ export const addHistory = async (req: Request, res: Response) => {
       typeof req.body.loyaltyUserId === "string" ? req.body.loyaltyUserId.trim() : "";
     const pointsToRedeem =
       req.body.pointsToRedeem == null ? 0 : Number(req.body.pointsToRedeem);
+    const rates = loyaltyRates(settings);
     const loyaltyPreview =
       loyaltyUserId || pointsToRedeem
         ? await previewLoyalty({
             loyaltyUserId,
             pointsToRedeem,
             paidTotal: Number(total),
+            earnPoints: rates.earnPoints,
+            redeemPoints: rates.redeemPoints,
           })
         : null;
     if (loyaltyPreview && !loyaltyPreview.ok) {

@@ -467,6 +467,23 @@ export const updateSettings = async (req: Request, res: Response) => {
         settings.defaultLanguage = language;
       }
 
+      const earnRaw = req.body.loyaltyEarnPoints;
+      const redeemRaw = req.body.loyaltyRedeemPoints;
+      if (earnRaw !== undefined && earnRaw !== "") {
+        const earnPoints = Number(earnRaw);
+        if (!Number.isInteger(earnPoints) || earnPoints < 1) {
+          return res.status(400).json({ message: req.t("settings.loyalty_invalid") });
+        }
+        settings.loyaltyEarnPoints = earnPoints;
+      }
+      if (redeemRaw !== undefined && redeemRaw !== "") {
+        const redeemPoints = Number(redeemRaw);
+        if (!Number.isInteger(redeemPoints) || redeemPoints < 1) {
+          return res.status(400).json({ message: req.t("settings.loyalty_invalid") });
+        }
+        settings.loyaltyRedeemPoints = redeemPoints;
+      }
+
       await settings.save();
       console.log("About to emit settings-updated for restaurantId:", restaurantId);
       console.log("io is defined:", !!io);

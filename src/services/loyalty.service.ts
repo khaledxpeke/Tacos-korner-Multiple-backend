@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { env } from "../config/environment";
 import { USER_ROLES } from "../enum/constants";
+import { Settings } from "../models/settings.model";
 import { User } from "../models/user.model";
 import {
   LoyaltyAccount,
@@ -232,6 +233,25 @@ export const lookupLoyaltyCode = async (codeInput: string) => {
   return { ok: true as const, customer: publicAccount(account, user.fullName) };
 };
 
+export const loyaltyRates = (settings?: {
+  loyaltyEarnPoints?: number | null;
+  loyaltyRedeemPoints?: number | null;
+} | null) => {
+  const earn = Number(settings?.loyaltyEarnPoints);
+  const redeem = Number(settings?.loyaltyRedeemPoints);
+  return {
+    earnPoints: Number.isInteger(earn) && earn >= 1 ? earn : 1,
+    redeemPoints: Number.isInteger(redeem) && redeem >= 1 ? redeem : 100,
+  };
+};
+
+export const getLoyaltyRules = async (restaurantId: string) => {
+  const settings = await Settings.findOne({ restaurantId }).select(
+    "loyaltyEarnPoints loyaltyRedeemPoints"
+  );
+  return loyaltyRates(settings);
+};
+
 export type LoyaltyPreview =
   | {
       ok: true;
@@ -246,6 +266,8 @@ export const previewLoyalty = async (input: {
   loyaltyUserId: string;
   pointsToRedeem: number;
   paidTotal: number;
+  earnPoints: number;
+  redeemPoints: number;
 }): Promise<LoyaltyPreview> => {
   if (!mongoose.Types.ObjectId.isValid(input.loyaltyUserId)) {
     return { ok: false, status: 400, messageKey: "loyalty.account_not_found" };
@@ -265,8 +287,8 @@ export const previewLoyalty = async (input: {
     ok: true,
     userId: String(account.userId),
     pointsRedeemed: input.pointsToRedeem,
-    pointsEarned: Math.floor(input.paidTotal),
-    loyaltyDiscount: input.pointsToRedeem / 100,
+    pointsEarned: Math.floor(input.paidTotal) * input.earnPoints,
+    loyaltyDiscount: input.pointsToRedeem / input.redeemPoints,
   };
 };
 

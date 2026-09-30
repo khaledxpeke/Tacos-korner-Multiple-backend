@@ -36,6 +36,10 @@ export interface ISettings {
   printMode: boolean;
   printerIp: string;
   printerUrl: string;
+  /** Points earned for each 1 of the restaurant currency actually paid. */
+  loyaltyEarnPoints: number;
+  /** Points required to take 1 of the restaurant currency off an order. */
+  loyaltyRedeemPoints: number;
 }
 
 export type SettingsDocument = HydratedDocument<ISettings>;
@@ -159,6 +163,16 @@ const settingsSchema = new Schema<ISettings>(
     printerUrl: {
       type: String,
       default: "",
+    },
+    loyaltyEarnPoints: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    loyaltyRedeemPoints: {
+      type: Number,
+      default: 100,
+      min: 1,
     },
   },
   {

@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import {
   getLoyaltyLedger,
   getLoyaltyProfile,
+  getLoyaltyRules,
   linkLoyaltySession,
   loginLoyalty,
   lookupLoyaltyCode,
@@ -64,7 +65,8 @@ export const createSession = async (req: Request, res: Response) => {
     return res.status(400).json({ message: req.t("loyalty.restaurant_required") });
   }
   const session = await openLoyaltySession(String(req.restaurantId));
-  res.status(201).json(session);
+  const rules = await getLoyaltyRules(String(req.restaurantId));
+  res.status(201).json({ ...session, rules });
 };
 
 export const getSession = async (req: Request, res: Response) => {
@@ -74,11 +76,13 @@ export const getSession = async (req: Request, res: Response) => {
   const token = String(req.params.token || "");
   const result = await readLoyaltySession(token, String(req.restaurantId));
   if (!result.ok) return fail(res, req, result);
+  const rules = await getLoyaltyRules(String(req.restaurantId));
   res.status(200).json({
     linked: result.linked,
     expired: result.expired,
     expiresAt: result.expiresAt,
     customer: result.customer,
+    rules,
   });
 };
 
@@ -94,5 +98,6 @@ export const lookupCode = async (req: Request, res: Response) => {
   const { code } = req.body as { code?: string };
   const result = await lookupLoyaltyCode(code || "");
   if (!result.ok) return fail(res, req, result);
-  res.status(200).json({ customer: result.customer });
+  const rules = req.restaurantId ? await getLoyaltyRules(String(req.restaurantId)) : undefined;
+  res.status(200).json({ customer: result.customer, rules });
 };

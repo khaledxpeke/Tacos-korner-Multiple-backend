@@ -156,6 +156,7 @@
   "settings.currency_not_found": "Currency not found",
   "settings.currency_invalid": "Invalid currency",
   "settings.language_invalid": "Invalid language",
+  "settings.loyalty_invalid": "Loyalty points must be a whole number of at least 1.",
   "settings.currency_default_required": "Default currency is required",
   "settings.currency_default_updated": "Default currency updated",
   "settings.currency_last_delete_error": "Cannot delete the last currency. Add another first.",

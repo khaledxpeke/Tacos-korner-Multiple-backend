@@ -155,6 +155,7 @@
   "settings.currency_not_found": "العملة غير موجودة",
   "settings.currency_invalid": "عملة غير صالحة",
   "settings.language_invalid": "لغة غير صالحة",
+  "settings.loyalty_invalid": "يجب أن تكون نقاط الولاء عدداً صحيحاً لا يقل عن 1.",
   "settings.currency_default_required": "العملة الافتراضية مطلوبة",
   "settings.currency_default_updated": "تم تحديث العملة الافتراضية",
   "settings.currency_last_delete_error": "لا يمكن حذف العملة الأخيرة. أضف عملة أخرى أولاً.",
