@@ -18,6 +18,8 @@ declare namespace NodeJS {
     MARKETPAY_CLIENT_ID?: string;
     MARKETPAY_MERCHANT_ID?: string;
     MARKETPAY_DEBUG?: string;
+    ALLOWED_ORIGINS?: string;
+    LOYALTY_WEB_URL?: string;
     NODE_ENV?: string;
   }
 }

@@ -102,6 +102,10 @@ export const generatePDF = async (orderData: PdfOrderData) => {
       };
     }),
     total: orderData.total.toFixed(2),
+    loyaltyDiscount:
+      orderData.loyaltyDiscount && orderData.loyaltyDiscount > 0
+        ? Number(orderData.loyaltyDiscount).toFixed(2)
+        : "",
     tva: tva,
     totalHt: totalHT.toFixed(2),
     tvaAmount: totalTVA.toFixed(2),

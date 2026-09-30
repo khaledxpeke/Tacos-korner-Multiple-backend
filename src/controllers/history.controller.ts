@@ -15,6 +15,7 @@ import { errorMessage, findActiveSettingOption } from "../utils/helpers";
 import { setHistoryIO, getHistoryIO } from "../services/history-io";
 import { startPrintRetryWorker, triggerAutoPrint } from "../services/print.service";
 import { generatePDF } from "../services/history-pdf.service";
+import { commitLoyalty, previewLoyalty } from "../services/loyalty.service";
 import {
   notifyWaiters,
   startDelayedOrderWorker,
@@ -89,6 +90,25 @@ export const addHistory = async (req: Request, res: Response) => {
         .status(404)
         .json({ message: req.t("history.payment_method_not_found") });
     }
+
+    const loyaltyUserId =
+      typeof req.body.loyaltyUserId === "string" ? req.body.loyaltyUserId.trim() : "";
+    const pointsToRedeem =
+      req.body.pointsToRedeem == null ? 0 : Number(req.body.pointsToRedeem);
+    const loyaltyPreview =
+      loyaltyUserId || pointsToRedeem
+        ? await previewLoyalty({
+            loyaltyUserId,
+            pointsToRedeem,
+            paidTotal: Number(total),
+          })
+        : null;
+    if (loyaltyPreview && !loyaltyPreview.ok) {
+      return res
+        .status(loyaltyPreview.status)
+        .json({ message: req.t(loyaltyPreview.messageKey) });
+    }
+
     const tva = settings?.tva || 0;
     const orderCurrency = settings.defaultCurrency || currency || "";
     const history = await new History({
@@ -129,6 +149,10 @@ export const addHistory = async (req: Request, res: Response) => {
       tva,
       discountValue: discountValue || 0,
       couponId: couponId || null,
+      loyaltyUserId: loyaltyPreview?.ok ? loyaltyPreview.userId : null,
+      loyaltyDiscount: loyaltyPreview?.ok ? loyaltyPreview.loyaltyDiscount : 0,
+      loyaltyPointsRedeemed: loyaltyPreview?.ok ? loyaltyPreview.pointsRedeemed : 0,
+      loyaltyPointsEarned: loyaltyPreview?.ok ? loyaltyPreview.pointsEarned : 0,
       status: "enCours",
       logo: restaurant!.logo as unknown as string,
       method: {
@@ -156,6 +180,31 @@ export const addHistory = async (req: Request, res: Response) => {
         });
 
         await statusHistory.save();
+
+        if (
+          loyaltyPreview?.ok &&
+          (loyaltyPreview.pointsRedeemed > 0 || loyaltyPreview.pointsEarned > 0)
+        ) {
+          try {
+            const committed = await commitLoyalty({
+              userId: loyaltyPreview.userId,
+              pointsRedeemed: loyaltyPreview.pointsRedeemed,
+              pointsEarned: loyaltyPreview.pointsEarned,
+              historyId: result._id,
+              restaurantId: String(restaurantId),
+            });
+            if (!committed) {
+              await StatusHistory.deleteOne({ historyId: result._id });
+              await History.deleteOne({ _id: result._id });
+              return res.status(409).json({ message: req.t("loyalty.points_insufficient") });
+            }
+          } catch (loyaltyError) {
+            console.error(loyaltyError);
+            await StatusHistory.deleteOne({ historyId: result._id });
+            await History.deleteOne({ _id: result._id });
+            return res.status(500).json({ message: req.t("history.save_error") });
+          }
+        }
 
         const coupon = await Coupon.findById(couponId);
         if (coupon) {
@@ -515,6 +564,10 @@ export const addEmail = async (req: Request, res: Response) => {
         }),
         total: history.total.toFixed(2),
         totalHt: totalHT.toFixed(2),
+        loyaltyDiscount:
+          history.loyaltyDiscount && history.loyaltyDiscount > 0
+            ? history.loyaltyDiscount.toFixed(2)
+            : "",
         tvaAmount: totalTVA.toFixed(2),
         tva: tva,
         pack: history.pack.label,

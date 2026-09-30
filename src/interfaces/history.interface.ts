@@ -121,6 +121,8 @@ export interface AddHistoryBody {
   commandNumber: string | number;
   discountValue?: number;
   couponId?: string | null;
+  loyaltyUserId?: string;
+  pointsToRedeem?: number;
 }
 
 export interface HistoryListQuery {
@@ -180,6 +182,7 @@ export interface PdfOrderData {
   currency?: string;
   pack: { label: string };
   method: { label: string };
+  loyaltyDiscount?: number;
 }
 
 export interface HistoriesRtResult {

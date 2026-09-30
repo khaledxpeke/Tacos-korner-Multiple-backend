@@ -43,10 +43,24 @@ export const env = {
   marketPayClientId: optional("MARKETPAY_CLIENT_ID"),
   marketPayMerchantId: optional("MARKETPAY_MERCHANT_ID"),
   marketPayDebug: process.env.MARKETPAY_DEBUG === "true",
-  allowedOrigins: optional("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3006")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean),
+  loyaltyWebUrl: optional("LOYALTY_WEB_URL", "http://localhost:3001").replace(/\/+$/, ""),
+  allowedOrigins: withLoyaltyOrigin(
+    optional("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3006")
+      .split(",")
+      .map((origin) => origin.trim())
+      .filter(Boolean),
+    optional("LOYALTY_WEB_URL", "http://localhost:3001")
+  ),
 };
+
+function withLoyaltyOrigin(origins: string[], loyaltyWebUrl: string): string[] {
+  try {
+    const origin = new URL(loyaltyWebUrl).origin;
+    if (!origins.includes(origin)) return [...origins, origin];
+  } catch {
+    return origins;
+  }
+  return origins;
+}
 
 export type Env = typeof env;

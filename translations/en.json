@@ -247,5 +247,21 @@
   "marketpay.invalid_client_id": "Unauthorized: Invalid Client ID.",
   "product.migration_success": "Products migration completed!",
   "product.migration_error": "Migration failed",
-  "images.hashes_removed": "Image hashes removed"
+  "images.hashes_removed": "Image hashes removed",
+  "loyalty.name_required": "Name is required.",
+  "loyalty.phone_invalid": "Invalid phone number.",
+  "loyalty.password_short": "Password must be at least 6 characters.",
+  "loyalty.phone_taken": "This phone number is already registered.",
+  "loyalty.signup_failed": "Could not create the account.",
+  "loyalty.invalid_credentials": "Wrong phone number or password.",
+  "loyalty.account_blocked": "This account is blocked.",
+  "loyalty.account_not_found": "Loyalty account not found.",
+  "loyalty.session_not_found": "Checkout session not found.",
+  "loyalty.session_expired": "This QR code has expired. Show a new one on the kiosk.",
+  "loyalty.session_taken": "This session is already linked to another account.",
+  "loyalty.points_invalid": "Invalid number of points.",
+  "loyalty.points_insufficient": "Not enough points.",
+  "loyalty.code_invalid": "The code must be 8 characters.",
+  "loyalty.code_not_found": "Loyalty code not found.",
+  "loyalty.restaurant_required": "Restaurant is missing."
 }

@@ -59,6 +59,10 @@ export interface IHistory {
   tva?: number;
   discountValue: number;
   couponId: Types.ObjectId | null;
+  loyaltyUserId?: Types.ObjectId | null;
+  loyaltyDiscount?: number;
+  loyaltyPointsRedeemed?: number;
+  loyaltyPointsEarned?: number;
   status: HistoryStatus;
   boughtAt: Date;
   restaurantId: Types.ObjectId;
@@ -124,6 +128,10 @@ const historySchema = new Schema<IHistory>(
     tva: { type: Number },
     discountValue: { type: Number, default: 0 },
     couponId: { type: Schema.Types.ObjectId, ref: "Coupon", default: null },
+    loyaltyUserId: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    loyaltyDiscount: { type: Number, default: 0 },
+    loyaltyPointsRedeemed: { type: Number, default: 0 },
+    loyaltyPointsEarned: { type: Number, default: 0 },
     status: {
       type: String,
       default: "enCours",

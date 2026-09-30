@@ -247,5 +247,21 @@
   "marketpay.invalid_client_id": "Non autorisé : ID client invalide.",
   "product.migration_success": "Migration des produits terminée !",
   "product.migration_error": "Échec de la migration",
-  "images.hashes_removed": "Empreintes d'images supprimées"
+  "images.hashes_removed": "Empreintes d'images supprimées",
+  "loyalty.name_required": "Le nom est requis.",
+  "loyalty.phone_invalid": "Numéro de téléphone invalide.",
+  "loyalty.password_short": "Le mot de passe doit contenir au moins 6 caractères.",
+  "loyalty.phone_taken": "Ce numéro est déjà inscrit.",
+  "loyalty.signup_failed": "Inscription impossible.",
+  "loyalty.invalid_credentials": "Téléphone ou mot de passe incorrect.",
+  "loyalty.account_blocked": "Ce compte est bloqué.",
+  "loyalty.account_not_found": "Compte fidélité introuvable.",
+  "loyalty.session_not_found": "Session de caisse introuvable.",
+  "loyalty.session_expired": "Ce QR code a expiré. Affichez-en un nouveau sur la borne.",
+  "loyalty.session_taken": "Cette session est déjà liée à un autre compte.",
+  "loyalty.points_invalid": "Nombre de points invalide.",
+  "loyalty.points_insufficient": "Solde de points insuffisant.",
+  "loyalty.code_invalid": "Le code doit contenir 8 caractères.",
+  "loyalty.code_not_found": "Code fidélité introuvable.",
+  "loyalty.restaurant_required": "Restaurant manquant."
 }

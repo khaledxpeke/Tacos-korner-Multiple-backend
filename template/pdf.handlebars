@@ -319,6 +319,12 @@
 											</td>
 										</tr>
 										{{/if}}
+										{{#if loyaltyDiscount}}
+										<tr>
+											<td style=" text-align: left;padding: 8px;">Fidélité</td>
+											<td style=" text-align: right;padding: 8px;">-{{loyaltyDiscount}} {{currency}}</td>
+										</tr>
+										{{/if}}
 										<tr style="font-weight: bold;">
 											<td style=" text-align: left;padding: 8px;">Total (HT)</td>
 											<td style=" text-align: right;padding: 8px;">{{totalHt}} {{currency}}</td>

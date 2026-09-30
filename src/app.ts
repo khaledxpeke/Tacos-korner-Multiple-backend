@@ -33,6 +33,7 @@ import allergyRoutes from "./routes/allergy.routes";
 import databaseExporterRoutes from "./routes/databaseExporter.routes";
 import generateImageHashesRoutes from "./routes/generateImageHashes.routes";
 import marketPayRoutes from "./routes/marketPay.routes";
+import loyaltyRoutes from "./routes/loyalty.routes";
 
 export const createApp = (): Application => {
   const app = express();
@@ -81,6 +82,7 @@ export const createApp = (): Application => {
   setupSwagger(app);
 
   app.use("/api/auth", authRoutes);
+  app.use("/api/loyalty", loyaltyRoutes);
   app.use("/api/product", productRoutes);
   app.use("/api/category", categoryRoutes);
   app.use("/api/desert", desertRoutes);
