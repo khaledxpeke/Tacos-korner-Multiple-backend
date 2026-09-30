@@ -43,13 +43,13 @@ export const env = {
   marketPayClientId: optional("MARKETPAY_CLIENT_ID"),
   marketPayMerchantId: optional("MARKETPAY_MERCHANT_ID"),
   marketPayDebug: process.env.MARKETPAY_DEBUG === "true",
-  loyaltyWebUrl: optional("LOYALTY_WEB_URL", "http://localhost:3001").replace(/\/+$/, ""),
+  loyaltyWebUrl: optional("LOYALTY_WEB_URL", "http://localhost:3000/fidelite").replace(/\/+$/, ""),
   allowedOrigins: withLoyaltyOrigin(
     optional("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3006")
       .split(",")
       .map((origin) => origin.trim())
       .filter(Boolean),
-    optional("LOYALTY_WEB_URL", "http://localhost:3001")
+    optional("LOYALTY_WEB_URL", "http://localhost:3000/fidelite")
   ),
 };
 
