@@ -236,20 +236,42 @@ export const lookupLoyaltyCode = async (codeInput: string) => {
 export const loyaltyRates = (settings?: {
   loyaltyEarnPoints?: number | null;
   loyaltyRedeemPoints?: number | null;
+  loyaltyMaxPercent?: number | null;
 } | null) => {
   const earn = Number(settings?.loyaltyEarnPoints);
   const redeem = Number(settings?.loyaltyRedeemPoints);
+  const maxPercent = Number(settings?.loyaltyMaxPercent);
   return {
     earnPoints: Number.isInteger(earn) && earn >= 1 ? earn : 1,
     redeemPoints: Number.isInteger(redeem) && redeem >= 1 ? redeem : 100,
+    maxPercent: Number.isInteger(maxPercent) && maxPercent >= 1 && maxPercent <= 100 ? maxPercent : 50,
   };
 };
 
 export const getLoyaltyRules = async (restaurantId: string) => {
   const settings = await Settings.findOne({ restaurantId }).select(
-    "loyaltyEarnPoints loyaltyRedeemPoints"
+    "loyaltyEarnPoints loyaltyRedeemPoints loyaltyMaxPercent"
   );
   return loyaltyRates(settings);
+};
+
+/** Points spent automatically. Below [redeemPoints] nothing is spent.
+ * Otherwise every point is spent, up to [maxPercent] of [amountDue]. */
+export const cashbackPoints = (
+  balance: number,
+  amountDue: number,
+  redeemPoints: number,
+  maxPercent: number
+) => {
+  if (!Number.isInteger(balance) || balance < redeemPoints) return 0;
+  const dueCents = Math.round(amountDue * 100);
+  if (dueCents <= 0) return 0;
+  const percent = maxPercent >= 1 && maxPercent <= 100 ? maxPercent : 50;
+  const cap = Math.floor((dueCents * percent * redeemPoints) / 10000);
+  const byDue = Math.floor((dueCents * redeemPoints) / 100);
+  const maxPoints = Math.min(cap, byDue);
+  if (maxPoints < 1) return 0;
+  return Math.min(balance, maxPoints);
 };
 
 export type LoyaltyPreview =
@@ -259,36 +281,41 @@ export type LoyaltyPreview =
       pointsRedeemed: number;
       pointsEarned: number;
       loyaltyDiscount: number;
+      paidTotal: number;
     }
   | { ok: false; status: number; messageKey: string };
 
 export const previewLoyalty = async (input: {
   loyaltyUserId: string;
-  pointsToRedeem: number;
-  paidTotal: number;
+  amountDue: number;
   earnPoints: number;
   redeemPoints: number;
+  maxPercent: number;
 }): Promise<LoyaltyPreview> => {
   if (!mongoose.Types.ObjectId.isValid(input.loyaltyUserId)) {
     return { ok: false, status: 400, messageKey: "loyalty.account_not_found" };
   }
-  if (!Number.isFinite(input.paidTotal) || input.paidTotal < 0) {
-    return { ok: false, status: 400, messageKey: "loyalty.points_invalid" };
-  }
-  if (!Number.isInteger(input.pointsToRedeem) || input.pointsToRedeem < 0) {
+  if (!Number.isFinite(input.amountDue) || input.amountDue < 0) {
     return { ok: false, status: 400, messageKey: "loyalty.points_invalid" };
   }
   const account = await LoyaltyAccount.findOne({ userId: input.loyaltyUserId });
   if (!account) return { ok: false, status: 400, messageKey: "loyalty.account_not_found" };
-  if (input.pointsToRedeem > account.balance) {
-    return { ok: false, status: 409, messageKey: "loyalty.points_insufficient" };
-  }
+  const pointsRedeemed = cashbackPoints(
+    account.balance,
+    input.amountDue,
+    input.redeemPoints,
+    input.maxPercent
+  );
+  const dueCents = Math.round(input.amountDue * 100);
+  const discountCents = Math.round((pointsRedeemed * 100) / input.redeemPoints);
+  const paidCents = Math.max(0, dueCents - discountCents);
   return {
     ok: true,
     userId: String(account.userId),
-    pointsRedeemed: input.pointsToRedeem,
-    pointsEarned: Math.floor(input.paidTotal) * input.earnPoints,
-    loyaltyDiscount: input.pointsToRedeem / input.redeemPoints,
+    pointsRedeemed,
+    pointsEarned: Math.floor(paidCents / 100) * input.earnPoints,
+    loyaltyDiscount: discountCents / 100,
+    paidTotal: paidCents / 100,
   };
 };
 

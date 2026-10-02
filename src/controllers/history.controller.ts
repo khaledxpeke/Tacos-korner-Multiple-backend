@@ -93,19 +93,18 @@ export const addHistory = async (req: Request, res: Response) => {
 
     const loyaltyUserId =
       typeof req.body.loyaltyUserId === "string" ? req.body.loyaltyUserId.trim() : "";
-    const pointsToRedeem =
-      req.body.pointsToRedeem == null ? 0 : Number(req.body.pointsToRedeem);
     const rates = loyaltyRates(settings);
-    const loyaltyPreview =
-      loyaltyUserId || pointsToRedeem
-        ? await previewLoyalty({
-            loyaltyUserId,
-            pointsToRedeem,
-            paidTotal: Number(total),
-            earnPoints: rates.earnPoints,
-            redeemPoints: rates.redeemPoints,
-          })
-        : null;
+    // `total` is the amount after the coupon and before points. The server
+    // decides how many points are spent; the borne does not choose an amount.
+    const loyaltyPreview = loyaltyUserId
+      ? await previewLoyalty({
+          loyaltyUserId,
+          amountDue: Number(total),
+          earnPoints: rates.earnPoints,
+          redeemPoints: rates.redeemPoints,
+          maxPercent: rates.maxPercent,
+        })
+      : null;
     if (loyaltyPreview && !loyaltyPreview.ok) {
       return res
         .status(loyaltyPreview.status)
@@ -166,7 +165,7 @@ export const addHistory = async (req: Request, res: Response) => {
         _id: packExists._id,
         label: packExists.label,
       },
-      total: total,
+      total: loyaltyPreview?.ok ? loyaltyPreview.paidTotal : total,
       boughtAt: now,
       commandNumber: parseInt(String(commandNumber), 10),
       restaurantId,

@@ -38,8 +38,11 @@ export interface ISettings {
   printerUrl: string;
   /** Points earned for each 1 of the restaurant currency actually paid. */
   loyaltyEarnPoints: number;
-  /** Points required to take 1 of the restaurant currency off an order. */
+  /** Points required to take 1 of the restaurant currency off an order.
+   * Also the minimum balance required before any cashback is applied. */
   loyaltyRedeemPoints: number;
+  /** Largest share of the order (after coupon) that points can pay. 50 = half. */
+  loyaltyMaxPercent: number;
 }
 
 export type SettingsDocument = HydratedDocument<ISettings>;
@@ -173,6 +176,12 @@ const settingsSchema = new Schema<ISettings>(
       type: Number,
       default: 100,
       min: 1,
+    },
+    loyaltyMaxPercent: {
+      type: Number,
+      default: 50,
+      min: 1,
+      max: 100,
     },
   },
   {

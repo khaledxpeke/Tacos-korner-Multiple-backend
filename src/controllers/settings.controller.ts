@@ -469,6 +469,7 @@ export const updateSettings = async (req: Request, res: Response) => {
 
       const earnRaw = req.body.loyaltyEarnPoints;
       const redeemRaw = req.body.loyaltyRedeemPoints;
+      const maxPercentRaw = req.body.loyaltyMaxPercent;
       if (earnRaw !== undefined && earnRaw !== "") {
         const earnPoints = Number(earnRaw);
         if (!Number.isInteger(earnPoints) || earnPoints < 1) {
@@ -482,6 +483,13 @@ export const updateSettings = async (req: Request, res: Response) => {
           return res.status(400).json({ message: req.t("settings.loyalty_invalid") });
         }
         settings.loyaltyRedeemPoints = redeemPoints;
+      }
+      if (maxPercentRaw !== undefined && maxPercentRaw !== "") {
+        const maxPercent = Number(maxPercentRaw);
+        if (!Number.isInteger(maxPercent) || maxPercent < 1 || maxPercent > 100) {
+          return res.status(400).json({ message: req.t("settings.loyalty_invalid") });
+        }
+        settings.loyaltyMaxPercent = maxPercent;
       }
 
       await settings.save();
