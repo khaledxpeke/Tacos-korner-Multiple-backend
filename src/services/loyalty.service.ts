@@ -12,16 +12,22 @@ import {
   LoyaltySession,
   type LoyaltyAccountDocument,
 } from "../models/loyalty.model";
+import { composePhone } from "../utils/phoneCountries";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const SESSION_TTL_MS = 2 * 60 * 1000;
 const CUSTOMER_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 
-export const normalizePhone = (input: string): string | null => {
-  const digits = String(input || "").replace(/\D/g, "");
-  if (digits.length === 8) return `216${digits}`;
-  if (digits.length >= 10 && digits.length <= 15) return digits;
-  return null;
+const isStrongPassword = (password: string) =>
+  password.length >= 8 &&
+  /\p{Lu}/u.test(password) &&
+  /\d/.test(password) &&
+  /[^\p{L}\p{N}]/u.test(password);
+
+const normalizeEmail = (input: string): string | null => {
+  const email = String(input || "").trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null;
+  return email;
 };
 
 const randomCode = (): string => {
@@ -49,9 +55,14 @@ const signCustomerToken = (user: {
     { expiresIn: CUSTOMER_TOKEN_SECONDS }
   );
 
-export const publicAccount = (account: LoyaltyAccountDocument, fullName: string) => ({
+export const publicAccount = (
+  account: LoyaltyAccountDocument,
+  fullName: string,
+  email: string
+) => ({
   userId: String(account.userId),
   fullName,
+  email,
   phone: account.phone,
   code: account.code,
   balance: account.balance,
@@ -59,25 +70,31 @@ export const publicAccount = (account: LoyaltyAccountDocument, fullName: string)
 
 export const signupLoyalty = async (input: {
   fullName: string;
+  email: string;
   phone: string;
+  country: string;
   password: string;
 }) => {
   const fullName = input.fullName.trim();
-  const phone = normalizePhone(input.phone);
+  const email = normalizeEmail(input.email);
+  const phone = composePhone(input.country, input.phone);
   if (fullName.length < 2) return { ok: false as const, status: 400, messageKey: "loyalty.name_required" };
+  if (!email) return { ok: false as const, status: 400, messageKey: "loyalty.email_invalid" };
   if (!phone) return { ok: false as const, status: 400, messageKey: "loyalty.phone_invalid" };
-  if (!input.password || input.password.length < 6) {
+  if (!isStrongPassword(input.password)) {
     return { ok: false as const, status: 400, messageKey: "loyalty.password_short" };
   }
 
-  const existing = await LoyaltyAccount.findOne({ phone });
-  if (existing) return { ok: false as const, status: 409, messageKey: "loyalty.phone_taken" };
+  const existingPhone = await LoyaltyAccount.findOne({ phone });
+  if (existingPhone) return { ok: false as const, status: 409, messageKey: "loyalty.phone_taken" };
+  const existingEmail = await User.findOne({ email });
+  if (existingEmail) return { ok: false as const, status: 409, messageKey: "loyalty.email_taken" };
 
   const hash = await bcrypt.hash(input.password, 10);
   let user;
   try {
     user = await User.create({
-      email: `loyalty.${phone}@clients.local`,
+      email,
       role: USER_ROLES.CLIENT,
       password: hash,
       fullName,
@@ -86,7 +103,7 @@ export const signupLoyalty = async (input: {
     });
   } catch (error: unknown) {
     if ((error as { code?: number }).code === 11000) {
-      return { ok: false as const, status: 409, messageKey: "loyalty.phone_taken" };
+      return { ok: false as const, status: 409, messageKey: "loyalty.email_taken" };
     }
     throw error;
   }
@@ -119,28 +136,28 @@ export const signupLoyalty = async (input: {
   return {
     ok: true as const,
     token: signCustomerToken(user),
-    account: publicAccount(account, fullName),
+    account: publicAccount(account, fullName, email),
   };
 };
 
-export const loginLoyalty = async (phoneInput: string, password: string) => {
-  const phone = normalizePhone(phoneInput);
-  if (!phone || !password) {
+export const loginLoyalty = async (emailInput: string, password: string) => {
+  const email = normalizeEmail(emailInput);
+  if (!email || !password) {
     return { ok: false as const, status: 400, messageKey: "loyalty.invalid_credentials" };
   }
-  const account = await LoyaltyAccount.findOne({ phone });
-  if (!account) return { ok: false as const, status: 401, messageKey: "loyalty.invalid_credentials" };
-  const user = await User.findById(account.userId);
+  const user = await User.findOne({ email });
   if (!user || user.role !== USER_ROLES.CLIENT) {
     return { ok: false as const, status: 401, messageKey: "loyalty.invalid_credentials" };
   }
+  const account = await LoyaltyAccount.findOne({ userId: user._id });
+  if (!account) return { ok: false as const, status: 401, messageKey: "loyalty.invalid_credentials" };
   if (user.isBlocked) return { ok: false as const, status: 403, messageKey: "loyalty.account_blocked" };
   const matches = await bcrypt.compare(password, user.password);
   if (!matches) return { ok: false as const, status: 401, messageKey: "loyalty.invalid_credentials" };
   return {
     ok: true as const,
     token: signCustomerToken(user),
-    account: publicAccount(account, user.fullName),
+    account: publicAccount(account, user.fullName, user.email),
   };
 };
 
@@ -150,7 +167,7 @@ export const getLoyaltyProfile = async (userId: string) => {
   if (!account) return null;
   const user = await User.findById(userId);
   if (!user) return null;
-  return publicAccount(account, user.fullName);
+  return publicAccount(account, user.fullName, user.email);
 };
 
 export const getLoyaltyLedger = async (userId: string) => {
@@ -198,7 +215,7 @@ export const readLoyaltySession = async (token: string, restaurantId: string) =>
     linked: true,
     expired,
     expiresAt: session.expiresAt,
-    customer: publicAccount(account, user.fullName),
+    customer: publicAccount(account, user.fullName, user.email),
   };
 };
 
@@ -230,7 +247,7 @@ export const lookupLoyaltyCode = async (codeInput: string) => {
   if (!user || user.isBlocked) {
     return { ok: false as const, status: 404, messageKey: "loyalty.code_not_found" };
   }
-  return { ok: true as const, customer: publicAccount(account, user.fullName) };
+  return { ok: true as const, customer: publicAccount(account, user.fullName, user.email) };
 };
 
 export const loyaltyRates = (settings?: {

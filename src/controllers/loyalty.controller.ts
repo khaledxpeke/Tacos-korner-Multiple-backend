@@ -19,14 +19,18 @@ const fail = (
 
 export const signup = async (req: Request, res: Response) => {
   try {
-    const { fullName, phone, password } = req.body as {
+    const { fullName, email, phone, country, password } = req.body as {
       fullName?: string;
+      email?: string;
       phone?: string;
+      country?: string;
       password?: string;
     };
     const result = await signupLoyalty({
       fullName: fullName || "",
+      email: email || "",
       phone: phone || "",
+      country: country || "",
       password: password || "",
     });
     if (!result.ok) return fail(res, req, result);
@@ -39,8 +43,8 @@ export const signup = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { phone, password } = req.body as { phone?: string; password?: string };
-    const result = await loginLoyalty(phone || "", password || "");
+    const { email, password } = req.body as { email?: string; password?: string };
+    const result = await loginLoyalty(email || "", password || "");
     if (!result.ok) return fail(res, req, result);
     res.status(200).json({ token: result.token, account: result.account });
   } catch (error) {
