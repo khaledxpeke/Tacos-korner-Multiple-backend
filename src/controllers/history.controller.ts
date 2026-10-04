@@ -103,9 +103,11 @@ export const addHistory = async (req: Request, res: Response) => {
 
     const loyaltyUserId =
       typeof req.body.loyaltyUserId === "string" ? req.body.loyaltyUserId.trim() : "";
+    const pointsRequested = Number(req.body.pointsToRedeem);
     const rates = loyaltyRates(settings);
-    // `total` is the amount after the coupon and before points. The server
-    // decides how many points are spent; the borne does not choose an amount.
+    // `total` is the amount after the coupon and before points. Points are
+    // spent only when the customer turns cashback on (`pointsToRedeem` > 0).
+    // The server still decides how many points that spends.
     const loyaltyPreview = loyaltyUserId
       ? await previewLoyalty({
           loyaltyUserId,
@@ -113,6 +115,7 @@ export const addHistory = async (req: Request, res: Response) => {
           earnPoints: rates.earnPoints,
           redeemPoints: rates.redeemPoints,
           maxPercent: rates.maxPercent,
+          spendPoints: Number.isFinite(pointsRequested) && pointsRequested > 0,
         })
       : null;
     if (loyaltyPreview && !loyaltyPreview.ok) {

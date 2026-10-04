@@ -324,6 +324,8 @@ export const previewLoyalty = async (input: {
   earnPoints: number;
   redeemPoints: number;
   maxPercent: number;
+  /** The customer asked to spend points. Otherwise the balance is left alone. */
+  spendPoints: boolean;
 }): Promise<LoyaltyPreview> => {
   if (!mongoose.Types.ObjectId.isValid(input.loyaltyUserId)) {
     return { ok: false, status: 400, messageKey: "loyalty.account_not_found" };
@@ -333,12 +335,14 @@ export const previewLoyalty = async (input: {
   }
   const account = await LoyaltyAccount.findOne({ userId: input.loyaltyUserId });
   if (!account) return { ok: false, status: 400, messageKey: "loyalty.account_not_found" };
-  const pointsRedeemed = cashbackPoints(
-    account.balance,
-    input.amountDue,
-    input.redeemPoints,
-    input.maxPercent
-  );
+  const pointsRedeemed = input.spendPoints
+    ? cashbackPoints(
+        account.balance,
+        input.amountDue,
+        input.redeemPoints,
+        input.maxPercent
+      )
+    : 0;
   const dueCents = Math.round(input.amountDue * 100);
   const discountCents = Math.round((pointsRedeemed * 100) / input.redeemPoints);
   const paidCents = Math.max(0, dueCents - discountCents);
