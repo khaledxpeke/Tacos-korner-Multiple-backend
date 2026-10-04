@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 import { env } from "../config/environment";
 import { USER_ROLES } from "../enum/constants";
+import { History } from "../models/history.model";
+import { Restaurant } from "../models/restaurant.model";
 import { Settings } from "../models/settings.model";
 import { User } from "../models/user.model";
 import {
@@ -177,6 +179,69 @@ export const loginLoyalty = async (input: {
   };
 };
 
+function optionLabel(value: unknown) {
+  if (!value || typeof value !== "object" || !("name" in value)) return "";
+  const name = String((value as { name?: string }).name || "").trim();
+  const count = Number((value as { count?: number }).count) || 1;
+  return count > 1 ? `${count}× ${name}` : name;
+}
+
+function mediaPath(value: unknown) {
+  if (!value || typeof value !== "object" || !("url" in value)) return "";
+  const url = (value as { url?: string }).url;
+  return typeof url === "string" ? url.replace(/\\/g, "/") : "";
+}
+
+async function orderSummaries(
+  rows: Array<{ historyId?: unknown; restaurantId?: unknown }>
+) {
+  const historyIds = rows.map((row) => row.historyId).filter(Boolean);
+  const restaurantIds = rows.map((row) => row.restaurantId).filter(Boolean);
+  const [histories, restaurants] = await Promise.all([
+    History.find({ _id: { $in: historyIds } })
+      .select("commandNumber total currency pack method product note logo restaurantId")
+      .lean(),
+    Restaurant.find({ _id: { $in: restaurantIds } })
+      .select("name logo")
+      .populate("logo", "url")
+      .lean(),
+  ]);
+  const places = new Map(
+    restaurants.map((place) => {
+      const id = String(place._id);
+      return [id, { name: place.name, logo: mediaPath(place.logo) }] as const;
+    })
+  );
+  const orders = new Map<string, Record<string, unknown>>();
+  for (const history of histories) {
+    const place = places.get(String(history.restaurantId));
+    const items = (history.product || []).map((product) => {
+      const details = [
+        product.variation?.name,
+        ...(product.addons || []).map(optionLabel),
+        ...(product.extras || []).map(optionLabel),
+      ].filter(Boolean);
+      return {
+        name: product.plat?.name || "Article",
+        count: Number(product.plat?.count) || 1,
+        details: details.join(" · "),
+      };
+    });
+    orders.set(String(history._id), {
+      commandNumber: history.commandNumber ?? null,
+      restaurantName: place?.name || "",
+      logo: place?.logo || String(history.logo || "").replace(/\\/g, "/"),
+      total: history.total ?? null,
+      currency: history.currency || "",
+      pack: history.pack?.label || "",
+      method: history.method?.label || "",
+      note: String(history.note || "").trim(),
+      items,
+    });
+  }
+  return orders;
+}
+
 export const getLoyaltyProfile = async (userId: string) => {
   if (!mongoose.Types.ObjectId.isValid(userId)) return null;
   const account = await LoyaltyAccount.findOne({ userId });
@@ -201,17 +266,20 @@ export const getLoyaltyLedger = async (userId: string, page = 1, limit = 6) => {
     .skip((current - 1) * safeLimit)
     .limit(safeLimit)
     .lean();
+  const orders = await orderSummaries(rows);
   return {
     entries: rows.map((row) => {
       const entry = row as typeof row & { _id: unknown; createdAt?: Date };
+      const historyId = String(entry.historyId);
       return {
         id: String(entry._id),
         type: entry.type,
         points: entry.points,
         balanceAfter: entry.balanceAfter,
-        historyId: String(entry.historyId),
+        historyId,
         restaurantId: String(entry.restaurantId),
         createdAt: entry.createdAt,
+        order: orders.get(historyId) ?? null,
       };
     }),
     page: current,
