@@ -123,6 +123,7 @@ export interface AddHistoryBody {
   couponId?: string | null;
   loyaltyUserId?: string;
   pointsToRedeem?: number;
+  note?: string;
 }
 
 export interface HistoryListQuery {
