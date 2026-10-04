@@ -166,7 +166,6 @@ export const addHistory = async (req: Request, res: Response) => {
       loyaltyPointsRedeemed: loyaltyPreview?.ok ? loyaltyPreview.pointsRedeemed : 0,
       loyaltyPointsEarned: loyaltyPreview?.ok ? loyaltyPreview.pointsEarned : 0,
       status: "enCours",
-      note: typeof note === "string" ? note.trim() : "",
       logo: restaurant!.logo as unknown as string,
       method: {
         _id: methodExists._id,

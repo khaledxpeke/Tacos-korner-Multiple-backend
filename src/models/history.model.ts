@@ -66,7 +66,6 @@ export interface IHistory {
   loyaltyPointsRedeemed?: number;
   loyaltyPointsEarned?: number;
   status: HistoryStatus;
-  note?: string;
   boughtAt: Date;
   restaurantId: Types.ObjectId;
   /**
@@ -141,7 +140,6 @@ const historySchema = new Schema<IHistory>(
       default: "enCours",
       enum: ["enCours", "terminee", "annulee", "echouee", "enAttente", "remboursee", "enRetard"],
     },
-    note: { type: String, default: "" },
     boughtAt: { type: Date, default: Date.now },
     restaurantId: { type: Schema.Types.ObjectId, ref: "Restaurant", required: true },
   },
