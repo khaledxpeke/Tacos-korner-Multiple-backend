@@ -297,7 +297,6 @@ function formatOrderForPrint(
 <text>-----------------------------------------------</text>
 <feed line="1"/>
 ${productList}
-<feed line="1"/>
 <text>===============================================</text>
 <feed line="1"/>
 <text em="false" align="left">${formatLine(
@@ -364,8 +363,12 @@ ${noteXml(order.note)}
     order.boughtAt
   ).toLocaleString("fr-FR")}</text>
 <feed line="2"/>
-${noteXml(order.note)}
 ${kitchenProductList}
+${
+  (order.note ?? "").trim()
+    ? `<feed line="1"/>${noteXml(order.note)}`
+    : ""
+}
 <feed line="2"/>
 <cut/>
 </epos-print>`;

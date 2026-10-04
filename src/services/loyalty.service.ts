@@ -186,21 +186,39 @@ export const getLoyaltyProfile = async (userId: string) => {
   return publicAccount(account, user.fullName, user.email);
 };
 
-export const getLoyaltyLedger = async (userId: string) => {
-  if (!mongoose.Types.ObjectId.isValid(userId)) return [];
-  const rows = await LoyaltyLedger.find({ userId }).sort("-createdAt").limit(50).lean();
-  return rows.map((row) => {
-    const entry = row as typeof row & { _id: unknown; createdAt?: Date };
-    return {
-      id: String(entry._id),
-      type: entry.type,
-      points: entry.points,
-      balanceAfter: entry.balanceAfter,
-      historyId: String(entry.historyId),
-      restaurantId: String(entry.restaurantId),
-      createdAt: entry.createdAt,
-    };
-  });
+export const getLoyaltyLedger = async (userId: string, page = 1, limit = 6) => {
+  const safeLimit = Number.isInteger(limit) && limit >= 1 && limit <= 20 ? limit : 6;
+  const requested = Number.isInteger(page) && page >= 1 ? page : 1;
+  if (!mongoose.Types.ObjectId.isValid(userId)) {
+    return { entries: [], page: 1, limit: safeLimit, total: 0, pages: 0 };
+  }
+  const filter = { userId };
+  const total = await LoyaltyLedger.countDocuments(filter);
+  const pages = total === 0 ? 0 : Math.ceil(total / safeLimit);
+  const current = pages === 0 ? 1 : Math.min(requested, pages);
+  const rows = await LoyaltyLedger.find(filter)
+    .sort("-createdAt")
+    .skip((current - 1) * safeLimit)
+    .limit(safeLimit)
+    .lean();
+  return {
+    entries: rows.map((row) => {
+      const entry = row as typeof row & { _id: unknown; createdAt?: Date };
+      return {
+        id: String(entry._id),
+        type: entry.type,
+        points: entry.points,
+        balanceAfter: entry.balanceAfter,
+        historyId: String(entry.historyId),
+        restaurantId: String(entry.restaurantId),
+        createdAt: entry.createdAt,
+      };
+    }),
+    page: current,
+    limit: safeLimit,
+    total,
+    pages,
+  };
 };
 
 export const openLoyaltySession = async (restaurantId: string) => {

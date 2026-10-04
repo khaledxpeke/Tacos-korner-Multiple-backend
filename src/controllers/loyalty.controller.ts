@@ -70,8 +70,14 @@ export const me = async (req: Request, res: Response) => {
 };
 
 export const ledger = async (req: Request, res: Response) => {
-  const entries = await getLoyaltyLedger(String(req.user?.user?._id || ""));
-  res.status(200).json({ entries });
+  const page = Number(Array.isArray(req.query.page) ? req.query.page[0] : req.query.page);
+  const limit = Number(Array.isArray(req.query.limit) ? req.query.limit[0] : req.query.limit);
+  const result = await getLoyaltyLedger(
+    String(req.user?.user?._id || ""),
+    page,
+    limit
+  );
+  res.status(200).json(result);
 };
 
 export const createSession = async (req: Request, res: Response) => {
