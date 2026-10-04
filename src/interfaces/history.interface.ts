@@ -54,6 +54,7 @@ export interface PrintOrder {
   method: { label: string };
   discountValue?: number;
   couponId?: { couponType?: string } | null;
+  loyaltyDiscount?: number;
   note?: string;
 }
 

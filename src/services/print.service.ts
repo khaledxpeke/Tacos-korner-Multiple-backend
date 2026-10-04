@@ -302,6 +302,10 @@ ${productList}
     tvaAmount.toFixed(2)
   )}</text>
 <feed line="1"/>
+<text>${formatLine("Total(HT)", totalHT.toFixed(2))}</text>
+<feed line="1"/>
+<text>${formatLine("Sous total", (totalHT + tvaAmount).toFixed(2))}</text>
+<feed line="1"/>
 ${
   order.discountValue && order.couponId
     ? `<text align="left">${formatLine(
@@ -312,15 +316,21 @@ ${
       )}</text><feed line="1"/>`
     : ""
 }
-<text>${formatLine("Total(HT)", totalHT.toFixed(2))}</text>
-<feed line="1"/>
+${
+  Number(order.loyaltyDiscount) > 0
+    ? `<text align="left">${formatLine(
+        "Fidélité",
+        "-" + Number(order.loyaltyDiscount).toFixed(2) + " " + currencySymbol
+      )}</text><feed line="1"/>`
+    : ""
+}
 <text>===============================================</text>
 <feed line="1"/>
 <text em="true">${formatLine(
     "Total",
     order.total.toFixed(2) + " " + currencySymbol
   )}</text>
-<feed line="1"/>
+<feed line="2"/>
 ${noteXml(order.note)}
 <feed line="1"/>
 <text em="false" align="center">Merci de nous laisser 5 étoiles sur Google SVP:)</text>
