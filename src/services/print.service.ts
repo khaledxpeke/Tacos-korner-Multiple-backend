@@ -320,7 +320,7 @@ ${
         "Remise",
         order.couponId.couponType === "percentage"
           ? "-" + order.discountValue + " %"
-          : "-" + order.discountValue + " " + currencySymbol
+          : "-" + Number(order.discountValue).toFixed(2)
       )}</text><feed line="1"/>`
     : ""
 }
@@ -328,7 +328,7 @@ ${
   Number(order.loyaltyDiscount) > 0
     ? `<text align="left">${formatLine(
         "Fidélité",
-        "-" + Number(order.loyaltyDiscount).toFixed(2) + " " + currencySymbol
+        "-" + Number(order.loyaltyDiscount).toFixed(2)
       )}</text><feed line="1"/>`
     : ""
 }
