@@ -374,7 +374,7 @@ export const getHistory = async (req: Request, res: Response) => {
       })
       .populate({
         path: "couponId",
-        select: "couponType",
+        select: "couponType code",
       })
       .lean();
 
