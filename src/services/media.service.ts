@@ -23,11 +23,13 @@ export const forwardToMediaBackend = async ({
   type,
   originalname,
   restaurantId,
+  shared,
 }: {
   filePath: string;
   type: string;
   originalname: string;
   restaurantId?: string;
+  shared?: boolean;
 }) => {
   const cleanUrl = (fullUrl?: string | null) => {
     if (!fullUrl) return null;
@@ -52,7 +54,13 @@ export const forwardToMediaBackend = async ({
   });
   const { hash, mimeType, size } = hashResponse.data;
 
-  const existingMedia = await Media.findOne({ hash });
+  const existingMedia = await Media.findOne(
+    shared === true
+      ? { hash, scope: "shared" }
+      : shared === false
+        ? { hash, scope: "restaurant", restaurantId, type }
+        : { hash }
+  );
 
   if (existingMedia) {
     const relativeUrl = cleanUrl(existingMedia.url);
@@ -74,7 +82,14 @@ export const forwardToMediaBackend = async ({
   const params = new URLSearchParams();
   params.append("type", type);
   params.append("hash", hash);
-  if (restaurantId) params.append("restaurantId", restaurantId);
+  if (shared === true) {
+    params.append("shared", "true");
+  } else if (shared === false) {
+    params.append("shared", "false");
+    if (restaurantId) params.append("restaurantId", restaurantId);
+  } else if (restaurantId) {
+    params.append("restaurantId", restaurantId);
+  }
 
   const url = `${mediaBackendUrl}/api/media/upload?${params.toString()}`;
 

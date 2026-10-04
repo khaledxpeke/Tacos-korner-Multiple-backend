@@ -25,6 +25,15 @@ const targetTypeMediaTypes: Record<string, string[]> = {
   Restaurant: ["logo"],
 };
 
+const folderByTarget: Record<string, string> = {
+  Product: "product",
+  Category: "category",
+  Ingrediant: "ingredient",
+  Allergy: "allergy",
+  Settings: "banner",
+  Restaurant: "logo",
+};
+
 export const addMedia = async (req: Request, res: Response) => {
   const upload = localUpload.array("files", 10);
 
@@ -52,35 +61,41 @@ export const addMedia = async (req: Request, res: Response) => {
         (typeof restaurantIdHeader === "string" ? restaurantIdHeader : undefined);
       const queryType =
         typeof req.query.type === "string" ? req.query.type : undefined;
-      const { targetType, targetId } = req.body as {
+      const { targetType, targetId, shared: sharedRaw } = req.body as {
         targetType?: string;
         targetId?: string;
+        shared?: string | boolean;
       };
+      const shared = sharedRaw !== "false" && sharedRaw !== false;
+      if (!shared && !restaurantId) {
+        await cleanupFiles(tempFiles);
+        return res.status(400).json({ message: req.t("media.restaurant_required") });
+      }
       const type =
-        targetType === "Settings" && (!queryType || queryType === "image")
-          ? "banner"
-          : targetType === "Restaurant" && (!queryType || queryType === "image")
-            ? "logo"
-            : queryType;
+        queryType === "video"
+          ? "video"
+          : (targetType && folderByTarget[targetType]) || queryType || "image";
 
       const mediaPromises = tempFiles.map(async (file) => {
         const mediaResponse = await forwardToMediaBackend({
           filePath: file.path,
-          restaurantId: restaurantId?.toString(),
+          restaurantId: shared ? undefined : restaurantId?.toString(),
           type: type || "image",
           originalname: file.originalname,
+          shared,
         });
 
         const restaurantIdValue = restaurantId?.toString();
-        let mediaDoc = await Media.findOne({
-          hash: mediaResponse.hash,
-          $or: [
-            { scope: "shared" },
-            ...(restaurantIdValue
-              ? [{ scope: "restaurant" as const, restaurantId: restaurantIdValue }]
-              : []),
-          ],
-        });
+        let mediaDoc = await Media.findOne(
+          shared
+            ? { hash: mediaResponse.hash, scope: "shared" }
+            : {
+                hash: mediaResponse.hash,
+                scope: "restaurant",
+                restaurantId: restaurantIdValue,
+                type: type || "image",
+              }
+        );
         if (!mediaDoc) {
           mediaDoc = new Media({
             filename: mediaResponse.filename || file.originalname,
@@ -92,8 +107,8 @@ export const addMedia = async (req: Request, res: Response) => {
             targetType: targetType,
             targetId: targetId,
             type: type,
-            restaurantId: restaurantIdValue,
-            scope: "shared",
+            restaurantId: shared ? undefined : restaurantIdValue,
+            scope: shared ? "shared" : "restaurant",
           });
 
           await mediaDoc.save();
@@ -145,21 +160,27 @@ export const addMedia = async (req: Request, res: Response) => {
 
 export const listMedia = async (req: Request, res: Response) => {
   try {
-    const { targetType, targetId, q, limit = 50, page = 1, locateId, locateUrl } = req.query;
+    const { targetType, targetId, q, limit = 50, page = 1, locateId, locateUrl, scope } = req.query;
 
     const filter: FilterQuery<IMedia> = {};
     const restaurantIdHeader = req.headers["restaurant-id"];
     const restaurantId =
       typeof restaurantIdHeader === "string" ? restaurantIdHeader : undefined;
 
-    const scopeFilter: FilterQuery<IMedia> = restaurantId
-      ? {
-          $or: [
-            { scope: "shared" },
-            { scope: "restaurant", restaurantId },
-          ],
-        }
-      : { scope: "shared" };
+    const requestedScope = typeof scope === "string" ? scope : "";
+    const scopeFilter: FilterQuery<IMedia> =
+      requestedScope === "shared"
+        ? { scope: "shared" }
+        : requestedScope === "restaurant" && restaurantId
+          ? { scope: "restaurant", restaurantId }
+          : restaurantId
+            ? {
+                $or: [
+                  { scope: "shared" },
+                  { scope: "restaurant", restaurantId },
+                ],
+              }
+            : { scope: "shared" };
 
     const extraFilters: FilterQuery<IMedia>[] = [scopeFilter];
 

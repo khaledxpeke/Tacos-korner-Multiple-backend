@@ -52,6 +52,8 @@ export interface IHistory {
   method: IHistoryMethod;
   name: string;
   email?: string;
+  /** Optional message written by the customer at checkout. */
+  note?: string;
   total: number;
   commandNumber?: number;
   logo: string;
@@ -122,6 +124,7 @@ const historySchema = new Schema<IHistory>(
     },
     name: { type: String, required: true },
     email: { type: String },
+    note: { type: String, default: "" },
     total: { type: Number, required: true },
     commandNumber: { type: Number },
     logo: { type: String, default: "uploads/logo.png" },

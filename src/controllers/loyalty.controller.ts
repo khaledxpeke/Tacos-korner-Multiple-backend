@@ -43,8 +43,18 @@ export const signup = async (req: Request, res: Response) => {
 
 export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body as { email?: string; password?: string };
-    const result = await loginLoyalty(email || "", password || "");
+    const { email, phone, country, password } = req.body as {
+      email?: string;
+      phone?: string;
+      country?: string;
+      password?: string;
+    };
+    const result = await loginLoyalty({
+      email,
+      phone,
+      country,
+      password: password || "",
+    });
     if (!result.ok) return fail(res, req, result);
     res.status(200).json({ token: result.token, account: result.account });
   } catch (error) {

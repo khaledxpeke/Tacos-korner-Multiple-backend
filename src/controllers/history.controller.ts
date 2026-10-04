@@ -47,6 +47,14 @@ export const setIO = (socketIO: Server) => {
   startDelayedOrderWorker();
 };
 
+function readOrderNote(value: unknown): string {
+  if (typeof value !== "string") return "";
+  return value
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+    .trim()
+    .slice(0, 400);
+}
+
 
 export const addHistory = async (req: Request, res: Response) => {
   const {
@@ -148,6 +156,7 @@ export const addHistory = async (req: Request, res: Response) => {
         };
       }),
       name,
+      note: readOrderNote(note),
       currency: orderCurrency,
       tva,
       discountValue: discountValue || 0,

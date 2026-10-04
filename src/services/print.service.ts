@@ -46,6 +46,54 @@ function padLine(label: string, price: string | number, totalWidth = 45) {
   const space = totalWidth - left.length - right.length;
   return `${left}${" ".repeat(Math.max(0, space))}${right}`;
 }
+
+function escapeXml(value: string) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function wrapLines(text: string, width: number): string[] {
+  const lines: string[] = [];
+  for (const paragraph of text.split(/\r?\n/)) {
+    const words = paragraph.trim().split(/\s+/).filter(Boolean);
+    if (words.length === 0) continue;
+    let current = "";
+    for (const word of words) {
+      if (word.length > width) {
+        if (current) {
+          lines.push(current);
+          current = "";
+        }
+        for (let i = 0; i < word.length; i += width) {
+          lines.push(word.slice(i, i + width));
+        }
+        continue;
+      }
+      const next = current ? `${current} ${word}` : word;
+      if (next.length > width) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = next;
+      }
+    }
+    if (current) lines.push(current);
+  }
+  return lines;
+}
+
+function noteXml(note: string | undefined, width: number, attrs: string) {
+  const cleaned = (note ?? "").trim();
+  if (!cleaned) return "";
+  const lines = wrapLines(cleaned, width);
+  if (lines.length === 0) return "";
+  const body = lines
+    .map((line) => `<text ${attrs}>${escapeXml(line)}</text><feed line="1"/>`)
+    .join("");
+  return `<text ${attrs}>Note</text><feed line="1"/>${body}<feed line="1"/>`;
+}
 // Convert order to print format - STEP 3: COMPLETE FLUTTER FORMAT
 function formatOrderForPrint(
   order: PrintOrder,
@@ -275,6 +323,7 @@ function formatOrderForPrint(
 <feed line="2"/>
 <text em="true">Méthode de paiement: ${order.method.label}</text>
 <feed line="2"/>
+${noteXml(order.note, 45, 'align="left" em="true"')}
 <text em="true">${padLine("Produits", "Prix")}</text>
 <feed line="1"/>
 <text em="false" width="1" height="1"/>
@@ -331,6 +380,7 @@ ${
     order.boughtAt
   ).toLocaleString("fr-FR")}</text>
 <feed line="2"/>
+${noteXml(order.note, 24, 'width="2" height="2" align="left" em="true"')}
 ${kitchenProductList}
 <feed line="2"/>
 <cut/>
