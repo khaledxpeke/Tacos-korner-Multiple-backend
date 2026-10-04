@@ -49,6 +49,25 @@ export const createApp = (): Application => {
       // cross-origin by the dashboard and customer-facing apps (different
       // ports/hosts). Helmet's default "same-origin" CORP would block that.
       crossOriginResourcePolicy: { policy: "cross-origin" },
+      // The customer carousel is rendered as an EJS page with inline script,
+      // and Android WebView blocks the default Helmet CSP before the script can
+      // run. Allow the required inline script and CDN script to load for this
+      // endpoint while keeping the rest of the app protected.
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            "'unsafe-inline'",
+            "https://static.cloudflareinsights.com",
+          ],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "blob:", "https:"],
+          mediaSrc: ["'self'", "data:", "blob:", "https:"],
+          connectSrc: ["'self'", "https:"],
+          frameAncestors: ["'none'"],
+        },
+      },
     })
   );
 
