@@ -160,21 +160,27 @@ export const addMedia = async (req: Request, res: Response) => {
 
 export const listMedia = async (req: Request, res: Response) => {
   try {
-    const { targetType, targetId, q, limit = 50, page = 1, locateId, locateUrl } = req.query;
+    const { targetType, targetId, q, limit = 50, page = 1, locateId, locateUrl, scope } = req.query;
 
     const filter: FilterQuery<IMedia> = {};
     const restaurantIdHeader = req.headers["restaurant-id"];
     const restaurantId =
       typeof restaurantIdHeader === "string" ? restaurantIdHeader : undefined;
 
-    const scopeFilter: FilterQuery<IMedia> = restaurantId
-      ? {
-          $or: [
-            { scope: "shared" },
-            { scope: "restaurant", restaurantId },
-          ],
-        }
-      : { scope: "shared" };
+    const requestedScope = typeof scope === "string" ? scope : "";
+    const scopeFilter: FilterQuery<IMedia> =
+      requestedScope === "shared"
+        ? { scope: "shared" }
+        : requestedScope === "restaurant" && restaurantId
+          ? { scope: "restaurant", restaurantId }
+          : restaurantId
+            ? {
+                $or: [
+                  { scope: "shared" },
+                  { scope: "restaurant", restaurantId },
+                ],
+              }
+            : { scope: "shared" };
 
     const extraFilters: FilterQuery<IMedia>[] = [scopeFilter];
 
