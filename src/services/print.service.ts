@@ -262,6 +262,9 @@ function formatOrderForPrint(
     // }
   });
 
+  const hasCoupon = Boolean(order.discountValue && order.couponId);
+  const hasCashback = Number(order.loyaltyDiscount) > 0;
+
   return `<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
 <text align="left" em="true">${restaurant.name}</text>
 <feed line="1"/>
@@ -304,8 +307,14 @@ ${productList}
 <feed line="1"/>
 <text>${formatLine("Total(HT)", totalHT.toFixed(2))}</text>
 <feed line="1"/>
-<text>${formatLine("Sous total", (totalHT + tvaAmount).toFixed(2))}</text>
-<feed line="1"/>
+${
+  hasCoupon || hasCashback
+    ? `<text>${formatLine(
+        "Sous total",
+        (totalHT + tvaAmount).toFixed(2)
+      )}</text><feed line="1"/>`
+    : ""
+}
 ${
   order.discountValue && order.couponId
     ? `<text align="left">${formatLine(
