@@ -140,19 +140,35 @@ export const signupLoyalty = async (input: {
   };
 };
 
-export const loginLoyalty = async (emailInput: string, password: string) => {
-  const email = normalizeEmail(emailInput);
-  if (!email || !password) {
+export const loginLoyalty = async (input: {
+  email?: string;
+  phone?: string;
+  country?: string;
+  password: string;
+}) => {
+  if (!input.password) {
     return { ok: false as const, status: 400, messageKey: "loyalty.invalid_credentials" };
   }
-  const user = await User.findOne({ email });
-  if (!user || user.role !== USER_ROLES.CLIENT) {
+
+  let user;
+  let account: LoyaltyAccountDocument | null;
+  if (input.phone) {
+    const phone = composePhone(input.country || "", input.phone);
+    if (!phone) return { ok: false as const, status: 400, messageKey: "loyalty.phone_invalid" };
+    account = await LoyaltyAccount.findOne({ phone });
+    if (!account) return { ok: false as const, status: 401, messageKey: "loyalty.invalid_credentials" };
+    user = await User.findById(account.userId);
+  } else {
+    const email = normalizeEmail(input.email || "");
+    if (!email) return { ok: false as const, status: 400, messageKey: "loyalty.invalid_credentials" };
+    user = await User.findOne({ email });
+    account = user ? await LoyaltyAccount.findOne({ userId: user._id }) : null;
+  }
+  if (!user || user.role !== USER_ROLES.CLIENT || !account) {
     return { ok: false as const, status: 401, messageKey: "loyalty.invalid_credentials" };
   }
-  const account = await LoyaltyAccount.findOne({ userId: user._id });
-  if (!account) return { ok: false as const, status: 401, messageKey: "loyalty.invalid_credentials" };
   if (user.isBlocked) return { ok: false as const, status: 403, messageKey: "loyalty.account_blocked" };
-  const matches = await bcrypt.compare(password, user.password);
+  const matches = await bcrypt.compare(input.password, user.password);
   if (!matches) return { ok: false as const, status: 401, messageKey: "loyalty.invalid_credentials" };
   return {
     ok: true as const,
