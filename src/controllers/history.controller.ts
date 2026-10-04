@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import type { Server } from "socket.io";
+import mongoose from "mongoose";
 import fs from "fs";
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
@@ -218,7 +219,9 @@ export const addHistory = async (req: Request, res: Response) => {
           }
         }
 
-        const coupon = await Coupon.findById(couponId);
+        const coupon = mongoose.isValidObjectId(couponId)
+          ? await Coupon.findById(couponId)
+          : null;
         if (coupon) {
           coupon.usageCount += 1;
           if (coupon.usageCount >= coupon.limit) {
