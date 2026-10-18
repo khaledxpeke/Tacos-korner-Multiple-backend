@@ -12,6 +12,7 @@ interface MediaRef {
 }
 
 interface CategoryProductView {
+  choice?: "seul" | "multiple";
   visible?: boolean;
   image?: MediaRef | string | null;
   discountValue?: number;
@@ -440,7 +441,13 @@ export const getAllCategories = async (req: Request, res: Response) => {
         delete product.categories;
       });
 
-      category.products = category.products.filter((p) => p);
+      category.products = category.products.filter((product) => {
+        if (product.choice !== "multiple") return true;
+        const hasOptions = Array.isArray(product.type) && product.type.length > 0;
+        const variations = product.typeVariations?.variations;
+        const hasVariations = Array.isArray(variations) && variations.length > 0;
+        return hasOptions || hasVariations;
+      });
     });
 
     const finalCategories = populatedCategories.filter(
