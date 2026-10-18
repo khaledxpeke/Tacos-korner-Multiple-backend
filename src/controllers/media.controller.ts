@@ -66,7 +66,12 @@ export const addMedia = async (req: Request, res: Response) => {
         targetId?: string;
         shared?: string | boolean;
       };
-      const shared = sharedRaw !== "false" && sharedRaw !== false;
+      let shared = sharedRaw !== "false" && sharedRaw !== false;
+      // Adding or editing a restaurant happens outside an open restaurant,
+      // so a logo cannot be saved as exclusive.
+      if (!shared && !restaurantId && targetType === "Restaurant") {
+        shared = true;
+      }
       if (!shared && !restaurantId) {
         await cleanupFiles(tempFiles);
         return res.status(400).json({ message: req.t("media.restaurant_required") });
