@@ -20,6 +20,7 @@ declare namespace NodeJS {
     MARKETPAY_DEBUG?: string;
     ALLOWED_ORIGINS?: string;
     LOYALTY_WEB_URL?: string;
+    RECEIPT_LINK_SECRET?: string;
     NODE_ENV?: string;
   }
 }

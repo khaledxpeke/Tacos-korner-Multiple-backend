@@ -44,6 +44,7 @@ export const env = {
   marketPayMerchantId: optional("MARKETPAY_MERCHANT_ID"),
   marketPayDebug: process.env.MARKETPAY_DEBUG === "true",
   loyaltyWebUrl: optional("LOYALTY_WEB_URL", "http://localhost:3000/fidelite").replace(/\/+$/, ""),
+  receiptLinkSecret: optional("RECEIPT_LINK_SECRET"),
   allowedOrigins: withLoyaltyOrigin(
     optional("ALLOWED_ORIGINS", "http://localhost:3000,http://localhost:3006")
       .split(",")

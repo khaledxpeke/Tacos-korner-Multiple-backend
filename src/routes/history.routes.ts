@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { roleAuth, restaurantAuth } from "../middleware/auth.middleware";
 import {
   addHistory,
@@ -15,10 +16,21 @@ import {
   retryPrint,
   retryAllFailedPrints,
   getPrintStats,
+  getReceiptPdf,
 } from "../controllers/history.controller";
 import { USER_ROLES } from "../enum/constants";
 
 const router = Router();
+
+const receiptLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please try again later." },
+});
+
+router.get("/:id/receipt.pdf", receiptLimiter, getReceiptPdf);
 
 router.post(
   "/",

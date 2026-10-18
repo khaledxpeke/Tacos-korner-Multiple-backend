@@ -15,7 +15,8 @@ import { env } from "../config/environment";
 import { errorMessage, findActiveSettingOption } from "../utils/helpers";
 import { setHistoryIO, getHistoryIO } from "../services/history-io";
 import { removeFailedPrintJob, startPrintRetryWorker, triggerAutoPrint } from "../services/print.service";
-import { generatePDF } from "../services/history-pdf.service";
+import { generatePDF, generateReceiptPdf } from "../services/history-pdf.service";
+import { buildReceiptUrl, receiptSignatureMatches } from "../utils/receipt-link";
 import { commitLoyalty, loyaltyRates, previewLoyalty, reverseLoyaltyForHistory } from "../services/loyalty.service";
 import {
   notifyWaiters,
@@ -240,6 +241,7 @@ export const addHistory = async (req: Request, res: Response) => {
           await coupon.save();
         }
 
+        const receiptUrl = buildReceiptUrl(String(result._id), String(restaurantId));
         const response = {
           ...result.toObject(),
           pack: result.pack.label,
@@ -249,6 +251,7 @@ export const addHistory = async (req: Request, res: Response) => {
           coupon: coupon
             ? { couponType: coupon.couponType, code: coupon.code }
             : null,
+          ...(receiptUrl ? { receiptUrl } : {}),
         };
         if (getHistoryIO()) {
           getHistoryIO()!.emit("status-update", {
@@ -296,6 +299,61 @@ export const addHistory = async (req: Request, res: Response) => {
   } catch (error: unknown) {
     console.error(req.t("history.save_error_log"), error);
     res.status(500).json({ error: req.t("history.internal_server_error") });
+  }
+};
+
+export const getReceiptPdf = async (req: Request, res: Response) => {
+  const id = String(req.params.id || "");
+  const sig = typeof req.query.sig === "string" ? req.query.sig : "";
+  const exp = Number(req.query.exp);
+  if (!mongoose.isValidObjectId(id) || !sig || !Number.isInteger(exp)) {
+    return res.status(404).end();
+  }
+  try {
+    const history = await History.findById(id).populate("couponId", "couponType");
+    if (!history?.restaurantId) return res.status(404).end();
+    const restaurantId = String(history.restaurantId);
+    if (!receiptSignatureMatches(id, restaurantId, exp, sig)) {
+      return res.status(404).end();
+    }
+    if (exp < Math.floor(Date.now() / 1000)) return res.status(410).end();
+
+    const [restaurant, settings] = await Promise.all([
+      Restaurant.findById(restaurantId),
+      Settings.findOne({ restaurantId }),
+    ]);
+    if (!restaurant || !settings) return res.status(404).end();
+
+    const coupon = history.couponId as { couponType?: string } | null;
+    const pdf = await generateReceiptPdf({
+      restaurantName: restaurant.name,
+      address: restaurant.address || "",
+      commandNumber: history.commandNumber,
+      packLabel: history.pack?.label || "",
+      customerName: history.name,
+      boughtAt: history.boughtAt,
+      methodLabel: history.method?.label || "",
+      language: settings.defaultLanguage,
+      currency: history.currency || settings.defaultCurrency || "",
+      tva: history.tva ?? settings.tva ?? 0,
+      paid: Number(history.total) || 0,
+      discountValue: Number(history.discountValue) || 0,
+      couponType: coupon && typeof coupon === "object" ? coupon.couponType : null,
+      loyaltyDiscount: Number(history.loyaltyDiscount) || 0,
+      qrCode: settings.qrCode,
+      products: history.product,
+    });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="recu-${history.commandNumber ?? id}.pdf"`
+    );
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    return res.send(pdf);
+  } catch (error: unknown) {
+    console.error(error);
+    return res.status(500).end();
   }
 };
 
