@@ -14,7 +14,7 @@ import { createTransporter } from "../services/mail.service";
 import { env } from "../config/environment";
 import { errorMessage, findActiveSettingOption } from "../utils/helpers";
 import { setHistoryIO, getHistoryIO } from "../services/history-io";
-import { removeFailedPrintJob, startPrintRetryWorker, triggerAutoPrint } from "../services/print.service";
+import { removeFailedPrintJob, removeQueuedPrintJob, startPrintRetryWorker, triggerAutoPrint } from "../services/print.service";
 import { generatePDF, generateReceiptPdf } from "../services/history-pdf.service";
 import { buildReceiptUrl, receiptSignatureMatches } from "../utils/receipt-link";
 import { commitLoyalty, loyaltyRates, previewLoyalty, reverseLoyaltyForHistory } from "../services/loyalty.service";
@@ -725,6 +725,11 @@ export const deleteHistory = async (req: Request, res: Response) => {
     await StatusHistory.deleteMany({ historyId: history._id });
     await History.deleteOne({ _id: history._id, restaurantId });
     removeFailedPrintJob(history._id.toString());
+    try {
+      await removeQueuedPrintJob(String(restaurantId), history._id.toString());
+    } catch (printError: unknown) {
+      console.error(req.t("printer.queue_error_log"), printError);
+    }
 
     const io = getHistoryIO();
     if (io) {

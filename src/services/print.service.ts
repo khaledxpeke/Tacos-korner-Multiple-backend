@@ -579,6 +579,16 @@ export function startPrintRetryWorker() {
 
 export const getFailedPrintQueue = () => failedPrintQueue;
 
+export const removeQueuedPrintJob = async (restaurantId: string, orderId: string) => {
+  const response = await fetch(
+    `${PRINTER_SERVER_URL}/api/printer/queue/${encodeURIComponent(restaurantId)}/order/${encodeURIComponent(orderId)}`,
+    { method: "DELETE", signal: AbortSignal.timeout(5000) }
+  );
+  if (!response.ok) {
+    throw new Error(`Printer queue responded with status ${response.status}`);
+  }
+};
+
 export const removeFailedPrintJob = (orderId: string) => {
   const jobIndex = failedPrintQueue.findIndex(
     (job) => job.orderId.toString() === orderId
