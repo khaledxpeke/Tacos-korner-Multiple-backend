@@ -10,6 +10,12 @@ import { Currency } from "../models/currency.model";
 import { Media } from "../models/media.model";
 import { resolveMediaFromRequest } from "../services/media.service";
 
+const settingsSocketPayload = (settings: SettingsDocument) => {
+  const payload = settings.toObject();
+  if (payload.cardMinAmount == null) payload.cardMinAmount = 10;
+  return payload;
+};
+
 const isMediaObjectId = (value: unknown): boolean =>
   typeof value === "string"
     ? mongoose.isValidObjectId(value) && /^[a-fA-F0-9]{24}$/.test(value)
@@ -247,7 +253,10 @@ export const updateDefaultCurrency = async (req: Request, res: Response) => {
     await restaurant.settings.save();
 
     if (io) {
-      io.to(`restaurant-${restaurantId}`).emit("settings-updated", restaurant.settings);
+      io.to(`restaurant-${restaurantId}`).emit(
+        "settings-updated",
+        settingsSocketPayload(restaurant.settings)
+      );
     }
 
     return res.status(200).json({
@@ -509,7 +518,10 @@ export const updateSettings = async (req: Request, res: Response) => {
       console.log("About to emit settings-updated for restaurantId:", restaurantId);
       console.log("io is defined:", !!io);
       if (io) {
-        io.to(`restaurant-${restaurantId}`).emit("settings-updated", settings);
+        io.to(`restaurant-${restaurantId}`).emit(
+          "settings-updated",
+          settingsSocketPayload(settings)
+        );
         console.log("Emitted settings-updated to room:", `restaurant-${restaurantId}`);
       } else {
         console.log("io is not defined, emit skipped");
