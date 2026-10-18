@@ -344,10 +344,16 @@ export const getReceiptPdf = async (req: Request, res: Response) => {
       products: history.product,
     });
 
+    const receiptName = (history.name || "")
+      .trim()
+      .replace(/[\\/:*?"<>|]+/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const filename = `recu_${receiptName || history.commandNumber || id}.pdf`;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader(
       "Content-Disposition",
-      `attachment; filename="recu-${history.commandNumber ?? id}.pdf"`
+      `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`
     );
     res.setHeader("Cache-Control", "private, max-age=3600");
     return res.send(pdf);
