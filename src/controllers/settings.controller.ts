@@ -164,6 +164,7 @@ export const getSettings = async (req: Request, res: Response) => {
       isPasswordSet?: boolean;
       emailPass?: string;
       defaultLanguage?: string;
+      cardMinAmount?: number | null;
       banner?: unknown;
     };
     settingsObject.isPasswordSet = !!settingsObject.emailPass;
