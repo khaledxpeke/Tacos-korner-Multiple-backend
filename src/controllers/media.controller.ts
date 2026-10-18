@@ -66,9 +66,9 @@ export const addMedia = async (req: Request, res: Response) => {
         targetId?: string;
         shared?: string | boolean;
       };
-      let shared = sharedRaw !== "false" && sharedRaw !== false;
-      // Adding or editing a restaurant happens outside an open restaurant,
-      // so a logo cannot be saved as exclusive.
+      // Restaurant uploads stay on that restaurant unless sharing is explicit.
+      let shared = sharedRaw === "true" || sharedRaw === true;
+      // A logo added before the restaurant exists has no restaurant to attach to.
       if (!shared && !restaurantId && targetType === "Restaurant") {
         shared = true;
       }

@@ -143,7 +143,7 @@ export const resolveMediaFromRequest = async ({
         targetId,
         type,
         restaurantId: restaurantId?.toString(),
-        scope: "shared",
+        scope: restaurantId ? "restaurant" : "shared",
       });
       await mediaDoc.save();
     }
