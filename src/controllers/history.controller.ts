@@ -352,7 +352,7 @@ export const getReceiptPdf = async (req: Request, res: Response) => {
     res.setHeader("Cache-Control", "private, max-age=3600");
     return res.send(pdf);
   } catch (error: unknown) {
-    console.error(error);
+    console.error("receipt pdf failed", error);
     return res.status(500).end();
   }
 };

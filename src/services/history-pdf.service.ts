@@ -187,17 +187,21 @@ export const generateReceiptPdf = async (order: ReceiptPdfOrder) => {
   const browser = await sharedBrowser();
   const page = await browser.newPage();
   try {
-    await page.setViewport({ width: 302, height: 800 });
+    await page.setViewport({ width: 302, height: 800, deviceScaleFactor: 1 });
     await page.setContent(html, { waitUntil: "load" });
-    const height = Number(
-      await page.evaluate("Math.ceil(document.documentElement.scrollHeight)")
-    );
+    const height = await page.evaluate(() => {
+      const root = globalThis as unknown as {
+        document: { documentElement: { scrollHeight: number }; body: { scrollHeight: number } };
+      };
+      return Math.ceil(
+        Math.max(root.document.body.scrollHeight, root.document.documentElement.scrollHeight)
+      );
+    });
     const pdf = await page.pdf({
       width: "80mm",
       height: `${Math.max(height, 1)}px`,
       printBackground: true,
       margin: { top: "0", right: "0", bottom: "0", left: "0" },
-      pageRanges: "1",
     });
     return Buffer.from(pdf);
   } finally {

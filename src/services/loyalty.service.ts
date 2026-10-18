@@ -17,7 +17,8 @@ import {
 import { composePhone } from "../utils/phoneCountries";
 
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const SESSION_TTL_MS = 2 * 60 * 1000;
+// Unused QR sessions are deleted later. There is no countdown on the kiosk.
+const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
 const CUSTOMER_TOKEN_SECONDS = 30 * 24 * 60 * 60;
 
 const isStrongPassword = (password: string) =>
