@@ -199,7 +199,7 @@ async function orderSummaries(
   const restaurantIds = rows.map((row) => row.restaurantId).filter(Boolean);
   const [histories, restaurants] = await Promise.all([
     History.find({ _id: { $in: historyIds } })
-      .select("commandNumber total currency pack method product note logo restaurantId")
+      .select("commandNumber total currency pack method product logo restaurantId")
       .lean(),
     Restaurant.find({ _id: { $in: restaurantIds } })
       .select("name logo")
@@ -235,7 +235,6 @@ async function orderSummaries(
       currency: history.currency || "",
       pack: history.pack?.label || "",
       method: history.method?.label || "",
-      note: String(history.note || "").trim(),
       items,
     });
   }

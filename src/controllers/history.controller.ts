@@ -48,15 +48,6 @@ export const setIO = (socketIO: Server) => {
   startDelayedOrderWorker();
 };
 
-function readOrderNote(value: unknown): string {
-  if (typeof value !== "string") return "";
-  return value
-    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
-    .trim()
-    .slice(0, 400);
-}
-
-
 export const addHistory = async (req: Request, res: Response) => {
   const {
     products,
@@ -68,7 +59,6 @@ export const addHistory = async (req: Request, res: Response) => {
     commandNumber,
     discountValue,
     couponId,
-    note,
   } = req.body as AddHistoryBody;
   const { restaurantId } = req;
   try {
@@ -178,7 +168,6 @@ export const addHistory = async (req: Request, res: Response) => {
         };
       }),
       name,
-      note: readOrderNote(note),
       currency: orderCurrency,
       tva,
       discountValue: discountValue || 0,
@@ -255,7 +244,6 @@ export const addHistory = async (req: Request, res: Response) => {
           ...result.toObject(),
           pack: result.pack.label,
           method: result.method.label,
-          note: result.note ?? "",
           loyaltyDiscount: result.loyaltyDiscount ?? 0,
           discountValue: result.discountValue ?? 0,
           coupon: coupon

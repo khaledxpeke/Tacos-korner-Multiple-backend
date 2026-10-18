@@ -55,7 +55,6 @@ export interface PrintOrder {
   discountValue?: number;
   couponId?: { couponType?: string } | null;
   loyaltyDiscount?: number;
-  note?: string;
 }
 
 export interface PrintRestaurant {
@@ -125,7 +124,6 @@ export interface AddHistoryBody {
   couponId?: string | null;
   loyaltyUserId?: string;
   pointsToRedeem?: number;
-  note?: string;
 }
 
 export interface HistoryListQuery {

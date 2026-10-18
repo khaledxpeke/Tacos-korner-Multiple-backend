@@ -47,18 +47,6 @@ function padLine(label: string, price: string | number, totalWidth = 45) {
   return `${left}${" ".repeat(Math.max(0, space))}${right}`;
 }
 
-function escapeXml(value: string) {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function noteXml(note: string | undefined) {
-  const cleaned = (note ?? "").replace(/\s+/g, " ").trim();
-  if (!cleaned) return "";
-  return `<text align="left" em="false">Note : ${escapeXml(cleaned)}</text><feed line="1"/>`;
-}
 // Convert order to print format - STEP 3: COMPLETE FLUTTER FORMAT
 function formatOrderForPrint(
   order: PrintOrder,
@@ -339,8 +327,6 @@ ${
     order.total.toFixed(2) + " " + currencySymbol
   )}</text>
 <feed line="2"/>
-${noteXml(order.note)}
-<feed line="1"/>
 <text em="false" align="center">Merci de nous laisser 5 étoiles sur Google SVP:)</text>
 <text>À très vite !</text>
 <feed line="1"/>
@@ -364,11 +350,6 @@ ${noteXml(order.note)}
   ).toLocaleString("fr-FR")}</text>
 <feed line="2"/>
 ${kitchenProductList}
-${
-  (order.note ?? "").trim()
-    ? `<feed line="1"/>${noteXml(order.note)}`
-    : ""
-}
 <feed line="2"/>
 <cut/>
 </epos-print>`;
