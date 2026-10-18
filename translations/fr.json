@@ -18,6 +18,8 @@
   "history.email_sent_success": "E-mail envoyé avec succès",
   "history.command_number_error_log": "Erreur lors de la récupération du numéro de commande:",
   "history.history_not_found": "Historique non trouvé",
+  "history.deleted": "Commande supprimée",
+  "history.delete_error_log": "Erreur lors de la suppression de la commande:",
   "history.status_update_error_log": "Erreur lors de la mise à jour du statut de l'historique:",
   "history.fetch_histories_error": "Une erreur s'est produite lors de la récupération des historiques: {{error}}",
   "history.no_pending_print_job": "Aucune impression en attente",

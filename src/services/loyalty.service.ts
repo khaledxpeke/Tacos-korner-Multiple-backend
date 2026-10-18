@@ -482,3 +482,25 @@ export const commitLoyalty = async (input: {
   if (rows.length > 0) await LoyaltyLedger.insertMany(rows);
   return true;
 };
+
+export const reverseLoyaltyForHistory = async (history: {
+  _id: mongoose.Types.ObjectId;
+  loyaltyUserId?: mongoose.Types.ObjectId | null;
+  loyaltyPointsRedeemed?: number;
+  loyaltyPointsEarned?: number;
+}) => {
+  const earned = history.loyaltyPointsEarned || 0;
+  const redeemed = history.loyaltyPointsRedeemed || 0;
+  if (history.loyaltyUserId && (earned > 0 || redeemed > 0)) {
+    const account = await LoyaltyAccount.findOneAndUpdate(
+      { userId: history.loyaltyUserId },
+      { $inc: { balance: redeemed - earned } },
+      { new: true }
+    );
+    if (account && account.balance < 0) {
+      account.balance = 0;
+      await account.save();
+    }
+  }
+  await LoyaltyLedger.deleteMany({ historyId: history._id });
+};

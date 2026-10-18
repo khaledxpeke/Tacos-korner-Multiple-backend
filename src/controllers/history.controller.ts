@@ -14,9 +14,9 @@ import { createTransporter } from "../services/mail.service";
 import { env } from "../config/environment";
 import { errorMessage, findActiveSettingOption } from "../utils/helpers";
 import { setHistoryIO, getHistoryIO } from "../services/history-io";
-import { startPrintRetryWorker, triggerAutoPrint } from "../services/print.service";
+import { removeFailedPrintJob, startPrintRetryWorker, triggerAutoPrint } from "../services/print.service";
 import { generatePDF } from "../services/history-pdf.service";
-import { commitLoyalty, loyaltyRates, previewLoyalty } from "../services/loyalty.service";
+import { commitLoyalty, loyaltyRates, previewLoyalty, reverseLoyaltyForHistory } from "../services/loyalty.service";
 import {
   notifyWaiters,
   startDelayedOrderWorker,
@@ -642,6 +642,35 @@ export const getCommandNumber = async (req: Request, res: Response) => {
   } catch (error: unknown) {
     console.error(req.t("history.command_number_error_log"), error);
     res.status(500).json({ error: req.t("history.internal_server_error") });
+  }
+};
+
+export const deleteHistory = async (req: Request, res: Response) => {
+  const { id } = req.params as { id: string };
+  const { restaurantId } = req;
+  try {
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: req.t("history.history_not_found") });
+    }
+    const history = await History.findOne({ _id: id, restaurantId });
+    if (!history) {
+      return res.status(404).json({ message: req.t("history.history_not_found") });
+    }
+
+    await reverseLoyaltyForHistory(history);
+    await StatusHistory.deleteMany({ historyId: history._id });
+    await History.deleteOne({ _id: history._id, restaurantId });
+    removeFailedPrintJob(history._id.toString());
+
+    const io = getHistoryIO();
+    if (io) {
+      io.to(`restaurant-${restaurantId}`).emit("history-deleted", { id: history._id });
+    }
+
+    res.status(200).json({ message: req.t("history.deleted") });
+  } catch (error: unknown) {
+    console.error(req.t("history.delete_error_log"), error);
+    res.status(500).json({ message: req.t("history.internal_server_error") });
   }
 };
 

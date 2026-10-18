@@ -8,6 +8,7 @@ import {
   addEmail,
   getLatestPrintJob,
   updateStatus,
+  deleteHistory,
   getStatistics,
   manualPrint,
   getFailedPrints,
@@ -42,6 +43,12 @@ router.put(
   restaurantAuth(),
   roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER, USER_ROLES.WAITER]),
   updateStatus
+);
+router.delete(
+  "/:id",
+  restaurantAuth(),
+  roleAuth([USER_ROLES.ADMIN, USER_ROLES.MANAGER]),
+  deleteHistory
 );
 router.get(
   "/",

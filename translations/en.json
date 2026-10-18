@@ -18,6 +18,8 @@
   "history.email_sent_success": "Email sent successfully",
   "history.command_number_error_log": "Error getting command number:",
   "history.history_not_found": "History not found",
+  "history.deleted": "Order deleted",
+  "history.delete_error_log": "Error deleting order:",
   "history.status_update_error_log": "Error updating history status:",
   "history.fetch_histories_error": "An error occurred while fetching histories: {{error}}",
   "history.no_pending_print_job": "No pending print job",

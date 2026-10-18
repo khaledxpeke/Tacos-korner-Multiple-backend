@@ -18,6 +18,8 @@
     "history.email_sent_success": "تم إرسال البريد الإلكتروني بنجاح",
     "history.command_number_error_log": "حدث خطأ أثناء جلب رقم الطلب:",
     "history.history_not_found": "السجل غير موجود",
+    "history.deleted": "تم حذف الطلب",
+    "history.delete_error_log": "حدث خطأ أثناء حذف الطلب:",
     "history.status_update_error_log": "حدث خطأ أثناء تحديث حالة السجل:",
     "history.fetch_histories_error": "حدث خطأ أثناء جلب السجلات: {{error}}",
     "history.no_pending_print_job": "لا توجد مهام طباعة معلقة",
