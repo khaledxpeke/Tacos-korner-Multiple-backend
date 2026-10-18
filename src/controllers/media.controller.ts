@@ -66,13 +66,12 @@ export const addMedia = async (req: Request, res: Response) => {
         targetId?: string;
         shared?: string | boolean;
       };
-      // Restaurant uploads stay on that restaurant unless sharing is explicit.
+      // Restaurant logos are never a shared library. One added before the
+      // restaurant exists stays unassigned until the restaurant is saved.
+      const pendingLogo = targetType === "Restaurant" && !restaurantId;
       let shared = sharedRaw === "true" || sharedRaw === true;
-      // A logo added before the restaurant exists has no restaurant to attach to.
-      if (!shared && !restaurantId && targetType === "Restaurant") {
-        shared = true;
-      }
-      if (!shared && !restaurantId) {
+      if (pendingLogo) shared = false;
+      if (!shared && !restaurantId && !pendingLogo) {
         await cleanupFiles(tempFiles);
         return res.status(400).json({ message: req.t("media.restaurant_required") });
       }
@@ -84,22 +83,31 @@ export const addMedia = async (req: Request, res: Response) => {
       const mediaPromises = tempFiles.map(async (file) => {
         const mediaResponse = await forwardToMediaBackend({
           filePath: file.path,
-          restaurantId: shared ? undefined : restaurantId?.toString(),
+          restaurantId: shared || pendingLogo ? undefined : restaurantId?.toString(),
           type: type || "image",
           originalname: file.originalname,
-          shared,
+          // The file server needs a folder before a restaurant id exists.
+          // The library record below stays unassigned, not shared.
+          shared: pendingLogo ? true : shared,
         });
 
         const restaurantIdValue = restaurantId?.toString();
         let mediaDoc = await Media.findOne(
           shared
             ? { hash: mediaResponse.hash, scope: "shared" }
-            : {
-                hash: mediaResponse.hash,
-                scope: "restaurant",
-                restaurantId: restaurantIdValue,
-                type: type || "image",
-              }
+            : pendingLogo
+              ? {
+                  hash: mediaResponse.hash,
+                  scope: "restaurant",
+                  type: type || "image",
+                  $or: [{ restaurantId: null }, { restaurantId: { $exists: false } }],
+                }
+              : {
+                  hash: mediaResponse.hash,
+                  scope: "restaurant",
+                  restaurantId: restaurantIdValue,
+                  type: type || "image",
+                }
         );
         if (!mediaDoc) {
           mediaDoc = new Media({
@@ -181,20 +189,24 @@ export const listMedia = async (req: Request, res: Response) => {
       $or: [{ scope: "shared" }, { scope: { $exists: false } }, { scope: null }],
     };
     const scopeFilter: FilterQuery<IMedia> =
-      requestedScope === "shared"
-        ? sharedOrLegacy
-        : requestedScope === "restaurant" && restaurantId
+      typeKey === "Restaurant"
+        ? restaurantId
           ? { scope: "restaurant", restaurantId }
-          : restaurantId
-            ? {
-                $or: [
-                  { scope: "shared" },
-                  { scope: { $exists: false } },
-                  { scope: null },
-                  { scope: "restaurant", restaurantId },
-                ],
-              }
-            : sharedOrLegacy;
+          : { _id: { $in: [] } }
+        : requestedScope === "shared"
+          ? sharedOrLegacy
+          : requestedScope === "restaurant" && restaurantId
+            ? { scope: "restaurant", restaurantId }
+            : restaurantId
+              ? {
+                  $or: [
+                    { scope: "shared" },
+                    { scope: { $exists: false } },
+                    { scope: null },
+                    { scope: "restaurant", restaurantId },
+                  ],
+                }
+              : sharedOrLegacy;
 
     const extraFilters: FilterQuery<IMedia>[] = [];
     if (Object.keys(scopeFilter).length > 0) {

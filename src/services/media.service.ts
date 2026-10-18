@@ -156,8 +156,16 @@ export const resolveMediaFromRequest = async ({
       _id: req.body.mediaId,
       $or: [
         { scope: "shared" },
+        { scope: { $exists: false } },
+        { scope: null },
         ...(restaurantId
-          ? [{ restaurantId, scope: "restaurant" as const }]
+          ? [
+              { restaurantId, scope: "restaurant" as const },
+              {
+                scope: "restaurant" as const,
+                $or: [{ restaurantId: null }, { restaurantId: { $exists: false } }],
+              },
+            ]
           : []),
       ],
     });
@@ -166,6 +174,20 @@ export const resolveMediaFromRequest = async ({
       const error = new Error("Media not found") as Error & { status?: number };
       error.status = 404;
       throw error;
+    }
+
+    const ownerId = mediaDoc.restaurantId?.toString();
+    if (
+      targetType === "Restaurant" &&
+      restaurantId &&
+      (!ownerId || ownerId === restaurantId.toString())
+    ) {
+      mediaDoc.restaurantId = restaurantId as unknown as typeof mediaDoc.restaurantId;
+      mediaDoc.scope = "restaurant";
+      mediaDoc.targetType = "Restaurant";
+      if (targetId) mediaDoc.targetId = targetId as typeof mediaDoc.targetId;
+      if (type) mediaDoc.type = type;
+      await mediaDoc.save();
     }
 
     return mediaDoc;
