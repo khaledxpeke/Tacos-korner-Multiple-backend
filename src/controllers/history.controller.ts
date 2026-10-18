@@ -124,6 +124,24 @@ export const addHistory = async (req: Request, res: Response) => {
         .json({ message: req.t(loyaltyPreview.messageKey) });
     }
 
+    const paidTotal = loyaltyPreview?.ok ? loyaltyPreview.paidTotal : Number(total);
+    const cardMethod = settings.method[0];
+    const isCard =
+      cardMethod && methodExists._id.toString() === cardMethod._id.toString();
+    const cardMin = settings.cardMinAmount ?? 10;
+    if (
+      isCard &&
+      cardMin > 0 &&
+      Math.round(paidTotal * 100) < Math.round(cardMin * 100)
+    ) {
+      return res.status(400).json({
+        message: req.t("history.card_minimum", {
+          amount: cardMin.toFixed(2),
+          currency: settings.defaultCurrency || "€",
+        }),
+      });
+    }
+
     const tva = settings?.tva || 0;
     const orderCurrency = settings.defaultCurrency || currency || "";
     const history = await new History({

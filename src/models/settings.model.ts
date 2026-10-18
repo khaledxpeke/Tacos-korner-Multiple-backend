@@ -31,6 +31,8 @@ export interface ISettings {
   emailSender: string;
   emailName: string;
   method: IMethod[];
+  /** Smallest amount that can be paid by card. 0 means no minimum. */
+  cardMinAmount: number;
   pack: IPack[];
   restaurantId?: Types.ObjectId;
   printMode: boolean;
@@ -150,6 +152,11 @@ const settingsSchema = new Schema<ISettings>(
       default: "",
     },
     method: [methodSchema],
+    cardMinAmount: {
+      type: Number,
+      default: 10,
+      min: 0,
+    },
     pack: [packSchema],
     restaurantId: {
       type: Schema.Types.ObjectId,

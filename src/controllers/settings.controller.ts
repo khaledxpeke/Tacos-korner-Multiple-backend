@@ -171,6 +171,9 @@ export const getSettings = async (req: Request, res: Response) => {
     if (!settingsObject.defaultLanguage) {
       settingsObject.defaultLanguage = "fr";
     }
+    if (settingsObject.cardMinAmount == null) {
+      settingsObject.cardMinAmount = 10;
+    }
     settingsObject.banner = await resolveSettingsBannerUrl(settings);
 
     return res.status(200).json(settingsObject);
@@ -490,6 +493,15 @@ export const updateSettings = async (req: Request, res: Response) => {
           return res.status(400).json({ message: req.t("settings.loyalty_invalid") });
         }
         settings.loyaltyMaxPercent = maxPercent;
+      }
+
+      const cardMinRaw = req.body.cardMinAmount;
+      if (cardMinRaw !== undefined && cardMinRaw !== "") {
+        const cardMinAmount = Number(cardMinRaw);
+        if (!Number.isFinite(cardMinAmount) || cardMinAmount < 0) {
+          return res.status(400).json({ message: req.t("settings.card_min_invalid") });
+        }
+        settings.cardMinAmount = Math.round(cardMinAmount * 100) / 100;
       }
 
       await settings.save();
