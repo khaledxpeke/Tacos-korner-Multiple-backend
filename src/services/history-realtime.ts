@@ -284,6 +284,8 @@ export const getHistoriesRT = async (socket: Socket, restaurantId?: string) => {
                     totalHT: { $first: "$totalHT" },
                     tvaAmount: { $first: "$tvaAmount" },
                     discountValue: { $first: "$discountValue" },
+                    loyaltyDiscount: { $first: "$loyaltyDiscount" },
+                    note: { $first: "$note" },
                     tva: { $first: "$tva" },
                     // tvaRate: { $first: "$tvaRate" },
                     boughtAt: { $first: "$boughtAt" },

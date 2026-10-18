@@ -237,6 +237,12 @@ export const addHistory = async (req: Request, res: Response) => {
           ...result.toObject(),
           pack: result.pack.label,
           method: result.method.label,
+          note: result.note ?? "",
+          loyaltyDiscount: result.loyaltyDiscount ?? 0,
+          discountValue: result.discountValue ?? 0,
+          coupon: coupon
+            ? { couponType: coupon.couponType, code: coupon.code }
+            : null,
         };
         if (getHistoryIO()) {
           getHistoryIO()!.emit("status-update", {

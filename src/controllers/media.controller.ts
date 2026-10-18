@@ -168,24 +168,35 @@ export const listMedia = async (req: Request, res: Response) => {
       typeof restaurantIdHeader === "string" ? restaurantIdHeader : undefined;
 
     const requestedScope = typeof scope === "string" ? scope : "";
+    const typeKey =
+      typeof targetType === "string" ? targetType : targetType ? String(targetType) : "";
+    // Logos saved before scope existed have no scope field. Treat those as shared
+    // so the restaurant logo picker still lists them.
+    const sharedOrLegacy: FilterQuery<IMedia> = {
+      $or: [{ scope: "shared" }, { scope: { $exists: false } }, { scope: null }],
+    };
     const scopeFilter: FilterQuery<IMedia> =
       requestedScope === "shared"
-        ? { scope: "shared" }
+        ? sharedOrLegacy
         : requestedScope === "restaurant" && restaurantId
           ? { scope: "restaurant", restaurantId }
           : restaurantId
             ? {
                 $or: [
                   { scope: "shared" },
+                  { scope: { $exists: false } },
+                  { scope: null },
                   { scope: "restaurant", restaurantId },
                 ],
               }
-            : { scope: "shared" };
+            : sharedOrLegacy;
 
-    const extraFilters: FilterQuery<IMedia>[] = [scopeFilter];
+    const extraFilters: FilterQuery<IMedia>[] = [];
+    if (Object.keys(scopeFilter).length > 0) {
+      extraFilters.push(scopeFilter);
+    }
 
     if (targetType) {
-      const typeKey = typeof targetType === "string" ? targetType : String(targetType);
       const mediaTypes = targetTypeMediaTypes[typeKey] || [];
       const orConditions: FilterQuery<IMedia>[] = [{ targetType: typeKey }];
 

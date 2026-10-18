@@ -31,6 +31,7 @@ interface AggregatedRestaurant {
   createdAt?: Date;
   address: string;
   logo?: string | null;
+  logoId?: mongoose.Types.ObjectId | string | null;
   banner?: string | null;
 }
 
@@ -231,7 +232,27 @@ export const getRestaurants = async (req: Request, res: Response) => {
           active: 1,
           createdAt: 1,
           address: 1,
-          logo: { $arrayElemAt: ["$logoMedia.url", 0] },
+          logoId: {
+            $cond: [
+              { $eq: [{ $type: "$logo" }, "objectId"] },
+              "$logo",
+              { $arrayElemAt: ["$logoMedia._id", 0] },
+            ],
+          },
+          logo: {
+            $let: {
+              vars: { mediaUrl: { $arrayElemAt: ["$logoMedia.url", 0] } },
+              in: {
+                $cond: [
+                  { $ifNull: ["$$mediaUrl", false] },
+                  "$$mediaUrl",
+                  {
+                    $cond: [{ $eq: [{ $type: "$logo" }, "string"] }, "$logo", null],
+                  },
+                ],
+              },
+            },
+          },
           banner: { $arrayElemAt: ["$bannerMedia.url", 0] },
         },
       },
@@ -239,6 +260,7 @@ export const getRestaurants = async (req: Request, res: Response) => {
     const normalized = restaurants.map((r) => ({
       ...r,
       logo: r.logo?.replace(/\\/g, "/") || null,
+      logoId: r.logoId ? String(r.logoId) : null,
       banner: r.banner?.replace(/\\/g, "/") || null,
     }));
 
