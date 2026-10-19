@@ -340,63 +340,56 @@ export const getProductData = async (req: Request, res: Response) => {
 
     const typesExpanded = await Promise.all(
       (product.type || []).map(async (t) => {
+        // Type.ingredients / Type.products are [{ ingredient|product, position }]
+        // sub-documents, not direct refs: populate the nested ref.
         const typeDoc = (await Type.findOne({ _id: t._id, restaurantId })
           .populate({
-            path: "ingredients",
-            select:
-              "name image price suppPrice outOfStock visible variations position",
-            options: { sort: { position: 1 } },
-            populate: [
-              {
-                path: "variations",
-                model: "Variation",
-                select: "name price",
-              },
-              {
-                path: "image",
-                select: "url",
-              },
-            ],
+            path: "ingredients.ingredient",
+            model: "Ingrediant",
+            select: "name image price suppPrice outOfStock visible variations",
+            populate: { path: "image", select: "url" },
           })
           .populate({
-            path: "products",
+            path: "products.product",
+            model: "Product",
             select:
-              "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate tva formulePrice position",
-            options: { sort: { position: 1 } },
-            populate: {
-              path: "image",
-              select: "url",
-            },
+              "name price image outOfStock visible discountValue originalPrice discountStartDate discountEndDate tva formulePrice",
+            populate: { path: "image", select: "url" },
           })
           .lean()) as {
           _id: unknown;
           name?: string;
+          mode?: string;
           message?: string;
           payment?: boolean;
           selection?: boolean;
           max?: number;
           min?: number;
           ingredients?: Array<{
-            _id?: unknown;
-            name?: string;
-            image?: MediaRef | string | null;
-            price?: number;
-            suppPrice?: number;
-            outOfStock?: boolean;
-            visible?: boolean;
-            variations?: Array<{ _id: { toString(): string }; price?: number }>;
             position?: number;
-          }>;
-          products?: Array<
-            DiscountableProduct & {
+            ingredient?: {
               _id?: unknown;
               name?: string;
               image?: MediaRef | string | null;
+              price?: number;
+              suppPrice?: number;
               outOfStock?: boolean;
               visible?: boolean;
-              position?: number;
-            }
-          >;
+              variations?: Array<{ _id: { toString(): string }; price?: number }>;
+            } | null;
+          }>;
+          products?: Array<{
+            position?: number;
+            product?:
+              | (DiscountableProduct & {
+                  _id?: unknown;
+                  name?: string;
+                  image?: MediaRef | string | null;
+                  outOfStock?: boolean;
+                  visible?: boolean;
+                })
+              | null;
+          }>;
         } | null;
 
         if (!typeDoc) return null;
@@ -404,6 +397,7 @@ export const getProductData = async (req: Request, res: Response) => {
         const out: {
           _id: unknown;
           name?: string;
+          mode?: string;
           message?: string;
           payment?: boolean;
           selection?: boolean;
@@ -430,6 +424,7 @@ export const getProductData = async (req: Request, res: Response) => {
         } = {
           _id: typeDoc._id,
           name: typeDoc.name,
+          mode: typeDoc.mode,
           message: typeDoc.message,
           payment: typeDoc.payment,
           selection: typeDoc.selection,
@@ -442,8 +437,14 @@ export const getProductData = async (req: Request, res: Response) => {
           typeDoc.ingredients.length > 0
         ) {
           const ingrediants = typeDoc.ingredients
-            .filter((ing) => ing.visible && !ing.outOfStock)
-            .map((ing) => {
+            .filter(
+              (item) =>
+                item.ingredient &&
+                item.ingredient.visible &&
+                !item.ingredient.outOfStock
+            )
+            .map((item) => {
+              const ing = item.ingredient!;
               const ingredientImage = ing.image;
               const imageUrl =
                 ingredientImage && typeof ingredientImage === "object"
@@ -457,11 +458,10 @@ export const getProductData = async (req: Request, res: Response) => {
               return {
                 _id: ing._id,
                 name: ing.name,
-                image: imageUrl,
-                price,
+                image: imageUrl ?? null,
+                price: Number((price ?? 0).toFixed(2)),
                 outOfStock: ing.outOfStock,
-                position: ing.position ?? 0,
-                // visible: ing.visible,
+                position: item.position ?? 0,
               };
             })
             .sort((a, b) => a.position - b.position);
@@ -472,8 +472,12 @@ export const getProductData = async (req: Request, res: Response) => {
 
         if (Array.isArray(typeDoc.products) && typeDoc.products.length > 0) {
           const prodDocs = typeDoc.products
-            .filter((p) => p.visible && !p.outOfStock)
-            .map((p) => {
+            .filter(
+              (item) =>
+                item.product && item.product.visible && !item.product.outOfStock
+            )
+            .map((item) => {
+              const p = item.product!;
               const productImage = p.image;
               const imageUrl =
                 productImage && typeof productImage === "object"
@@ -500,8 +504,7 @@ export const getProductData = async (req: Request, res: Response) => {
                 hasDiscount: hasDiscount,
                 originalPrice: originalPrice,
                 outOfStock: p.outOfStock,
-                position: p.position ?? 0,
-                // visible: p.visible,
+                position: item.position ?? 0,
               };
             })
             .sort((a, b) => a.position - b.position);
