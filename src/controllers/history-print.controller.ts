@@ -6,6 +6,7 @@ import timezone from "dayjs/plugin/timezone";
 import { History } from "../models/history.model";
 import {
   getFailedPrintQueue,
+  parsePrintTarget,
   removeFailedPrintJob,
   removeFailedPrintJobsByRestaurant,
   triggerAutoPrint,
@@ -46,6 +47,7 @@ export const getLatestPrintJob = async (req: Request, res: Response) => {
 export const manualPrint = async (req: Request, res: Response) => {
   const { id } = req.params as { id: string };
   const { restaurantId } = req;
+  const target = parsePrintTarget(req.body?.target);
 
   try {
     const order = await History.findOne({ _id: id, restaurantId });
@@ -65,7 +67,7 @@ export const manualPrint = async (req: Request, res: Response) => {
     });
 
     // Trigger print (non-blocking)
-    setImmediate(() => triggerAutoPrint(id));
+    setImmediate(() => triggerAutoPrint(id, target));
   } catch (error: unknown) {
     console.error(req.t("history.manual_print_error_log"), error);
     res.status(500).json({ error: req.t("history.internal_server_error") });

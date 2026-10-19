@@ -47,11 +47,18 @@ function padLine(label: string, price: string | number, totalWidth = 45) {
   return `${left}${" ".repeat(Math.max(0, space))}${right}`;
 }
 
+export type PrintTarget = "client" | "kitchen" | "both";
+
+export function parsePrintTarget(value: unknown): PrintTarget {
+  return value === "client" || value === "kitchen" ? value : "both";
+}
+
 // Convert order to print format - STEP 3: COMPLETE FLUTTER FORMAT
 function formatOrderForPrint(
   order: PrintOrder,
   restaurant: PrintRestaurant,
-  settings: PrintSettings
+  settings: PrintSettings,
+  target: PrintTarget = "both"
 ) {
   const tva = order.tva || 0;
   // const totalHT = (100 * order.total) / (100 + tva);
@@ -253,8 +260,7 @@ function formatOrderForPrint(
   const hasCoupon = Boolean(order.discountValue && order.couponId);
   const hasCashback = Number(order.loyaltyDiscount) > 0;
 
-  return `<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
-<text align="left" em="true">${restaurant.name}</text>
+  const clientTicket = `<text align="left" em="true">${restaurant.name}</text>
 <feed line="1"/>
 <text em="false">${restaurant.address.replace(/\n/g, " ")}</text>
 <feed line="2"/>
@@ -336,8 +342,9 @@ ${
 <feed line="1"/>
 <text align="center" em="true" >Powered by LayaFood</text>
 <feed line="2"/>
-<cut/>
-<text reverse="true" width="2" height="2" >${alignLeftRightWide(
+<cut/>`;
+
+  const kitchenTicket = `<text reverse="true" width="2" height="2" >${alignLeftRightWide(
     "#" + order.commandNumber,
     order.pack.label,
     24
@@ -351,7 +358,11 @@ ${
 <feed line="2"/>
 ${kitchenProductList}
 <feed line="2"/>
-<cut/>
+<cut/>`;
+
+  return `<epos-print xmlns="http://www.epson-pos.com/schemas/2011/03/epos-print">
+${target !== "kitchen" ? clientTicket : ""}
+${target !== "client" ? kitchenTicket : ""}
 </epos-print>`;
 }
 
@@ -379,7 +390,10 @@ async function sendToPrinterServer(
 }
 
 // Auto-print function (non-blocking)
-export async function triggerAutoPrint(orderId: mongoose.Types.ObjectId | string) {
+export async function triggerAutoPrint(
+  orderId: mongoose.Types.ObjectId | string,
+  target: PrintTarget = "both"
+) {
   try {
     const order = await History.findById(orderId).populate("couponId", "couponType");
     if (!order) {
@@ -411,7 +425,8 @@ export async function triggerAutoPrint(orderId: mongoose.Types.ObjectId | string
       printXml: formatOrderForPrint(
         order as unknown as PrintOrder,
         restaurant,
-        settings
+        settings,
+        target
       ),
     };
 
