@@ -10,11 +10,28 @@ import { Currency } from "../models/currency.model";
 import { Media } from "../models/media.model";
 import { resolveMediaFromRequest } from "../services/media.service";
 
-const settingsSocketPayload = (settings: SettingsDocument) => {
-  const payload = settings.toObject();
+const defaultCardMinMessage = {
+  fr: "Carte bancaire à partir de {amount} {currency}",
+  en: "Card from {amount} {currency}",
+  ar: "البطاقة ابتداءً من {amount} {currency}",
+};
+
+const withSettingsDefaults = <T extends { cardMinAmount?: number | null; loyaltyEnabled?: boolean | null; cardMinMessage?: { fr?: string; en?: string; ar?: string } | null }>(
+  payload: T
+) => {
   if (payload.cardMinAmount == null) payload.cardMinAmount = 10;
+  if (payload.loyaltyEnabled == null) payload.loyaltyEnabled = true;
+  const message = payload.cardMinMessage || {};
+  payload.cardMinMessage = {
+    fr: message.fr || defaultCardMinMessage.fr,
+    en: message.en || defaultCardMinMessage.en,
+    ar: message.ar || defaultCardMinMessage.ar,
+  };
   return payload;
 };
+
+const settingsSocketPayload = (settings: SettingsDocument) =>
+  withSettingsDefaults(settings.toObject());
 
 const isMediaObjectId = (value: unknown): boolean =>
   typeof value === "string"
@@ -171,6 +188,8 @@ export const getSettings = async (req: Request, res: Response) => {
       emailPass?: string;
       defaultLanguage?: string;
       cardMinAmount?: number | null;
+      loyaltyEnabled?: boolean | null;
+      cardMinMessage?: { fr?: string; en?: string; ar?: string } | null;
       banner?: unknown;
     };
     settingsObject.isPasswordSet = !!settingsObject.emailPass;
@@ -178,9 +197,7 @@ export const getSettings = async (req: Request, res: Response) => {
     if (!settingsObject.defaultLanguage) {
       settingsObject.defaultLanguage = "fr";
     }
-    if (settingsObject.cardMinAmount == null) {
-      settingsObject.cardMinAmount = 10;
-    }
+    withSettingsDefaults(settingsObject);
     settingsObject.banner = await resolveSettingsBannerUrl(settings);
 
     return res.status(200).json(settingsObject);
@@ -512,6 +529,32 @@ export const updateSettings = async (req: Request, res: Response) => {
           return res.status(400).json({ message: req.t("settings.card_min_invalid") });
         }
         settings.cardMinAmount = Math.round(cardMinAmount * 100) / 100;
+      }
+
+      const loyaltyEnabledRaw = req.body.loyaltyEnabled;
+      if (loyaltyEnabledRaw !== undefined && loyaltyEnabledRaw !== "") {
+        settings.loyaltyEnabled = loyaltyEnabledRaw === true || loyaltyEnabledRaw === "true";
+      }
+
+      if (req.body.cardMinMessage !== undefined && req.body.cardMinMessage !== "") {
+        const raw = req.body.cardMinMessage;
+        let parsed: { fr?: unknown; en?: unknown; ar?: unknown };
+        try {
+          parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+        } catch {
+          return res.status(400).json({ message: req.t("settings.card_min_invalid") });
+        }
+        const current = settings.cardMinMessage || defaultCardMinMessage;
+        const clip = (value: unknown, fallback: string) => {
+          const text = String(value ?? fallback).trim();
+          return (text || fallback).slice(0, 180);
+        };
+        settings.cardMinMessage = {
+          fr: clip(parsed?.fr, current.fr || defaultCardMinMessage.fr),
+          en: clip(parsed?.en, current.en || defaultCardMinMessage.en),
+          ar: clip(parsed?.ar, current.ar || defaultCardMinMessage.ar),
+        };
+        settings.markModified("cardMinMessage");
       }
 
       await settings.save();

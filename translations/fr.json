@@ -164,6 +164,7 @@
   "settings.loyalty_invalid": "Les points de fidélité doivent être un nombre entier supérieur ou égal à 1.",
   "settings.card_min_invalid": "Le minimum carte doit être un nombre supérieur ou égal à 0.",
   "history.card_minimum": "Le paiement par carte demande au moins {{amount}} {{currency}}.",
+  "loyalty.disabled": "La fidélité est désactivée pour ce restaurant.",
   "receipt.payment_method": "Méthode de paiement: {{method}}",
   "receipt.product": "Produit",
   "receipt.price": "Prix",

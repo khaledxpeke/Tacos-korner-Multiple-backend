@@ -163,6 +163,7 @@
     "settings.loyalty_invalid": "يجب أن تكون نقاط الولاء عدداً صحيحاً لا يقل عن 1.",
     "settings.card_min_invalid": "يجب أن يكون الحد الأدنى للبطاقة رقماً أكبر من أو يساوي 0.",
     "history.card_minimum": "الدفع بالبطاقة يتطلب {{amount}} {{currency}} على الأقل.",
+  "loyalty.disabled": "برنامج الولاء متوقف لهذا المطعم.",
   "receipt.payment_method": "طريقة الدفع: {{method}}",
   "receipt.product": "المنتج",
   "receipt.price": "السعر",

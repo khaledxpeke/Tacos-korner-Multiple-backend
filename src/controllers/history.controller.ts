@@ -92,8 +92,11 @@ export const addHistory = async (req: Request, res: Response) => {
         .json({ message: req.t("history.payment_method_not_found") });
     }
 
+    const loyaltyOn = settings.loyaltyEnabled !== false;
     const loyaltyUserId =
-      typeof req.body.loyaltyUserId === "string" ? req.body.loyaltyUserId.trim() : "";
+      loyaltyOn && typeof req.body.loyaltyUserId === "string"
+        ? req.body.loyaltyUserId.trim()
+        : "";
     const pointsRequested = Number(req.body.pointsToRedeem);
     const rates = loyaltyRates(settings);
     // `total` is the amount after the coupon and before points. Points are

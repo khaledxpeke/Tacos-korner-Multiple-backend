@@ -3,6 +3,7 @@ import {
   getLoyaltyLedger,
   getLoyaltyProfile,
   getLoyaltyRules,
+  isLoyaltyEnabled,
   linkLoyaltySession,
   loginLoyalty,
   lookupLoyaltyCode,
@@ -84,6 +85,9 @@ export const createSession = async (req: Request, res: Response) => {
   if (!req.restaurantId) {
     return res.status(400).json({ message: req.t("loyalty.restaurant_required") });
   }
+  if (!(await isLoyaltyEnabled(String(req.restaurantId)))) {
+    return res.status(403).json({ message: req.t("loyalty.disabled") });
+  }
   const session = await openLoyaltySession(String(req.restaurantId));
   const rules = await getLoyaltyRules(String(req.restaurantId));
   res.status(201).json({ ...session, rules });
@@ -115,6 +119,9 @@ export const linkSession = async (req: Request, res: Response) => {
 };
 
 export const lookupCode = async (req: Request, res: Response) => {
+  if (req.restaurantId && !(await isLoyaltyEnabled(String(req.restaurantId)))) {
+    return res.status(403).json({ message: req.t("loyalty.disabled") });
+  }
   const { code } = req.body as { code?: string };
   const result = await lookupLoyaltyCode(code || "");
   if (!result.ok) return fail(res, req, result);

@@ -33,6 +33,14 @@ export interface ISettings {
   method: IMethod[];
   /** Smallest amount that can be paid by card. 0 means no minimum. */
   cardMinAmount: number;
+  /** Sentence shown when the card is blocked. `{amount}` and `{currency}` are replaced by the kiosk. */
+  cardMinMessage: {
+    fr: string;
+    en: string;
+    ar: string;
+  };
+  /** When false, the kiosk hides loyalty and the API ignores points on the order. */
+  loyaltyEnabled: boolean;
   pack: IPack[];
   restaurantId?: Types.ObjectId;
   printMode: boolean;
@@ -156,6 +164,24 @@ const settingsSchema = new Schema<ISettings>(
       type: Number,
       default: 10,
       min: 0,
+    },
+    cardMinMessage: {
+      fr: {
+        type: String,
+        default: "Carte bancaire à partir de {amount} {currency}",
+      },
+      en: {
+        type: String,
+        default: "Card from {amount} {currency}",
+      },
+      ar: {
+        type: String,
+        default: "البطاقة ابتداءً من {amount} {currency}",
+      },
+    },
+    loyaltyEnabled: {
+      type: Boolean,
+      default: true,
     },
     pack: [packSchema],
     restaurantId: {
