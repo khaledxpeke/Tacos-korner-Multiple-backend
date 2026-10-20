@@ -181,7 +181,7 @@ const settingsSchema = new Schema<ISettings>(
     },
     loyaltyEnabled: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     pack: [packSchema],
     restaurantId: {

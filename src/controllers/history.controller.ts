@@ -92,7 +92,7 @@ export const addHistory = async (req: Request, res: Response) => {
         .json({ message: req.t("history.payment_method_not_found") });
     }
 
-    const loyaltyOn = settings.loyaltyEnabled !== false;
+    const loyaltyOn = settings.loyaltyEnabled === true;
     const loyaltyUserId =
       loyaltyOn && typeof req.body.loyaltyUserId === "string"
         ? req.body.loyaltyUserId.trim()

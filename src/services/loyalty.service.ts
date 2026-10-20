@@ -325,7 +325,7 @@ export const linkLoyaltySession = async (token: string, userId: string) => {
   const session = await LoyaltySession.findOne({ token });
   if (!session) return { ok: false as const, status: 404, messageKey: "loyalty.session_not_found" };
   const place = await Settings.findOne({ restaurantId: session.restaurantId }).select("loyaltyEnabled");
-  if (place?.loyaltyEnabled === false) {
+  if (place?.loyaltyEnabled !== true) {
     return { ok: false as const, status: 403, messageKey: "loyalty.disabled" };
   }
   if (session.expiresAt.getTime() <= Date.now()) {
@@ -373,14 +373,14 @@ export const loyaltyRates = (settings?: {
 
 export const isLoyaltyEnabled = async (restaurantId: string) => {
   const settings = await Settings.findOne({ restaurantId }).select("loyaltyEnabled");
-  return settings?.loyaltyEnabled !== false;
+  return settings?.loyaltyEnabled === true;
 };
 
 export const getLoyaltyRules = async (restaurantId: string) => {
   const settings = await Settings.findOne({ restaurantId }).select(
     "loyaltyEarnPoints loyaltyRedeemPoints loyaltyMaxPercent loyaltyEnabled"
   );
-  return { ...loyaltyRates(settings), enabled: settings?.loyaltyEnabled !== false };
+  return { ...loyaltyRates(settings), enabled: settings?.loyaltyEnabled === true };
 };
 
 /** Points spent automatically. Below [redeemPoints] nothing is spent.

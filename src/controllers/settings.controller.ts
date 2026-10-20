@@ -20,7 +20,7 @@ const withSettingsDefaults = <T extends { cardMinAmount?: number | null; loyalty
   payload: T
 ) => {
   if (payload.cardMinAmount == null) payload.cardMinAmount = 10;
-  if (payload.loyaltyEnabled == null) payload.loyaltyEnabled = true;
+  if (payload.loyaltyEnabled == null) payload.loyaltyEnabled = false;
   const message = payload.cardMinMessage || {};
   payload.cardMinMessage = {
     fr: message.fr || defaultCardMinMessage.fr,
